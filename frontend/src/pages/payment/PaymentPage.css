@@ -1,0 +1,113 @@
+.payment-page {
+  max-width: 600px;
+}
+
+.payment-result {
+  padding: var(--space-2xl);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.payment-result__icon {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-sm);
+}
+
+.payment-result--success .payment-result__icon {
+  background: var(--success-bg);
+  box-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+}
+
+.payment-result--error .payment-result__icon {
+  background: var(--error-bg);
+  box-shadow: 0 0 30px rgba(248, 113, 113, 0.2);
+}
+
+.payment-result h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.payment-result p {
+  color: var(--text-secondary);
+}
+
+.payment-result__actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.payment-card {
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  text-align: center;
+}
+
+.payment-card__icon {
+  width: 90px;
+  height: 90px;
+  background: var(--primary-bg);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--neu-shadow);
+}
+
+.payment-card h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.payment-card__details {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--neu-inset-sm);
+}
+
+.payment-card__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.payment-card__row--total {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.payment-card__note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.payment-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+}

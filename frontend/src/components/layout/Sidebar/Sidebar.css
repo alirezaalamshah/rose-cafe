@@ -1,0 +1,200 @@
+.sidebar {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--header-height));
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: var(--z-sidebar);
+  transition: transform var(--transition);
+  padding: var(--space-lg) var(--space-md);
+}
+
+.sidebar--hidden {
+  transform: translateX(100%);
+}
+
+.sidebar__overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: calc(var(--z-sidebar) - 1);
+  backdrop-filter: blur(2px);
+}
+
+.sidebar__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.sidebar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--neu-inset-sm);
+  transition: var(--transition);
+}
+
+.sidebar__search:focus-within {
+  border-color: var(--border-hover);
+}
+
+.sidebar__search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-family);
+}
+
+.sidebar__search input::placeholder {
+  color: var(--text-muted);
+}
+
+.sidebar__search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar__category {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: right;
+  font-family: var(--font-family);
+  margin-bottom: 2px;
+}
+
+.sidebar__category:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.sidebar__category.active {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.2);
+  box-shadow: var(--neu-shadow-sm);
+}
+
+.sidebar__category-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sidebar__category-count {
+  margin-right: auto;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+}
+
+.sidebar__category.active .sidebar__category-count {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.2);
+}
+
+.sidebar__divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-md) 0;
+}
+
+.sidebar__filter-section {
+  margin-top: var(--space-md);
+}
+
+.sidebar__filter-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.sidebar__filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: var(--font-family);
+  margin: 4px;
+}
+
+.sidebar__filter-chip:hover {
+  border-color: var(--border-hover);
+  color: var(--primary);
+}
+
+.sidebar__filter-chip.active {
+  background: var(--primary-bg);
+  border-color: rgba(200, 169, 110, 0.3);
+  color: var(--primary);
+}
+
+.sidebar__filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 var(--space-xs);
+}
+
+.sidebar__skeleton {
+  height: 44px;
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(100%);
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar__overlay {
+    display: block;
+  }
+}

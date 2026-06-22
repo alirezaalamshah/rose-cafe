@@ -1,0 +1,93 @@
+.admin-orders__filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.admin-orders__refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  transition: var(--transition-fast);
+  box-shadow: var(--neu-shadow-sm);
+}
+
+.admin-orders__refresh:hover {
+  color: var(--primary);
+  border-color: var(--border-hover);
+}
+
+.admin-orders__table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--neu-shadow);
+}
+
+.admin-table th {
+  background: var(--bg-secondary);
+  padding: var(--space-md) var(--space-lg);
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: var(--space-md) var(--space-lg);
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-action-btn {
+  padding: 5px 12px;
+  background: var(--primary-bg);
+  border: 1px solid rgba(200, 169, 110, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-action-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: #1a1205;
+}
+
+.admin-action-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}

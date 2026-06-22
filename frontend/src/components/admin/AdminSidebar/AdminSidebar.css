@@ -1,0 +1,118 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.admin-sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sidebar);
+  padding: var(--space-lg) 0;
+}
+
+.admin-sidebar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-xl);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.admin-sidebar__section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  padding: 0 var(--space-lg);
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.admin-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 11px var(--space-lg);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition-fast);
+  border-right: 3px solid transparent;
+  position: relative;
+}
+
+.admin-sidebar__link:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-sidebar__link.active {
+  color: var(--primary);
+  background: var(--primary-bg);
+  border-right-color: var(--primary);
+}
+
+.admin-sidebar__badge {
+  margin-right: auto;
+  background: var(--error);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.admin-sidebar__footer {
+  margin-top: auto;
+  padding: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.admin-sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--error);
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-family);
+  font-weight: 500;
+  transition: var(--transition-fast);
+  padding: 0;
+}
+
+.admin-sidebar__logout:hover {
+  opacity: 0.7;
+}
+
+.admin-content {
+  margin-right: 240px;
+  flex: 1;
+  min-height: 100vh;
+  padding: var(--space-xl);
+}
+
+.admin-content__main {
+  max-width: 1200px;
+  animation: fadeIn 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar { display: none; }
+  .admin-content { margin-right: 0; }
+}

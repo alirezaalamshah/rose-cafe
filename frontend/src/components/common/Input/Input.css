@@ -1,0 +1,93 @@
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-family);
+  transition: var(--transition);
+  box-shadow: var(--neu-inset-sm);
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: var(--neu-inset-sm), 0 0 0 2px var(--primary-glow);
+}
+
+.input-field.has-icon-right {
+  padding-left: 42px;
+}
+
+.input-field.has-icon-left {
+  padding-right: 42px;
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.input-icon--right {
+  left: 12px;
+}
+
+.input-icon--left {
+  right: 12px;
+}
+
+.input-error {
+  font-size: 0.8rem;
+  color: var(--error);
+}
+
+.input-field.error {
+  border-color: var(--error);
+  box-shadow: var(--neu-inset-sm), 0 0 0 2px var(--error-bg);
+}
+
+/* Select */
+.select-field {
+  appearance: none;
+  cursor: pointer;
+  padding-left: 36px;
+}
+
+.select-arrow {
+  pointer-events: none;
+}
+
+/* Textarea */
+.textarea-field {
+  min-height: 100px;
+  resize: vertical;
+}

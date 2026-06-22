@@ -1,0 +1,101 @@
+.orders-page {
+  max-width: 800px;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.order-card {
+  padding: var(--space-lg);
+  overflow: hidden;
+}
+
+.order-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.order-card__id {
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.order-card__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.order-card__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.order-card__item-name {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.order-card__item-qty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.order-card__item-price {
+  font-weight: 600;
+  color: var(--text-primary);
+  direction: ltr;
+}
+
+.order-card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.order-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex: 1;
+}
+
+.order-card__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.order-card__type {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.order-card__total {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.order-card__total-label {
+  color: var(--text-muted);
+}

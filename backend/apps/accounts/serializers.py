@@ -17,7 +17,7 @@ class SendOTPSerializer(serializers.Serializer):
 
 class VerifyOTPSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=15)
-    otp = serializers.CharField(max_length=6, min_length=4)
+    otp = serializers.CharField(max_length=6, min_length=6)
 
     def validate_phone(self, value):
         value = value.strip().replace(' ', '')

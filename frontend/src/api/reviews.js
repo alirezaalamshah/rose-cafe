@@ -1,7 +1,17 @@
-import api from './axios'
+import api from './axios.js'
 
-export const getCafeReviews = () => api.get('/reviews/cafe/')
-export const getCafeStats = () => api.get('/reviews/cafe/stats/')
-export const createCafeReview = (data) => api.post('/reviews/cafe/create/', data)
-export const getMenuItemReviews = (id) => api.get(`/reviews/menu-item/${id}/`)
-export const createReview = (data) => api.post('/reviews/create/', data)
+export const reviewsAPI = {
+  getMenuItemReviews: (menuItemId) => api.get(`/reviews/menu-item/${menuItemId}/`),
+  getCafeReviews: () => api.get('/reviews/cafe/'),
+  getCafeStats: () => api.get('/reviews/cafe/stats/'),
+  createReview: (data) => api.post('/reviews/create/', data),
+  updateReview: (id, data) => api.put(`/reviews/${id}/`, data),
+  deleteReview: (id) => api.delete(`/reviews/${id}/`),
+  createCafeReview: (data) => api.post('/reviews/cafe/create/', data),
+
+  // Admin
+  adminGetReviews: (params) => api.get('/reviews/admin/', { params }),
+  adminApproveReview: (id) => api.post(`/reviews/admin/${id}/approve/`),
+  adminGetCafeReviews: () => api.get('/reviews/admin/cafe/'),
+  adminApproveCafeReview: (id) => api.post(`/reviews/admin/cafe/${id}/approve/`),
+}
