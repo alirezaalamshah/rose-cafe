@@ -83,6 +83,34 @@ class MenuItem(models.Model):
         return self.reviews.filter(is_approved=True).count()
 
 
+class MenuItemVariant(models.Model):
+    item = models.ForeignKey(
+        MenuItem, on_delete=models.CASCADE,
+        related_name='variants', verbose_name='آیتم'
+    )
+    name = models.CharField(max_length=100, verbose_name='نام')
+    price = models.PositiveIntegerField(verbose_name='قیمت')
+    discounted_price = models.PositiveIntegerField(null=True, blank=True, verbose_name='قیمت با تخفیف')
+    is_available = models.BooleanField(default=True, verbose_name='موجود')
+    order = models.PositiveIntegerField(default=0, verbose_name='ترتیب')
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = 'نوع آیتم'
+        verbose_name_plural = 'انواع آیتم'
+
+    def __str__(self):
+        return f"{self.item.name} — {self.name}"
+
+    @property
+    def final_price(self):
+        return self.discounted_price if self.discounted_price else self.price
+
+    @property
+    def has_discount(self):
+        return bool(self.discounted_price and self.discounted_price < self.price)
+
+
 class MenuItemImage(models.Model):
     item = models.ForeignKey(
         MenuItem, on_delete=models.CASCADE,

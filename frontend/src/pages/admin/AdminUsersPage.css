@@ -1,0 +1,32 @@
+.admin-users__search {
+  position: relative;
+  margin-bottom: var(--space-xl);
+  max-width: 400px;
+}
+
+.admin-users__search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.admin-users__search input {
+  width: 100%;
+  padding: 10px 42px 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  box-shadow: var(--neu-shadow-sm);
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.admin-users__search input:focus {
+  border-color: var(--primary);
+}

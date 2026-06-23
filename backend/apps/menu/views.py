@@ -4,11 +4,11 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Avg
 
-from .models import Category, MenuItem
+from .models import Category, MenuItem, MenuItemVariant
 from .serializers import (
     CategorySerializer, MenuItemListSerializer,
     MenuItemDetailSerializer, MenuItemAdminSerializer,
-    CategoryAdminSerializer,
+    CategoryAdminSerializer, MenuItemVariantSerializer,
 )
 from .filters import MenuItemFilter
 
@@ -87,3 +87,46 @@ class AdminCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):  # type: ignore[override]
         return Category.objects.all()
+
+
+def _sync_item_price(item_pk):
+    """وقتی variant تغییر کرد، قیمت پایه آیتم را با کمترین قیمت variant sync می‌کند."""
+    try:
+        item = MenuItem.objects.get(pk=item_pk)
+        variants = item.variants.filter(is_available=True)
+        if variants.exists():
+            min_price = variants.order_by('price').first().price
+            if item.price != min_price:
+                item.price = min_price
+                item.save(update_fields=['price'])
+    except MenuItem.DoesNotExist:
+        pass
+
+
+class AdminMenuItemVariantView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = MenuItemVariantSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        return MenuItemVariant.objects.filter(item_id=self.kwargs['item_pk'])
+
+    def perform_create(self, serializer):
+        serializer.save(item_id=self.kwargs['item_pk'])
+        _sync_item_price(self.kwargs['item_pk'])
+
+
+class AdminMenuItemVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = MenuItemVariantSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        return MenuItemVariant.objects.filter(item_id=self.kwargs['item_pk'])
+
+    def perform_update(self, serializer):
+        serializer.save()
+        _sync_item_price(self.kwargs['item_pk'])
+
+    def perform_destroy(self, instance):
+        item_pk = self.kwargs['item_pk']
+        instance.delete()
+        _sync_item_price(item_pk)

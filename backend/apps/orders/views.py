@@ -5,6 +5,7 @@ from django.db import transaction
 from django.conf import settings
 
 from .models import Order, OrderItem
+from apps.menu.models import MenuItemVariant
 from .serializers import (
     OrderCreateSerializer, OrderSerializer,
     AdminOrderSerializer, OrderStatusUpdateSerializer,
@@ -60,10 +61,24 @@ class OrderListCreateView(APIView):
         total = 0
         for item_data in data['items']:
             menu_item = item_data['menu_item']
-            unit_price = menu_item.final_price
+            variant = None
+            variant_name = ''
+            if item_data.get('variant_id'):
+                try:
+                    variant = MenuItemVariant.objects.get(
+                        id=item_data['variant_id'], item=menu_item
+                    )
+                    variant_name = variant.name
+                    unit_price = variant.final_price
+                except MenuItemVariant.DoesNotExist:
+                    unit_price = menu_item.final_price
+            else:
+                unit_price = menu_item.final_price
             OrderItem.objects.create(
                 order=order,
                 menu_item=menu_item,
+                variant=variant,
+                variant_name=variant_name,
                 quantity=item_data['quantity'],
                 unit_price=unit_price,
             )

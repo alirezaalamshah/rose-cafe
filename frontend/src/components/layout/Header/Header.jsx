@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
-  MdCoffee, MdShoppingCart, MdPerson, MdMenu,
-  MdLogout, MdAdminPanelSettings, MdHistory,
-  MdTableBar, MdRateReview
+  MdCoffee, MdShoppingCart, MdPerson, MdLogout,
+  MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import useCartStore from '../../../store/cartStore.js'
 import './Header.css'
 
-export default function Header({ onMenuClick }) {
+export default function Header() {
   const { isAuthenticated, user, logout } = useAuthStore()
   const items = useCartStore((s) => s.items)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
@@ -35,10 +34,6 @@ export default function Header({ onMenuClick }) {
 
   return (
     <header className="header">
-      <button className="header__menu-btn" onClick={onMenuClick}>
-        <MdMenu size={22} />
-      </button>
-
       <Link to="/" className="header__logo">
         <MdCoffee className="header__logo-icon" />
         کافه ما
@@ -51,18 +46,16 @@ export default function Header({ onMenuClick }) {
           منو
         </NavLink>
         <NavLink to="/reservations" className={({ isActive }) => `header__nav-link${isActive ? ' active' : ''}`}>
-          <MdTableBar size={18} />
-          رزرو میز
+          <MdTableBar size={17} /> رزرو
         </NavLink>
         <NavLink to="/reviews" className={({ isActive }) => `header__nav-link${isActive ? ' active' : ''}`}>
-          <MdRateReview size={18} />
-          نظرات
+          <MdRateReview size={17} /> نظرات
         </NavLink>
       </nav>
 
       <Link to="/cart" className="header__cart-btn">
-        <MdShoppingCart size={20} />
-        سبد خرید
+        <MdShoppingCart size={19} />
+        <span className="header__cart-label">سبد</span>
         {totalItems > 0 && (
           <span className="header__cart-badge">{totalItems}</span>
         )}
@@ -74,47 +67,37 @@ export default function Header({ onMenuClick }) {
             className="header__user-btn"
             onClick={() => setDropdownOpen((p) => !p)}
           >
-            <MdPerson size={20} />
-            {user?.first_name || user?.phone || 'حساب کاربری'}
+            <MdPerson size={19} />
+            <span className="header__user-name">
+              {user?.full_name?.split(' ')[0] || String(user?.phone || '').slice(-4) || 'من'}
+            </span>
           </button>
           {dropdownOpen && (
             <div className="header__dropdown">
-              <Link
-                to="/profile"
-                className="header__dropdown-item"
-                onClick={() => setDropdownOpen(false)}
-              >
-                <MdPerson size={18} /> پروفایل
+              <Link to="/profile" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <MdPerson size={17} /> پروفایل
               </Link>
-              <Link
-                to="/orders"
-                className="header__dropdown-item"
-                onClick={() => setDropdownOpen(false)}
-              >
-                <MdHistory size={18} /> سفارشات من
+              <Link to="/orders" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <MdHistory size={17} /> سفارشات
+              </Link>
+              <Link to="/reservations" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <MdTableBar size={17} /> رزروها
               </Link>
               {user?.is_staff && (
-                <Link
-                  to="/admin"
-                  className="header__dropdown-item"
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <MdAdminPanelSettings size={18} /> پنل ادمین
+                <Link to="/admin" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                  <MdAdminPanelSettings size={17} /> پنل ادمین
                 </Link>
               )}
-              <button
-                className="header__dropdown-item danger"
-                onClick={handleLogout}
-              >
-                <MdLogout size={18} /> خروج
+              <button className="header__dropdown-item danger" onClick={handleLogout}>
+                <MdLogout size={17} /> خروج
               </button>
             </div>
           )}
         </div>
       ) : (
         <Link to="/login" className="header__nav-link">
-          <MdPerson size={18} />
-          ورود
+          <MdPerson size={19} />
+          <span className="header__cart-label">ورود</span>
         </Link>
       )}
     </header>

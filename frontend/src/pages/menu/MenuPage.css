@@ -2,9 +2,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-xl);
-  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
   flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+  .menu-page__topbar { margin-bottom: var(--space-xl); }
 }
 
 .menu-page__title {
@@ -41,12 +45,81 @@
   border-color: var(--primary);
 }
 
+/* =====================
+   SEARCH BAR
+   ===================== */
+.menu-page__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--neu-shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.menu-page__search:focus-within {
+  border-color: rgba(200, 169, 110, 0.6);
+  box-shadow: 0 0 0 2px rgba(200, 169, 110, 0.12), var(--neu-shadow-sm);
+}
+
+.menu-page__search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.menu-page__search:focus-within .menu-page__search-icon {
+  color: var(--primary);
+}
+
+.menu-page__search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-family);
+  min-width: 0;
+}
+
+.menu-page__search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.menu-page__search-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.menu-page__search-clear:hover {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
 .menu-page__cart-float {
   position: fixed;
-  bottom: var(--space-xl);
-  left: var(--space-xl);
+  bottom: 20px;
+  left: 16px;
   z-index: 50;
   animation: fadeIn 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .menu-page__cart-float { bottom: var(--space-xl); left: var(--space-xl); }
 }
 
 .menu-page__cart-float-btn {
@@ -98,10 +171,22 @@
   color: var(--text-muted);
 }
 
+/* mobile-first: 2 ستون */
 .menu-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .menu-page__grid { gap: var(--space-md); }
+}
+
+@media (min-width: 900px) {
+  .menu-page__grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-md);
+  }
 }
 
 .menu-page__no-results {
@@ -118,58 +203,6 @@
   border: 1px solid var(--border);
 }
 
-.menu-page__skeleton-image {
-  width: 100%;
-  padding-top: 60%;
-}
-
-.menu-page__skeleton-body {
-  padding: var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.menu-page__skeleton-line {
-  border-radius: var(--radius-sm);
-}
-
-.menu-page__featured {
-  margin-bottom: var(--space-2xl);
-}
-
-.menu-page__featured-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.menu-page__featured-scroll {
-  display: flex;
-  gap: var(--space-md);
-  overflow-x: auto;
-  padding-bottom: var(--space-sm);
-  scrollbar-width: thin;
-}
-
-.menu-page__featured-scroll > * {
-  flex-shrink: 0;
-  width: 220px;
-}
-
-@media (max-width: 600px) {
-  .menu-page__grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
-  }
-}
-
-@media (max-width: 380px) {
-  .menu-page__grid {
-    grid-template-columns: 1fr;
-  }
-}
+.menu-page__skeleton-image { width: 100%; padding-top: 65%; }
+.menu-page__skeleton-body  { padding: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-sm); }
+.menu-page__skeleton-line  { border-radius: var(--radius-sm); }

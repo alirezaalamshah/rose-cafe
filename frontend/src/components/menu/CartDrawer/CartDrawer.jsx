@@ -36,42 +36,48 @@ export default function CartDrawer({ isOpen, onClose }) {
               <p>سبد خرید شما خالی است</p>
             </div>
           ) : (
-            items.map((item) => (
-              <div key={item.id} className="cart-item">
-                <div className="cart-item__image">
-                  {item.image ? (
-                    <img
-                      src={getMediaUrl(item.image)}
-                      alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
-                    />
-                  ) : '☕'}
-                </div>
-                <div className="cart-item__info">
-                  <p className="cart-item__name">{item.name}</p>
-                  <span className="cart-item__price">
-                    {formatPrice((item.discounted_price || item.price) * item.quantity)}
-                  </span>
-                  <div className="cart-item__controls">
-                    <button
-                      className="cart-item__qty-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    >+</button>
-                    <span className="cart-item__qty">{item.quantity}</span>
-                    <button
-                      className="cart-item__qty-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    >−</button>
-                    <button
-                      className="cart-item__delete"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <MdDelete size={16} />
-                    </button>
+            items.map((item) => {
+              const key = item.cartKey || String(item.id)
+              return (
+                <div key={key} className="cart-item">
+                  <div className="cart-item__image">
+                    {item.image ? (
+                      <img
+                        src={getMediaUrl(item.image)}
+                        alt={item.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
+                      />
+                    ) : '☕'}
+                  </div>
+                  <div className="cart-item__info">
+                    <p className="cart-item__name">{item.name}</p>
+                    {item.variantName && (
+                      <p className="cart-item__variant">{item.variantName}</p>
+                    )}
+                    <span className="cart-item__price">
+                      {formatPrice((item.discounted_price || item.price) * item.quantity)}
+                    </span>
+                    <div className="cart-item__controls">
+                      <button
+                        className="cart-item__qty-btn"
+                        onClick={() => updateQuantity(key, item.quantity + 1)}
+                      >+</button>
+                      <span className="cart-item__qty">{item.quantity}</span>
+                      <button
+                        className="cart-item__qty-btn"
+                        onClick={() => updateQuantity(key, item.quantity - 1)}
+                      >−</button>
+                      <button
+                        className="cart-item__delete"
+                        onClick={() => removeItem(key)}
+                      >
+                        <MdDelete size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
 

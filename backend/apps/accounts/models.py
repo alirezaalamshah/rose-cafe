@@ -53,10 +53,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses', verbose_name='کاربر')
     title = models.CharField(max_length=50, verbose_name='عنوان آدرس')
-    province = models.CharField(max_length=50, verbose_name='استان')
+    province = models.CharField(max_length=50, blank=True, verbose_name='استان')
     city = models.CharField(max_length=50, verbose_name='شهر')
     street = models.CharField(max_length=200, verbose_name='خیابان')
-    detail = models.TextField(verbose_name='جزئیات آدرس')
+    detail = models.TextField(blank=True, verbose_name='جزئیات آدرس')
     postal_code = models.CharField(max_length=10, blank=True, verbose_name='کد پستی')
     is_default = models.BooleanField(default=False, verbose_name='آدرس پیش‌فرض')
     created_at = models.DateTimeField(auto_now_add=True)

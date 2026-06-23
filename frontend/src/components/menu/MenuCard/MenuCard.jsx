@@ -1,15 +1,44 @@
 import { useNavigate } from 'react-router-dom'
-import { MdAdd, MdRemove, MdTimer, MdLocalFireDepartment } from 'react-icons/md'
+import { MdAdd, MdRemove, MdTimer, MdLocalFireDepartment, MdTune } from 'react-icons/md'
 import useCartStore from '../../../store/cartStore.js'
 import { formatPrice, getMediaUrl } from '../../../utils/helpers.js'
 import './MenuCard.css'
 
+function toPersian(n) {
+  return String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d])
+}
+
+function getDiscountPct(item) {
+  if (item.variants?.length > 0) {
+    const pcts = item.variants
+      .filter((v) => v.has_discount && v.is_available)
+      .map((v) => Math.round((1 - v.discounted_price / v.price) * 100))
+    return pcts.length > 0 ? Math.max(...pcts) : null
+  }
+  if (item.discounted_price && item.discounted_price < item.price) {
+    return Math.round((1 - item.discounted_price / item.price) * 100)
+  }
+  return null
+}
+
 export default function MenuCard({ item }) {
   const { items, addItem, updateQuantity } = useCartStore()
   const navigate = useNavigate()
-  const cartItem = items.find((i) => i.id === item.id)
-  const quantity = cartItem?.quantity || 0
   const isUnavailable = item.status !== 'available'
+  const hasVariants = item.variants?.length > 0
+  const discountPct = getDiscountPct(item)
+
+  // For items without variants, look up cart by item id
+  const cartItem = !hasVariants ? items.find((i) => (i.cartKey || String(i.id)) === String(item.id)) : null
+  const quantity = cartItem?.quantity || 0
+
+  // For variant items — any variant of this item currently in cart?
+  const variantInCart = hasVariants && items.some((i) => String(i.id) === String(item.id))
+
+  // Min price from available variants
+  const minVariantPrice = hasVariants
+    ? Math.min(...item.variants.filter((v) => v.is_available).map((v) => v.final_price))
+    : null
 
   function handleAdd(e) {
     e.stopPropagation()
@@ -18,12 +47,17 @@ export default function MenuCard({ item }) {
 
   function handleIncrease(e) {
     e.stopPropagation()
-    updateQuantity(item.id, quantity + 1)
+    updateQuantity(String(item.id), quantity + 1)
   }
 
   function handleDecrease(e) {
     e.stopPropagation()
-    updateQuantity(item.id, quantity - 1)
+    updateQuantity(String(item.id), quantity - 1)
+  }
+
+  function handleSelectVariant(e) {
+    e.stopPropagation()
+    navigate(`/menu/${item.slug}`)
   }
 
   return (
@@ -47,6 +81,19 @@ export default function MenuCard({ item }) {
             </span>
           )}
         </div>
+
+        {discountPct && !isUnavailable && (
+          <div className="menu-card__stamp">
+            <span className="menu-card__stamp-pct">{toPersian(discountPct)}٪</span>
+            <span className="menu-card__stamp-label">تخفیف</span>
+          </div>
+        )}
+
+        {variantInCart && (
+          <div className="menu-card__in-cart">
+            <span>در سبد</span>
+          </div>
+        )}
       </div>
 
       <div className="menu-card__body">
@@ -77,21 +124,44 @@ export default function MenuCard({ item }) {
               {item.calories} کالری
             </span>
           )}
+          {hasVariants && (
+            <span className="menu-card__meta-item">
+              <MdTune size={14} />
+              {item.variants.length} نوع
+            </span>
+          )}
         </div>
 
         <div className="menu-card__footer">
           <div className="menu-card__price">
-            <span className="menu-card__price-current">
-              {formatPrice(item.discounted_price || item.price)}
-            </span>
-            {item.discounted_price && item.discounted_price < item.price && (
-              <span className="menu-card__price-original">
-                {formatPrice(item.price)}
+            {hasVariants ? (
+              <span className="menu-card__price-current">
+                از {formatPrice(minVariantPrice)}
               </span>
+            ) : (
+              <>
+                <span className="menu-card__price-current">
+                  {formatPrice(item.discounted_price || item.price)}
+                </span>
+                {item.discounted_price && item.discounted_price < item.price && (
+                  <span className="menu-card__price-original">
+                    {formatPrice(item.price)}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
-          {quantity > 0 ? (
+          {hasVariants ? (
+            <button
+              className="menu-card__add-btn menu-card__add-btn--variant"
+              onClick={handleSelectVariant}
+              disabled={isUnavailable}
+            >
+              <MdTune size={16} />
+              {isUnavailable ? 'ناموجود' : 'انتخاب'}
+            </button>
+          ) : quantity > 0 ? (
             <div
               className="menu-card__quantity"
               onClick={(e) => e.stopPropagation()}

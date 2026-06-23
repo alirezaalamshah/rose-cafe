@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     SendOTPView, VerifyOTPView, RefreshTokenView,
-    MeView, AddressListCreateView, AddressDetailView
+    MeView, AddressListCreateView, AddressDetailView,
+    AdminUserListView, AdminUserDetailView,
 )
 
 urlpatterns = [
@@ -11,4 +12,6 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
     path('addresses/', AddressListCreateView.as_view(), name='addresses'),
     path('addresses/<int:pk>/', AddressDetailView.as_view(), name='address-detail'),
+    path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
+    path('admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='admin-user-detail'),
 ]

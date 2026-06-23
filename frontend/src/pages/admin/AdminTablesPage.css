@@ -1,0 +1,61 @@
+.admin-tables__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.admin-table-card {
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: transform var(--transition);
+}
+
+.admin-table-card:hover {
+  transform: translateY(-2px);
+}
+
+.admin-table-card--inactive {
+  opacity: 0.6;
+}
+
+.admin-table-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-table-card__number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.admin-table-card__info {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.admin-table-card__location {
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+}
+
+.admin-table-card__desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.admin-table-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}

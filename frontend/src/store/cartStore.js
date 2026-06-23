@@ -2,6 +2,10 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
 
+function getCartKey(itemId, variantId) {
+  return variantId ? `${itemId}_v${variantId}` : String(itemId)
+}
+
 const useCartStore = create(
   persist(
     (set, get) => ({
@@ -10,33 +14,51 @@ const useCartStore = create(
       discountAmount: 0,
       deliveryType: 'takeaway',
 
-      addItem: (menuItem) => {
+      addItem: (menuItem, variant = null) => {
         const items = get().items
-        const existing = items.find((i) => i.id === menuItem.id)
+        const cartKey = getCartKey(menuItem.id, variant?.id)
+        const existing = items.find((i) => (i.cartKey || String(i.id)) === cartKey)
+
         if (existing) {
           set({
             items: items.map((i) =>
-              i.id === menuItem.id ? { ...i, quantity: i.quantity + 1 } : i
+              (i.cartKey || String(i.id)) === cartKey ? { ...i, quantity: i.quantity + 1 } : i
             ),
           })
         } else {
-          set({ items: [...items, { ...menuItem, quantity: 1 }] })
+          set({
+            items: [
+              ...items,
+              {
+                ...menuItem,
+                cartKey,
+                variantId: variant?.id || null,
+                variantName: variant?.name || null,
+                price: variant ? variant.price : menuItem.price,
+                discounted_price: variant
+                  ? (variant.discounted_price || null)
+                  : menuItem.discounted_price,
+                quantity: 1,
+              },
+            ],
+          })
         }
-        toast.success(`${menuItem.name} به سبد اضافه شد`)
+        const label = variant ? `${menuItem.name} (${variant.name})` : menuItem.name
+        toast.success(`${label} به سبد اضافه شد`)
       },
 
-      removeItem: (id) => {
-        set({ items: get().items.filter((i) => i.id !== id) })
+      removeItem: (cartKey) => {
+        set({ items: get().items.filter((i) => (i.cartKey || String(i.id)) !== cartKey) })
       },
 
-      updateQuantity: (id, quantity) => {
+      updateQuantity: (cartKey, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(id)
+          get().removeItem(cartKey)
           return
         }
         set({
           items: get().items.map((i) =>
-            i.id === id ? { ...i, quantity } : i
+            (i.cartKey || String(i.id)) === cartKey ? { ...i, quantity } : i
           ),
         })
       },

@@ -47,8 +47,8 @@
   --border-hover: rgba(200, 169, 110, 0.3);
 
   /* Sidebar */
-  --sidebar-width: 260px;
-  --sidebar-collapsed: 70px;
+  --sidebar-width: 210px;
+  --sidebar-collapsed: 56px;
 
   /* Spacing */
   --space-xs: 4px;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MdPerson, MdPhone, MdEdit, MdSave, MdLocationOn, MdAdd } from 'react-icons/md'
+import { MdPerson, MdPhone, MdEdit, MdSave, MdLocationOn, MdAdd, MdDelete } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { authAPI } from '../../api/auth.js'
 import useAuthStore from '../../store/authStore.js'
@@ -9,18 +9,20 @@ import Modal from '../../components/common/Modal/Modal.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import './ProfilePage.css'
 
+const EMPTY_ADDR = { title: '', province: '', city: '', street: '', detail: '', postal_code: '' }
+
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [addresses, setAddresses] = useState([])
   const [addrModal, setAddrModal] = useState(false)
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '' })
-  const [addrForm, setAddrForm] = useState({ title: '', address: '', city: '', postal_code: '' })
+  const [form, setForm] = useState({ full_name: '', email: '' })
+  const [addrForm, setAddrForm] = useState(EMPTY_ADDR)
 
   useEffect(() => {
     if (user) {
-      setForm({ first_name: user.first_name || '', last_name: user.last_name || '', email: user.email || '' })
+      setForm({ full_name: user.full_name || '', email: user.email || '' })
     }
     authAPI.getAddresses()
       .then((data) => setAddresses(Array.isArray(data) ? data : (data.results || [])))
@@ -42,12 +44,16 @@ export default function ProfilePage() {
   }
 
   async function handleAddAddress() {
+    if (!addrForm.title || !addrForm.city || !addrForm.street) {
+      toast.error('لطفاً فیلدهای اجباری را پر کنید')
+      return
+    }
     try {
       const newAddr = await authAPI.createAddress(addrForm)
       setAddresses((prev) => [...prev, newAddr])
       toast.success('آدرس اضافه شد')
       setAddrModal(false)
-      setAddrForm({ title: '', address: '', city: '', postal_code: '' })
+      setAddrForm(EMPTY_ADDR)
     } catch {
       toast.error('خطا در افزودن آدرس')
     }
@@ -65,6 +71,9 @@ export default function ProfilePage() {
 
   if (!user) return <Loading />
 
+  const displayName = user.full_name || 'کاربر'
+  const initials = displayName !== 'کاربر' ? displayName[0] : (String(user.phone || '?').slice(-1))
+
   return (
     <div className="profile-page">
       <div className="page-header">
@@ -72,43 +81,44 @@ export default function ProfilePage() {
       </div>
 
       <div className="profile-layout">
-        {/* Profile Card */}
         <div className="profile-card neu-card">
-          <div className="profile-avatar">
-            {user.first_name?.[0] || user.phone?.[0] || '?'}
-          </div>
-          <h2 className="profile-name">
-            {user.first_name && user.last_name
-              ? `${user.first_name} ${user.last_name}`
-              : 'کاربر'}
-          </h2>
+          <div className="profile-avatar">{initials}</div>
+          <h2 className="profile-name">{displayName}</h2>
           <p className="profile-phone">
             <MdPhone size={14} />
             {user.phone}
           </p>
+
+          {user.is_staff && (
+            <span style={{
+              background: 'var(--primary-bg)',
+              color: 'var(--primary)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid rgba(200,169,110,0.25)',
+            }}>
+              مدیر سیستم
+            </span>
+          )}
 
           <div className="divider" />
 
           {editing ? (
             <div className="profile-form">
               <Input
-                label="نام"
-                value={form.first_name}
-                onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))}
-                placeholder="نام"
+                label="نام و نام خانوادگی"
+                value={form.full_name}
+                onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
+                placeholder="نام کامل خود را وارد کنید"
               />
               <Input
-                label="نام خانوادگی"
-                value={form.last_name}
-                onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))}
-                placeholder="نام خانوادگی"
-              />
-              <Input
-                label="ایمیل"
+                label="ایمیل (اختیاری)"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="ایمیل (اختیاری)"
+                placeholder="email@example.com"
                 dir="ltr"
               />
               <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
@@ -127,10 +137,9 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Addresses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-lg)' }}>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>
+            <h2 className="section-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
               <MdLocationOn color="var(--primary)" />
               آدرس‌های من
             </h2>
@@ -143,27 +152,47 @@ export default function ProfilePage() {
             <div className="empty-state">
               <div className="icon">📍</div>
               <h3>آدرسی ثبت نشده</h3>
+              <p>اولین آدرس خود را اضافه کنید</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {addresses.map((addr) => (
                 <div key={addr.id} className="address-card neu-card-sm">
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
                       {addr.title}
+                      {addr.is_default && (
+                        <span style={{ marginRight: 8, fontSize: '0.72rem', background: 'var(--primary-bg)', color: 'var(--primary)', padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>
+                          پیش‌فرض
+                        </span>
+                      )}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      {addr.city} — {addr.address}
+                      {addr.province && `${addr.province} ،`}{addr.city} — {addr.street}
                     </p>
+                    {addr.detail && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>{addr.detail}</p>
+                    )}
                     {addr.postal_code && (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2, direction: 'ltr', textAlign: 'right' }}>
                         کد پستی: {addr.postal_code}
                       </p>
                     )}
                   </div>
-                  <Button variant="danger" size="sm" onClick={() => handleDeleteAddress(addr.id)}>
-                    حذف
-                  </Button>
+                  <button
+                    onClick={() => handleDeleteAddress(addr.id)}
+                    style={{
+                      background: 'var(--error-bg)',
+                      border: '1px solid rgba(248,113,113,0.2)',
+                      color: 'var(--error)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <MdDelete size={16} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -184,23 +213,37 @@ export default function ProfilePage() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <Input
-            label="عنوان آدرس"
+            label="عنوان آدرس *"
             value={addrForm.title}
             onChange={(e) => setAddrForm((p) => ({ ...p, title: e.target.value }))}
             placeholder="مثلاً: خانه، محل کار"
           />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+            <Input
+              label="استان (اختیاری)"
+              value={addrForm.province}
+              onChange={(e) => setAddrForm((p) => ({ ...p, province: e.target.value }))}
+              placeholder="استان"
+            />
+            <Input
+              label="شهر *"
+              value={addrForm.city}
+              onChange={(e) => setAddrForm((p) => ({ ...p, city: e.target.value }))}
+              placeholder="شهر"
+            />
+          </div>
           <Input
-            label="شهر"
-            value={addrForm.city}
-            onChange={(e) => setAddrForm((p) => ({ ...p, city: e.target.value }))}
-            placeholder="شهر"
+            label="خیابان / کوچه / پلاک *"
+            value={addrForm.street}
+            onChange={(e) => setAddrForm((p) => ({ ...p, street: e.target.value }))}
+            placeholder="خیابان، کوچه، پلاک"
           />
           <Textarea
-            label="آدرس کامل"
-            value={addrForm.address}
-            onChange={(e) => setAddrForm((p) => ({ ...p, address: e.target.value }))}
-            placeholder="خیابان، کوچه، پلاک..."
-            rows={3}
+            label="جزئیات بیشتر (اختیاری)"
+            value={addrForm.detail}
+            onChange={(e) => setAddrForm((p) => ({ ...p, detail: e.target.value }))}
+            placeholder="طبقه، واحد و ..."
+            rows={2}
           />
           <Input
             label="کد پستی (اختیاری)"

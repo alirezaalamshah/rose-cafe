@@ -1,3 +1,4 @@
+/* Mobile-first */
 .header {
   position: fixed;
   top: 0;
@@ -5,131 +6,137 @@
   left: 0;
   height: var(--header-height);
   background: var(--bg-secondary);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 var(--space-lg);
-  gap: var(--space-md);
+  padding: 0 var(--space-md);
+  gap: var(--space-sm);
   z-index: var(--z-header);
-  transition: var(--transition);
 }
 
+/* لوگو */
 .header__logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-size: 1.3rem;
+  gap: 6px;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--primary);
   text-decoration: none;
   white-space: nowrap;
 }
 
-.header__logo-icon {
-  font-size: 1.6rem;
-}
+.header__logo-icon { font-size: 1.4rem; }
 
-.header__spacer {
-  flex: 1;
-}
+.header__spacer { flex: 1; }
 
+/* ناوبری دسکتاپ */
 .header__nav {
-  display: flex;
+  display: none;   /* موبایل: مخفی */
   align-items: center;
-  gap: var(--space-xs);
+  gap: 2px;
+}
+
+@media (min-width: 768px) {
+  .header__nav { display: flex; }
+  .header { padding: 0 var(--space-lg); gap: var(--space-md); }
 }
 
 .header__nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: var(--space-sm) var(--space-md);
+  gap: 5px;
+  padding: 7px 12px;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
-  transition: var(--transition);
+  transition: var(--transition-fast);
   cursor: pointer;
   border: none;
   background: transparent;
   text-decoration: none;
+  font-family: var(--font-family);
 }
 
-.header__nav-link:hover {
-  color: var(--text-primary);
-  background: var(--primary-bg);
-}
+.header__nav-link:hover { color: var(--text-primary); background: var(--primary-bg); }
+.header__nav-link.active { color: var(--primary); background: var(--primary-bg); }
 
-.header__nav-link.active {
-  color: var(--primary);
-  background: var(--primary-bg);
-}
-
+/* دکمه سبد */
 .header__cart-btn {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: 6px;
+  padding: 7px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--neu-shadow-sm);
   text-decoration: none;
+  white-space: nowrap;
 }
 
-.header__cart-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--primary);
-  box-shadow: var(--neu-shadow);
-}
+.header__cart-btn:hover { border-color: var(--border-hover); color: var(--primary); }
+
+/* روی موبایل فقط آیکون */
+.header__cart-label { display: none; }
+@media (min-width: 480px) { .header__cart-label { display: inline; } }
 
 .header__cart-badge {
   position: absolute;
-  top: -6px;
-  left: -6px;
-  min-width: 20px;
-  height: 20px;
+  top: -5px;
+  left: -5px;
+  min-width: 18px;
+  height: 18px;
   background: var(--primary);
-  color: var(--text-inverse);
+  color: #1a1205;
   border-radius: var(--radius-full);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
+  padding: 0 3px;
   border: 2px solid var(--bg-secondary);
 }
 
+/* دکمه کاربر */
 .header__user-btn {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: 6px;
+  padding: 7px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--neu-shadow-sm);
   position: relative;
+  font-family: var(--font-family);
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.header__user-btn:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--neu-shadow);
-}
+.header__user-btn:hover { border-color: var(--border-hover); }
 
+/* نام کاربر روی موبایل مخفی */
+.header__user-name { display: none; }
+@media (min-width: 480px) { .header__user-name { display: inline; } }
+
+/* Dropdown */
 .header__dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -138,7 +145,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--neu-shadow-lg);
-  min-width: 180px;
+  min-width: 170px;
   overflow: hidden;
   animation: fadeIn 0.2s ease;
   z-index: 10;
@@ -148,9 +155,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-md);
+  padding: 11px var(--space-md);
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
   transition: var(--transition-fast);
   text-decoration: none;
@@ -160,38 +167,5 @@
   font-family: var(--font-family);
 }
 
-.header__dropdown-item:hover {
-  background: var(--primary-bg);
-  color: var(--primary);
-}
-
-.header__dropdown-item.danger:hover {
-  background: var(--error-bg);
-  color: var(--error);
-}
-
-.header__menu-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  cursor: pointer;
-  box-shadow: var(--neu-shadow-sm);
-  transition: var(--transition);
-}
-
-.header__menu-btn:hover {
-  color: var(--primary);
-  border-color: var(--border-hover);
-}
-
-@media (max-width: 768px) {
-  .header__menu-btn { display: flex; }
-  .header__nav { display: none; }
-  .header { padding: 0 var(--space-md); }
-}
+.header__dropdown-item:hover { background: var(--primary-bg); color: var(--primary); }
+.header__dropdown-item.danger:hover { background: var(--error-bg); color: var(--error); }

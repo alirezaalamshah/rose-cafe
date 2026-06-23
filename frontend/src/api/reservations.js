@@ -10,6 +10,7 @@ export const reservationsAPI = {
   adminGetTables: () => api.get('/reservations/admin/tables/'),
   adminCreateTable: (data) => api.post('/reservations/admin/tables/', data),
   adminUpdateTable: (id, data) => api.put(`/reservations/admin/tables/${id}/`, data),
+  adminDeleteTable: (id) => api.delete(`/reservations/admin/tables/${id}/`),
   adminGetReservations: (params) => api.get('/reservations/admin/reservations/', { params }),
   adminUpdateReservation: (id, data) => api.patch(`/reservations/admin/reservations/${id}/`, data),
 }

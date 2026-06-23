@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { MdShoppingCart } from 'react-icons/md'
+import { MdShoppingCart, MdSearch, MdClose } from 'react-icons/md'
 import { menuAPI } from '../../api/menu.js'
 import MenuCard from '../../components/menu/MenuCard/MenuCard.jsx'
 import CartDrawer from '../../components/menu/CartDrawer/CartDrawer.jsx'
@@ -23,19 +23,24 @@ function SkeletonCard() {
 
 export default function MenuPage() {
   const context = useOutletContext() || {}
-  const { activeCategory, searchQuery, activeFilters } = context
+  const { activeCategory, searchQuery: sidebarSearch, activeFilters } = context
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('order')
   const [cartOpen, setCartOpen] = useState(false)
+  const [localSearch, setLocalSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const debounceRef = useRef(null)
   const cartItems = useCartStore((s) => s.items)
   const totalItems = cartItems.reduce((s, i) => s + i.quantity, 0)
+
+  const effectiveSearch = debouncedSearch || sidebarSearch || ''
 
   const fetchItems = useCallback(() => {
     setLoading(true)
     const params = {}
     if (activeCategory) params.category = activeCategory
-    if (searchQuery) params.search = searchQuery
+    if (effectiveSearch) params.search = effectiveSearch
     if (activeFilters?.vegetarian) params.is_vegetarian = true
     if (activeFilters?.featured) params.is_featured = true
     if (activeFilters?.available) params.status = 'available'
@@ -48,23 +53,32 @@ export default function MenuPage() {
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
-  }, [activeCategory, searchQuery, activeFilters, sort])
+  }, [activeCategory, effectiveSearch, activeFilters, sort])
 
   useEffect(() => {
     fetchItems()
   }, [fetchItems])
 
-  const categoryLabel = activeCategory
-    ? items[0]?.category?.name
-    : 'همه آیتم‌ها'
+  function handleSearchChange(e) {
+    const val = e.target.value
+    setLocalSearch(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(val), 400)
+  }
+
+  function clearSearch() {
+    setLocalSearch('')
+    setDebouncedSearch('')
+    clearTimeout(debounceRef.current)
+  }
 
   return (
     <div>
       <div className="menu-page__topbar">
         <div>
           <h1 className="menu-page__title">
-            {searchQuery ? (
-              <>نتایج جستجو برای "<span>{searchQuery}</span>"</>
+            {effectiveSearch ? (
+              <>نتایج جستجو برای "<span>{effectiveSearch}</span>"</>
             ) : (
               <>منوی <span>کافه</span></>
             )}
@@ -87,6 +101,22 @@ export default function MenuPage() {
             <option value="-created_at">جدیدترین</option>
           </select>
         </div>
+      </div>
+
+      {/* Search bar — همیشه نمایان روی موبایل، روی دسکتاپ هم قابل استفاده */}
+      <div className="menu-page__search">
+        <MdSearch size={18} className="menu-page__search-icon" />
+        <input
+          className="menu-page__search-input"
+          placeholder="جستجو در منو..."
+          value={localSearch}
+          onChange={handleSearchChange}
+        />
+        {localSearch && (
+          <button className="menu-page__search-clear" onClick={clearSearch}>
+            <MdClose size={16} />
+          </button>
+        )}
       </div>
 
       <div className="menu-page__grid">

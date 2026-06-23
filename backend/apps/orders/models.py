@@ -1,6 +1,6 @@
 from django.db import models
 from apps.accounts.models import User, Address
-from apps.menu.models import MenuItem
+from apps.menu.models import MenuItem, MenuItemVariant
 
 
 class Order(models.Model):
@@ -67,6 +67,11 @@ class OrderItem(models.Model):
         MenuItem, on_delete=models.PROTECT,
         related_name='order_items', verbose_name='آیتم منو'
     )
+    variant = models.ForeignKey(
+        MenuItemVariant, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='نوع'
+    )
+    variant_name = models.CharField(max_length=100, blank=True, verbose_name='نام نوع')
     quantity = models.PositiveIntegerField(default=1, verbose_name='تعداد')
     unit_price = models.PositiveIntegerField(verbose_name='قیمت واحد')
 

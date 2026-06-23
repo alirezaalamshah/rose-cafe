@@ -54,9 +54,9 @@ export default function LoginPage() {
     }
   }
 
-  async function handleVerifyOTP(e) {
+  async function handleVerifyOTP(e, directOtp) {
     e?.preventDefault()
-    const code = otp.join('')
+    const code = directOtp ? directOtp.join('') : otp.join('')
     if (code.length < OTP_LENGTH) {
       toast.error('کد ۶ رقمی را کامل وارد کنید')
       return
@@ -81,7 +81,7 @@ export default function LoginPage() {
       otpRefs.current[index + 1]?.focus()
     }
     if (newOtp.every((d) => d !== '') && newOtp.join('').length === OTP_LENGTH) {
-      handleVerifyOTP()
+      handleVerifyOTP(null, newOtp)
     }
   }
 

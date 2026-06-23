@@ -132,6 +132,8 @@ CACHES = {
 # OTP Settings
 OTP_EXPIRY_SECONDS = 120
 OTP_LENGTH = 6
+# کد ثابت تست — فقط در DEBUG کار می‌کند، در production خالی بگذارید
+OTP_TEST_CODE = config('OTP_TEST_CODE', default='')
 
 # Melipayamak
 MELIPAYAMAK_USERNAME = config('MELIPAYAMAK_USERNAME', default='')

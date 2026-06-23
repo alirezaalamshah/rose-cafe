@@ -18,8 +18,13 @@ import ProfilePage from './pages/profile/ProfilePage.jsx'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage.jsx'
 import AdminMenuPage from './pages/admin/AdminMenuPage.jsx'
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage.jsx'
 import AdminReservationsPage from './pages/admin/AdminReservationsPage.jsx'
+import AdminTablesPage from './pages/admin/AdminTablesPage.jsx'
 import AdminReviewsPage from './pages/admin/AdminReviewsPage.jsx'
+import AdminUsersPage from './pages/admin/AdminUsersPage.jsx'
+import AdminDiscountsPage from './pages/admin/AdminDiscountsPage.jsx'
+import AdminPaymentsPage from './pages/admin/AdminPaymentsPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore()
@@ -60,9 +65,14 @@ function App() {
       <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="payments" element={<AdminPaymentsPage />} />
         <Route path="menu" element={<AdminMenuPage />} />
+        <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="tables" element={<AdminTablesPage />} />
         <Route path="reservations" element={<AdminReservationsPage />} />
         <Route path="reviews" element={<AdminReviewsPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="discounts" element={<AdminDiscountsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

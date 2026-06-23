@@ -28,7 +28,11 @@ export default function CartPage() {
     setSubmitting(true)
     try {
       const orderData = {
-        items: items.map((i) => ({ menu_item: i.id, quantity: i.quantity })),
+        items: items.map((i) => ({
+          menu_item: i.id,
+          quantity: i.quantity,
+          ...(i.variantId ? { variant_id: i.variantId } : {}),
+        })),
         delivery_type: deliveryType,
         note,
         discount_code: discountCode,
@@ -81,35 +85,45 @@ export default function CartPage() {
                 <MdDelete size={16} /> خالی کردن سبد
               </button>
             </div>
-            {items.map((item) => (
-              <div key={item.id} className="cart-page__item">
-                <div className="cart-page__item-image">
-                  {item.image
-                    ? <img src={getMediaUrl(item.image)} alt={item.name} />
-                    : <span>☕</span>
-                  }
-                </div>
-                <div className="cart-page__item-info">
-                  <p className="cart-page__item-name">{item.name}</p>
-                  <p className="cart-page__item-unit">
-                    {formatPrice(item.discounted_price || item.price)} × {item.quantity}
-                  </p>
-                </div>
-                <div className="cart-page__item-controls">
-                  <div className="cart-page__qty">
-                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>−</button>
+            {items.map((item) => {
+              const key = item.cartKey || String(item.id)
+              return (
+                <div key={key} className="cart-page__item">
+                  <div className="cart-page__item-image">
+                    {item.image
+                      ? <img src={getMediaUrl(item.image)} alt={item.name} />
+                      : <span>☕</span>
+                    }
                   </div>
-                  <p className="cart-page__item-total">
-                    {formatPrice((item.discounted_price || item.price) * item.quantity)}
-                  </p>
-                  <button className="cart-page__remove" onClick={() => removeItem(item.id)}>
-                    <MdDelete size={18} />
-                  </button>
+                  <div className="cart-page__item-info">
+                    <p className="cart-page__item-name">
+                      {item.name}
+                      {item.variantName && (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--primary)', marginRight: 6, fontWeight: 400 }}>
+                          ({item.variantName})
+                        </span>
+                      )}
+                    </p>
+                    <p className="cart-page__item-unit">
+                      {formatPrice(item.discounted_price || item.price)} × {item.quantity}
+                    </p>
+                  </div>
+                  <div className="cart-page__item-controls">
+                    <div className="cart-page__qty">
+                      <button onClick={() => updateQuantity(key, item.quantity + 1)}>+</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => updateQuantity(key, item.quantity - 1)}>−</button>
+                    </div>
+                    <p className="cart-page__item-total">
+                      {formatPrice((item.discounted_price || item.price) * item.quantity)}
+                    </p>
+                    <button className="cart-page__remove" onClick={() => removeItem(key)}>
+                      <MdDelete size={18} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Delivery Type */}

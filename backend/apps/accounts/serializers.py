@@ -31,8 +31,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone', 'full_name', 'email', 'avatar', 'date_joined']
-        read_only_fields = ['id', 'phone', 'date_joined']
+        fields = ['id', 'phone', 'full_name', 'email', 'avatar', 'is_staff', 'date_joined']
+        read_only_fields = ['id', 'phone', 'is_staff', 'date_joined']
 
     def get_phone(self, obj):
         return str(obj.phone)
@@ -42,6 +42,18 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['full_name', 'email', 'avatar']
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    phone = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'phone', 'full_name', 'email', 'is_staff', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'phone', 'date_joined']
+
+    def get_phone(self, obj):
+        return str(obj.phone)
 
 
 class AddressSerializer(serializers.ModelSerializer):

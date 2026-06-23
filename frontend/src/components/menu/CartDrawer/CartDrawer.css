@@ -122,10 +122,17 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cart-item__variant {
+  font-size: 0.75rem;
+  color: var(--primary);
+  margin-bottom: 3px;
+  font-weight: 500;
 }
 
 .cart-item__price {

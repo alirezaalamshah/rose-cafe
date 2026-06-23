@@ -16,6 +16,11 @@ def save_otp(phone: str, otp: str) -> None:
 
 
 def verify_otp(phone: str, otp: str) -> bool:
+    # کد ثابت تست — فقط در حالت DEBUG و اگر OTP_TEST_CODE تنظیم شده باشد
+    test_code = getattr(settings, 'OTP_TEST_CODE', '')
+    if settings.DEBUG and test_code and otp == test_code:
+        return True
+
     key = f'otp_{phone}'
     cached = cache.get(key)
     if cached and cached == otp:

@@ -8,11 +8,21 @@ export const menuAPI = {
 
   // Admin
   adminGetItems: (params) => api.get('/menu/admin/items/', { params }),
-  adminCreateItem: (data) => api.post('/menu/admin/items/', data),
-  adminUpdateItem: (id, data) => api.put(`/menu/admin/items/${id}/`, data),
+  adminCreateItem: (data) => api.post('/menu/admin/items/', data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  }),
+  adminUpdateItem: (id, data) => api.patch(`/menu/admin/items/${id}/`, data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  }),
   adminDeleteItem: (id) => api.delete(`/menu/admin/items/${id}/`),
   adminGetCategories: () => api.get('/menu/admin/categories/'),
   adminCreateCategory: (data) => api.post('/menu/admin/categories/', data),
   adminUpdateCategory: (id, data) => api.put(`/menu/admin/categories/${id}/`, data),
   adminDeleteCategory: (id) => api.delete(`/menu/admin/categories/${id}/`),
+
+  // Admin variants
+  adminGetVariants: (itemId) => api.get(`/menu/admin/items/${itemId}/variants/`),
+  adminCreateVariant: (itemId, data) => api.post(`/menu/admin/items/${itemId}/variants/`, data),
+  adminUpdateVariant: (itemId, variantId, data) => api.patch(`/menu/admin/items/${itemId}/variants/${variantId}/`, data),
+  adminDeleteVariant: (itemId, variantId) => api.delete(`/menu/admin/items/${itemId}/variants/${variantId}/`),
 }

@@ -1,0 +1,68 @@
+/* فقط روی موبایل نمایش داده می‌شود */
+.category-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .category-bar {
+    display: block;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 50;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .category-bar__scroll {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 10px var(--space-md);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-bar__scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-bar__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition-fast);
+    font-family: var(--font-family);
+    flex-shrink: 0;
+  }
+
+  .category-bar__chip:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  .category-bar__chip.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #1a1205;
+    font-weight: 700;
+  }
+
+  .category-bar__sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+}

@@ -1,3 +1,6 @@
+/* =====================
+   DESKTOP SIDEBAR (≥ 768px)
+   ===================== */
 .sidebar {
   position: fixed;
   top: var(--header-height);
@@ -11,42 +14,33 @@
   overflow-y: auto;
   overflow-x: hidden;
   z-index: var(--z-sidebar);
-  transition: transform var(--transition);
-  padding: var(--space-lg) var(--space-md);
+  padding: var(--space-md) var(--space-sm);
+  /* عدم حرکت با اسکرول صفحه */
+  will-change: transform;
 }
 
-.sidebar--hidden {
-  transform: translateX(100%);
-}
+/* اسکرول‌بار ظریف */
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+/* overlay فقط موبایل */
 .sidebar__overlay {
   display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: calc(var(--z-sidebar) - 1);
-  backdrop-filter: blur(2px);
 }
 
-.sidebar__title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  padding: 0 var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-
+/* =====================
+   SEARCH BOX
+   ===================== */
 .sidebar__search {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 6px;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  margin-bottom: var(--space-lg);
+  padding: 7px 10px;
+  margin-bottom: var(--space-md);
   box-shadow: var(--neu-inset-sm);
   transition: var(--transition);
 }
@@ -61,27 +55,37 @@
   border: none;
   outline: none;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-family: var(--font-family);
+  min-width: 0;
 }
 
-.sidebar__search input::placeholder {
+.sidebar__search input::placeholder { color: var(--text-muted); }
+.sidebar__search-icon { color: var(--text-muted); flex-shrink: 0; }
+
+/* =====================
+   SECTION TITLE
+   ===================== */
+.sidebar__title {
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--text-muted);
+  letter-spacing: 1px;
+  padding: 0 var(--space-sm);
+  margin-bottom: 6px;
 }
 
-.sidebar__search-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
+/* =====================
+   CATEGORY BUTTONS
+   ===================== */
 .sidebar__category {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
+  gap: 8px;
+  padding: 9px 10px;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.83rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-fast);
@@ -91,6 +95,9 @@
   text-align: right;
   font-family: var(--font-family);
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar__category:hover {
@@ -102,23 +109,25 @@
 .sidebar__category.active {
   background: var(--primary-bg);
   color: var(--primary);
-  border-color: rgba(200, 169, 110, 0.2);
-  box-shadow: var(--neu-shadow-sm);
+  border-color: rgba(200, 169, 110, 0.25);
+  font-weight: 700;
 }
 
 .sidebar__category-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .sidebar__category-count {
   margin-right: auto;
   background: var(--bg-primary);
   color: var(--text-muted);
-  font-size: 0.75rem;
-  padding: 2px 8px;
+  font-size: 0.68rem;
+  padding: 1px 6px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .sidebar__category.active .sidebar__category-count {
@@ -127,44 +136,54 @@
   border-color: rgba(200, 169, 110, 0.2);
 }
 
+/* =====================
+   DIVIDER & FILTERS
+   ===================== */
 .sidebar__divider {
   height: 1px;
   background: var(--border);
-  margin: var(--space-md) 0;
+  margin: var(--space-sm) 0;
 }
 
-.sidebar__filter-section {
-  margin-top: var(--space-md);
-}
+.sidebar__filter-section { margin-top: var(--space-xs); }
 
 .sidebar__filter-title {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
   padding: 0 var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.sidebar__filter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 2px;
 }
 
 .sidebar__filter-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: transparent;
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-fast);
   font-family: var(--font-family);
-  margin: 4px;
+  text-align: right;
+  width: 100%;
 }
 
 .sidebar__filter-chip:hover {
-  border-color: var(--border-hover);
-  color: var(--primary);
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .sidebar__filter-chip.active {
@@ -173,28 +192,25 @@
   color: var(--primary);
 }
 
-.sidebar__filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  padding: 0 var(--space-xs);
-}
-
+/* =====================
+   SKELETON
+   ===================== */
 .sidebar__skeleton {
-  height: 44px;
+  height: 38px;
   border-radius: var(--radius-md);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
-@media (max-width: 900px) {
+/* =====================
+   MOBILE (< 768px)
+   ===================== */
+@media (max-width: 767px) {
+  /* روی موبایل sidebar اصلی مخفی است */
   .sidebar {
-    transform: translateX(100%);
-  }
-
-  .sidebar--open {
-    transform: translateX(0);
+    display: none;
   }
 
   .sidebar__overlay {
-    display: block;
+    display: none;
   }
 }

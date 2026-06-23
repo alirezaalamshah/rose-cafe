@@ -1,10 +1,16 @@
 from django.contrib import admin
-from .models import Category, MenuItem, MenuItemImage
+from .models import Category, MenuItem, MenuItemImage, MenuItemVariant
 
 
 class MenuItemImageInline(admin.TabularInline):
     model = MenuItemImage
     extra = 1
+
+
+class MenuItemVariantInline(admin.TabularInline):
+    model = MenuItemVariant
+    extra = 1
+    fields = ['name', 'price', 'discounted_price', 'is_available', 'order']
 
 
 @admin.register(Category)
@@ -22,7 +28,7 @@ class MenuItemAdmin(admin.ModelAdmin):
     list_filter = ['category', 'status', 'is_featured', 'is_vegetarian']
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
-    inlines = [MenuItemImageInline]
+    inlines = [MenuItemVariantInline, MenuItemImageInline]
     fieldsets = (
         ('اطلاعات اصلی', {'fields': ('category', 'name', 'slug', 'description', 'image')}),
         ('قیمت‌گذاری', {'fields': ('price', 'discounted_price')}),

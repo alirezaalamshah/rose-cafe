@@ -12,7 +12,7 @@ from django.conf import settings
 from .models import User, Address
 from .serializers import (
     SendOTPSerializer, VerifyOTPSerializer,
-    UserSerializer, UserUpdateSerializer, AddressSerializer
+    UserSerializer, UserUpdateSerializer, AddressSerializer, AdminUserSerializer
 )
 from .otp import generate_otp, save_otp, verify_otp
 from apps.notifications.sms import send_otp_sms
@@ -111,3 +111,26 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore[
 
     def get_queryset(self):  # type: ignore[override]
         return Address.objects.filter(user=self.request.user)
+
+
+class AdminUserListView(generics.ListAPIView):  # type: ignore[misc]
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        qs = User.objects.all().order_by('-date_joined')
+        search = self.request.query_params.get('search', '')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(full_name__icontains=search) | Q(phone__icontains=search)
+            )
+        return qs
+
+
+class AdminUserDetailView(generics.RetrieveUpdateAPIView):  # type: ignore[misc]
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = AdminUserSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        return User.objects.all()

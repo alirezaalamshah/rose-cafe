@@ -58,6 +58,78 @@
   gap: 4px;
 }
 
+/* =====================
+   DISCOUNT STAMP
+   ===================== */
+@keyframes stampDown {
+  0%   { transform: rotate(-14deg) scale(2.2); opacity: 0; }
+  65%  { transform: rotate(-14deg) scale(0.92); opacity: 1; }
+  80%  { transform: rotate(-14deg) scale(1.06); }
+  100% { transform: rotate(-14deg) scale(1); }
+}
+
+.menu-card__stamp {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 55, 55, 0.88);
+  box-shadow:
+    0 0 0 1px rgba(255, 55, 55, 0.18),
+    0 0 0 5px rgba(255, 55, 55, 0.07),
+    inset 0 0 0 2.5px rgba(255, 55, 55, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 65, 65, 0.92);
+  background: rgba(255, 45, 45, 0.06);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+  z-index: 3;
+  animation: stampDown 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.15s both;
+  /* جلوه جوهر ناهموار */
+  filter: drop-shadow(0 0 4px rgba(255, 55, 55, 0.25));
+}
+
+.menu-card__stamp-pct {
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  direction: ltr;
+  font-family: var(--font-family);
+  /* سایه جوهر */
+  text-shadow: 0 0 8px rgba(255, 55, 55, 0.4);
+}
+
+.menu-card__stamp-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-top: 1px;
+}
+
+/* نسخه بزرگ‌تر برای صفحه جزئیات */
+.menu-card__stamp--lg {
+  width: 88px;
+  height: 88px;
+  bottom: 16px;
+  left: 16px;
+}
+
+.menu-card__stamp--lg .menu-card__stamp-pct {
+  font-size: 1.75rem;
+}
+
+.menu-card__stamp--lg .menu-card__stamp-label {
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
+}
+
 .menu-card__badge {
   padding: 3px 9px;
   border-radius: var(--radius-full);
@@ -82,11 +154,15 @@
 }
 
 .menu-card__body {
-  padding: var(--space-md);
+  padding: var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 6px;
   flex: 1;
+}
+
+@media (min-width: 480px) {
+  .menu-card__body { padding: var(--space-md); gap: var(--space-sm); }
 }
 
 .menu-card__header {
@@ -97,10 +173,14 @@
 }
 
 .menu-card__name {
-  font-size: 1rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.35;
+}
+
+@media (min-width: 480px) {
+  .menu-card__name { font-size: 1rem; }
 }
 
 .menu-card__rating {
@@ -162,10 +242,14 @@
 }
 
 .menu-card__price-current {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: var(--primary);
   direction: ltr;
+}
+
+@media (min-width: 480px) {
+  .menu-card__price-current { font-size: 1.05rem; }
 }
 
 .menu-card__price-original {
@@ -179,18 +263,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 7px 10px;
   background: var(--primary-bg);
   border: 1px solid rgba(200, 169, 110, 0.25);
   border-radius: var(--radius-md);
   color: var(--primary);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition-fast);
   font-family: var(--font-family);
   box-shadow: var(--neu-shadow-sm);
+  white-space: nowrap;
+}
+
+@media (min-width: 480px) {
+  .menu-card__add-btn { font-size: 0.85rem; padding: 8px 14px; }
 }
 
 .menu-card__add-btn:hover {
@@ -241,4 +330,22 @@
   font-weight: 700;
   color: var(--text-primary);
   font-size: 0.95rem;
+}
+
+/* نشانگر "در سبد" برای آیتم‌های با نوع */
+.menu-card__in-cart {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(200, 169, 110, 0.92);
+  color: #1a1205;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 4;
+  letter-spacing: 0.5px;
 }

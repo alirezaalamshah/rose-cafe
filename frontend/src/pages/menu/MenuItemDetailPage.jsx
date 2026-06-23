@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MdArrowBack, MdTimer, MdLocalFireDepartment, MdAdd, MdRemove } from 'react-icons/md'
+import { MdArrowBack, MdTimer, MdLocalFireDepartment, MdAdd, MdRemove, MdTune } from 'react-icons/md'
 import { menuAPI } from '../../api/menu.js'
 import { reviewsAPI } from '../../api/reviews.js'
 import useCartStore from '../../store/cartStore.js'
@@ -9,6 +9,7 @@ import Button from '../../components/common/Button/Button.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import { formatPrice, formatDate, getMediaUrl } from '../../utils/helpers.js'
 import './MenuItemDetailPage.css'
+import '../../components/menu/MenuCard/MenuCard.css'
 
 export default function MenuItemDetailPage() {
   const { slug } = useParams()
@@ -16,20 +17,26 @@ export default function MenuItemDetailPage() {
   const [item, setItem] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedVariant, setSelectedVariant] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
   const { items, addItem, updateQuantity } = useCartStore()
-  const cartItem = items.find((i) => i.id === item?.id)
-  const quantity = cartItem?.quantity || 0
 
   useEffect(() => {
-    Promise.all([
-      menuAPI.getItem(slug),
-    ]).then(([itemData]) => {
-      setItem(itemData)
-      return reviewsAPI.getMenuItemReviews(itemData.id)
-    }).then((reviewData) => {
-      const results = Array.isArray(reviewData) ? reviewData : (reviewData.results || [])
-      setReviews(results)
-    }).catch(() => {})
+    Promise.all([menuAPI.getItem(slug)])
+      .then(([itemData]) => {
+        setItem(itemData)
+        // Auto-select first available variant
+        if (itemData.variants?.length > 0) {
+          const first = itemData.variants.find((v) => v.is_available) || itemData.variants[0]
+          setSelectedVariant(first)
+        }
+        setSelectedImage(itemData.image || null)
+        return reviewsAPI.getMenuItemReviews(itemData.id)
+      })
+      .then((reviewData) => {
+        setReviews(Array.isArray(reviewData) ? reviewData : (reviewData.results || []))
+      })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [slug])
 
@@ -41,6 +48,40 @@ export default function MenuItemDetailPage() {
     </div>
   )
 
+  const hasVariants = item.variants?.length > 0
+
+  function getDiscountPct() {
+    if (hasVariants) {
+      const pcts = item.variants
+        .filter((v) => v.has_discount && v.is_available)
+        .map((v) => Math.round((1 - v.discounted_price / v.price) * 100))
+      return pcts.length > 0 ? Math.max(...pcts) : null
+    }
+    if (item.discounted_price && item.discounted_price < item.price) {
+      return Math.round((1 - item.discounted_price / item.price) * 100)
+    }
+    return null
+  }
+  const discountPct = getDiscountPct()
+  const toPersian = (n) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d])
+
+  // Effective price based on selected variant or item defaults
+  const effectivePrice = selectedVariant
+    ? (selectedVariant.discounted_price || selectedVariant.price)
+    : (item.discounted_price || item.price)
+  const effectiveOriginal = selectedVariant
+    ? (selectedVariant.has_discount ? selectedVariant.price : null)
+    : (item.has_discount ? item.price : null)
+
+  // Cart key for current selection
+  const cartKey = selectedVariant ? `${item.id}_v${selectedVariant.id}` : String(item.id)
+  const cartItem = items.find((i) => (i.cartKey || String(i.id)) === cartKey)
+  const quantity = cartItem?.quantity || 0
+
+  function handleAddToCart() {
+    addItem(item, hasVariants ? selectedVariant : null)
+  }
+
   return (
     <div className="item-detail">
       <button className="item-detail__back" onClick={() => navigate(-1)}>
@@ -49,10 +90,11 @@ export default function MenuItemDetailPage() {
 
       <div className="item-detail__card neu-card">
         <div className="item-detail__grid">
-          <div className="item-detail__image-wrap">
-            {item.image ? (
+          <div className="item-detail__image-col">
+            <div className="item-detail__image-wrap">
+            {selectedImage ? (
               <img
-                src={getMediaUrl(item.image)}
+                src={getMediaUrl(selectedImage)}
                 alt={item.name}
                 className="item-detail__image"
               />
@@ -67,10 +109,40 @@ export default function MenuItemDetailPage() {
                 <span className="menu-card__badge menu-card__badge--vegetarian">🌱 گیاهی</span>
               )}
             </div>
+            {discountPct && item.status === 'available' && (
+              <div className="menu-card__stamp menu-card__stamp--lg">
+                <span className="menu-card__stamp-pct">{toPersian(discountPct)}٪</span>
+                <span className="menu-card__stamp-label">تخفیف</span>
+              </div>
+            )}
+            </div>
+
+            {/* Extra images gallery */}
+            {item.extra_images?.length > 0 && (
+              <div className="item-detail__gallery">
+                {item.image && (
+                  <button
+                    className={`item-detail__thumb ${selectedImage === item.image ? 'item-detail__thumb--active' : ''}`}
+                    onClick={() => setSelectedImage(item.image)}
+                  >
+                    <img src={getMediaUrl(item.image)} alt={item.name} />
+                  </button>
+                )}
+                {item.extra_images.map((img) => (
+                  <button
+                    key={img.id}
+                    className={`item-detail__thumb ${selectedImage === img.image ? 'item-detail__thumb--active' : ''}`}
+                    onClick={() => setSelectedImage(img.image)}
+                  >
+                    <img src={getMediaUrl(img.image)} alt={`${item.name} تصویر ${img.id}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="item-detail__info">
-            <div className="item-detail__category">{item.category?.name}</div>
+            <div className="item-detail__category">{item.category_name || item.category?.name}</div>
             <h1 className="item-detail__name">{item.name}</h1>
 
             {item.average_rating && (
@@ -101,14 +173,43 @@ export default function MenuItemDetailPage() {
               )}
             </div>
 
+            {/* Variant Selector */}
+            {hasVariants && (
+              <div className="item-detail__variants">
+                <div className="item-detail__variants-label">
+                  <MdTune size={16} color="var(--primary)" />
+                  <span>انتخاب نوع</span>
+                </div>
+                <div className="item-detail__variants-list">
+                  {item.variants.map((v) => (
+                    <button
+                      key={v.id}
+                      className={`variant-btn ${selectedVariant?.id === v.id ? 'variant-btn--selected' : ''} ${!v.is_available ? 'variant-btn--unavailable' : ''}`}
+                      onClick={() => v.is_available && setSelectedVariant(v)}
+                      disabled={!v.is_available}
+                    >
+                      <span className="variant-btn__name">{v.name}</span>
+                      <span className="variant-btn__price">
+                        {formatPrice(v.final_price)}
+                      </span>
+                      {v.has_discount && (
+                        <span className="variant-btn__original">{formatPrice(v.price)}</span>
+                      )}
+                      {!v.is_available && <span className="variant-btn__sold">ناموجود</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="item-detail__price-row">
               <div>
                 <div className="item-detail__price">
-                  {formatPrice(item.discounted_price || item.price)}
+                  {formatPrice(effectivePrice)}
                 </div>
-                {item.discounted_price && item.discounted_price < item.price && (
+                {effectiveOriginal && (
                   <div className="item-detail__price-original">
-                    {formatPrice(item.price)}
+                    {formatPrice(effectiveOriginal)}
                   </div>
                 )}
               </div>
@@ -116,16 +217,16 @@ export default function MenuItemDetailPage() {
               {item.status === 'available' ? (
                 quantity > 0 ? (
                   <div className="item-detail__qty">
-                    <button onClick={() => updateQuantity(item.id, quantity + 1)}>
+                    <button onClick={() => updateQuantity(cartKey, quantity + 1)}>
                       <MdAdd size={20} />
                     </button>
                     <span>{quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, quantity - 1)}>
+                    <button onClick={() => updateQuantity(cartKey, quantity - 1)}>
                       <MdRemove size={20} />
                     </button>
                   </div>
                 ) : (
-                  <Button size="lg" onClick={() => addItem(item)}>
+                  <Button size="lg" onClick={handleAddToCart} disabled={hasVariants && !selectedVariant}>
                     <MdAdd size={18} /> افزودن به سبد
                   </Button>
                 )

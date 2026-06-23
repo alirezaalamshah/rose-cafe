@@ -51,5 +51,8 @@ export function getStatusClass(status) {
 export function getMediaUrl(path) {
   if (!path) return null
   if (path.startsWith('http')) return path
-  return `${import.meta.env.VITE_MEDIA_BASE_URL || 'http://localhost:8000'}${path}`
+  // در محیط dev، Vite پروکسی /media را به Django هدایت می‌کند
+  // پس path را مستقیم برمی‌گردانیم (شروع با /media/)
+  const base = import.meta.env.VITE_MEDIA_BASE_URL || ''
+  return base ? `${base}${path}` : path
 }

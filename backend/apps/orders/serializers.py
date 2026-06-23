@@ -12,13 +12,14 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'menu_item_detail', 'quantity', 'unit_price', 'subtotal']
-        read_only_fields = ['unit_price']
+        fields = ['id', 'menu_item', 'menu_item_detail', 'quantity', 'unit_price', 'subtotal', 'variant_name']
+        read_only_fields = ['unit_price', 'variant_name']
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
     menu_item = serializers.PrimaryKeyRelatedField(queryset=MenuItem.objects.all())
     quantity = serializers.IntegerField(min_value=1, max_value=20)
+    variant_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class OrderCreateSerializer(serializers.Serializer):
