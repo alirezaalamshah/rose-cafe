@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { businessAPI } from '../../../api/business.js'
 import {
-  MdCoffee, MdDashboard, MdShoppingBag, MdRestaurantMenu,
+  MdDashboard, MdShoppingBag, MdRestaurantMenu,
   MdTableBar, MdRateReview, MdLogout, MdArrowForward,
   MdPeople, MdLocalOffer, MdPayments, MdCategory, MdMenu,
-  MdChevronLeft,
+  MdChevronLeft, MdAccessTime, MdSettings, MdClose, MdViewCarousel,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import './AdminSidebar.css'
@@ -23,6 +24,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/menu', icon: MdRestaurantMenu, label: 'آیتم‌های منو' },
       { to: '/admin/categories', icon: MdCategory, label: 'دسته‌بندی‌ها' },
+      { to: '/admin/banners', icon: MdViewCarousel, label: 'بنرهای تبلیغاتی' },
     ],
   },
   {
@@ -45,32 +47,108 @@ const NAV_GROUPS = [
       { to: '/admin/reviews', icon: MdRateReview, label: 'نظرات' },
     ],
   },
+  {
+    title: 'تنظیمات',
+    items: [
+      { to: '/admin/business', icon: MdAccessTime, label: 'ساعات کاری' },
+      { to: '/admin/settings', icon: MdSettings, label: 'تنظیمات سایت' },
+    ],
+  },
 ]
+
+const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items)
 
 export default function AdminLayout() {
   const { logout } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [cafeName, setCafeName] = useState('')
+
+  useEffect(() => {
+    businessAPI.getCafeInfo()
+      .then((data) => setCafeName(data.name || ''))
+      .catch(() => {})
+  }, [])
+
+  // بستن کشو هنگام تغییر مسیر
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  // قفل اسکرول صفحه وقتی کشو باز است
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
+
+  // بستن با Escape
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e) => e.key === 'Escape' && setMobileOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
 
   function handleLogout() {
     logout()
     navigate('/login')
   }
 
+  // عنوان صفحه فعلی برای هدر موبایل
+  const currentItem = ALL_ITEMS.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+  )
+  const pageTitle = currentItem?.label || 'پنل مدیریت'
+
   return (
     <div className="admin-layout">
-      <aside className={`admin-sidebar ${collapsed ? 'admin-sidebar--collapsed' : ''}`}>
+      {/* هدر موبایل */}
+      <header className="admin-mobile-header">
+        <button
+          className="admin-mobile-header__menu-btn"
+          onClick={() => setMobileOpen(true)}
+          aria-label="باز کردن منو"
+        >
+          <MdMenu size={24} />
+        </button>
+        <h1 className="admin-mobile-header__title">{pageTitle}</h1>
+        <NavLink to="/" className="admin-mobile-header__logo">
+          <img src="/ECUC9864.JPEG" alt={cafeName || 'کافه'} />
+        </NavLink>
+      </header>
+
+      {/* backdrop موبایل */}
+      {mobileOpen && (
+        <div
+          className="admin-sidebar__backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`admin-sidebar ${collapsed ? 'admin-sidebar--collapsed' : ''} ${mobileOpen ? 'admin-sidebar--open' : ''}`}
+      >
         <div className="admin-sidebar__top">
           <NavLink to="/" className="admin-sidebar__logo">
-            <MdCoffee size={22} />
-            {!collapsed && <span>کافه ما</span>}
+            <img src="/ECUC9864.JPEG" alt={cafeName || 'کافه'} style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: '50%', flexShrink: 0 }} />
+            {!collapsed && <span>{cafeName || 'کافه'}</span>}
           </NavLink>
           <button
-            className="admin-sidebar__collapse-btn"
+            className="admin-sidebar__collapse-btn admin-sidebar__collapse-btn--desktop"
             onClick={() => setCollapsed((p) => !p)}
             title={collapsed ? 'بازکردن' : 'بستن'}
           >
             <MdChevronLeft size={18} style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+          <button
+            className="admin-sidebar__collapse-btn admin-sidebar__close-btn--mobile"
+            onClick={() => setMobileOpen(false)}
+            aria-label="بستن منو"
+          >
+            <MdClose size={22} />
           </button>
         </div>
 

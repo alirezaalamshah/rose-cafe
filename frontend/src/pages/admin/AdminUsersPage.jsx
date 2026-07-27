@@ -1,24 +1,62 @@
 import { useState, useEffect, useCallback } from 'react'
-import { MdSearch, MdAdminPanelSettings, MdBlock, MdCheckCircle, MdPerson } from 'react-icons/md'
+import {
+  MdSearch, MdAdminPanelSettings, MdBlock, MdCheckCircle,
+  MdPerson, MdRestaurantMenu, MdTune, MdCake,
+} from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { usersAPI } from '../../api/users.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
 import Button from '../../components/common/Button/Button.jsx'
+import { Select } from '../../components/common/Input/Input.jsx'
+import BirthdayPicker from '../../components/common/BirthdayPicker/BirthdayPicker.jsx'
 import { formatDate } from '../../utils/helpers.js'
+import { formatJalali } from '../../utils/jalali.js'
 import './AdminOrdersPage.css'
 import './AdminUsersPage.css'
+
+const ROLES = [
+  { value: 'customer', label: 'مشتری', icon: <MdPerson size={12} />, cls: '' },
+  { value: 'waiter', label: 'گارسون', icon: <MdRestaurantMenu size={12} />, cls: 'status-pending' },
+  { value: 'admin', label: 'مدیر', icon: <MdAdminPanelSettings size={12} />, cls: 'status-confirmed' },
+]
+
+const ROLE_FILTER = [
+  { value: '', label: 'همه نقش‌ها' },
+  { value: 'customer', label: 'مشتری' },
+  { value: 'waiter', label: 'گارسون' },
+  { value: 'admin', label: 'مدیر' },
+]
+
+function RoleBadge({ role, isStaff }) {
+  const effective = isStaff ? 'admin' : (role || 'customer')
+  const def = ROLES.find((r) => r.value === effective) || ROLES[0]
+  return (
+    <span className={`status-badge ${def.cls}`} style={!def.cls ? { background: 'var(--bg-secondary)', color: 'var(--text-muted)' } : {}}>
+      {def.icon} {def.label}
+    </span>
+  )
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
   const [editUser, setEditUser] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  const fetchUsers = useCallback((q = '') => {
+  // Waiter permission modal
+  const [permUser, setPermUser] = useState(null)
+  const [perms, setPerms] = useState({ can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false })
+  const [savingPerms, setSavingPerms] = useState(false)
+
+  const fetchUsers = useCallback((q = '', role = '') => {
     setLoading(true)
-    usersAPI.adminGetUsers(q ? { search: q } : {})
+    const params = {}
+    if (q) params.search = q
+    if (role) params.role = role
+    usersAPI.adminGetUsers(params)
       .then((data) => setUsers(Array.isArray(data) ? data : (data.results || [])))
       .finally(() => setLoading(false))
   }, [])
@@ -28,21 +66,14 @@ export default function AdminUsersPage() {
   function handleSearch(e) {
     const q = e.target.value
     setSearch(q)
-    const timer = setTimeout(() => fetchUsers(q), 500)
+    const timer = setTimeout(() => fetchUsers(q, roleFilter), 500)
     return () => clearTimeout(timer)
   }
 
-  async function handleToggleStaff(user) {
-    setSaving(user.id)
-    try {
-      const updated = await usersAPI.adminUpdateUser(user.id, { is_staff: !user.is_staff })
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, ...updated } : u))
-      toast.success(updated.is_staff ? 'دسترسی ادمین داده شد' : 'دسترسی ادمین گرفته شد')
-    } catch {
-      toast.error('خطا در بروزرسانی')
-    } finally {
-      setSaving(null)
-    }
+  function handleRoleFilter(e) {
+    const role = e.target.value
+    setRoleFilter(role)
+    fetchUsers(search, role)
   }
 
   async function handleToggleActive(user) {
@@ -62,11 +93,13 @@ export default function AdminUsersPage() {
     if (!editUser) return
     setSaving('edit')
     try {
-      const updated = await usersAPI.adminUpdateUser(editUser.id, {
+      const payload = {
         full_name: editUser.full_name,
-        is_staff: editUser.is_staff,
+        role: editUser.role,
         is_active: editUser.is_active,
-      })
+      }
+      if (editUser._birthday !== undefined) payload.birthday = editUser._birthday || null
+      const updated = await usersAPI.adminUpdateUser(editUser.id, payload)
       setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...u, ...updated } : u))
       toast.success('کاربر بروزرسانی شد')
       setEditUser(null)
@@ -77,6 +110,33 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function openPermissions(user) {
+    setPermUser(user)
+    try {
+      const data = await usersAPI.adminGetWaiterPermissions(user.id)
+      setPerms(data)
+    } catch {
+      setPerms({ can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false })
+    }
+  }
+
+  async function handleSavePerms() {
+    if (!permUser) return
+    setSavingPerms(true)
+    try {
+      const updated = await usersAPI.adminUpdateWaiterPermissions(permUser.id, perms)
+      setPerms(updated)
+      // Update user in list
+      setUsers((prev) => prev.map((u) => u.id === permUser.id ? { ...u, waiter_permissions: updated } : u))
+      toast.success('دسترسی‌های گارسون ذخیره شد')
+      setPermUser(null)
+    } catch {
+      toast.error('خطا در ذخیره دسترسی‌ها')
+    } finally {
+      setSavingPerms(false)
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -84,22 +144,24 @@ export default function AdminUsersPage() {
         <p>{users.length} کاربر ثبت‌نام شده</p>
       </div>
 
-      <div className="admin-users__search">
-        <MdSearch size={18} className="admin-users__search-icon" />
-        <input
-          placeholder="جستجو بر اساس نام یا شماره موبایل..."
-          value={search}
-          onChange={handleSearch}
-        />
+      <div style={{ display: 'flex', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap' }}>
+        <div className="admin-users__search" style={{ flex: 1, minWidth: 200 }}>
+          <MdSearch size={18} className="admin-users__search-icon" />
+          <input
+            placeholder="جستجو بر اساس نام یا شماره موبایل..."
+            value={search}
+            onChange={handleSearch}
+          />
+        </div>
+        <Select value={roleFilter} onChange={handleRoleFilter} style={{ width: 160 }}>
+          {ROLE_FILTER.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </Select>
       </div>
 
       {loading ? <Loading /> : (
         <div className="admin-orders__table-wrap">
           {users.length === 0 ? (
-            <div className="empty-state">
-              <div className="icon">👤</div>
-              <h3>کاربری یافت نشد</h3>
-            </div>
+            <div className="empty-state"><div className="icon">👤</div><h3>کاربری یافت نشد</h3></div>
           ) : (
             <table className="admin-table">
               <thead>
@@ -109,6 +171,7 @@ export default function AdminUsersPage() {
                   <th>نام</th>
                   <th>تاریخ عضویت</th>
                   <th>نقش</th>
+                  <th>رمز عبور</th>
                   <th>وضعیت</th>
                   <th>عملیات</th>
                 </tr>
@@ -116,47 +179,38 @@ export default function AdminUsersPage() {
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td>#{user.id}</td>
-                    <td style={{ direction: 'ltr', textAlign: 'right' }}>{user.phone}</td>
-                    <td style={{ color: 'var(--text-primary)' }}>{user.full_name || '—'}</td>
-                    <td>{formatDate(user.date_joined)}</td>
-                    <td>
-                      {user.is_staff ? (
-                        <span className="status-badge status-confirmed">
-                          <MdAdminPanelSettings size={12} /> ادمین
-                        </span>
-                      ) : (
-                        <span className="status-badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                          <MdPerson size={12} /> کاربر
-                        </span>
-                      )}
+                    <td data-label="شناسه">#{user.id}</td>
+                    <td data-label="شماره موبایل"><span dir="ltr">{user.phone}</span></td>
+                    <td data-label="نام" style={{ color: 'var(--text-primary)' }}>{user.full_name || '—'}</td>
+                    <td data-label="تاریخ عضویت">{formatDate(user.date_joined)}</td>
+                    <td data-label="نقش"><RoleBadge role={user.role} isStaff={user.is_staff} /></td>
+                    <td data-label="رمز عبور">
+                      {user.has_password
+                        ? <span className="status-badge status-confirmed">دارد</span>
+                        : <span className="status-badge status-cancelled">ندارد</span>
+                      }
                     </td>
-                    <td>
-                      {user.is_active ? (
-                        <span className="status-badge status-confirmed">فعال</span>
-                      ) : (
-                        <span className="status-badge status-cancelled">مسدود</span>
-                      )}
+                    <td data-label="وضعیت">
+                      {user.is_active
+                        ? <span className="status-badge status-confirmed">فعال</span>
+                        : <span className="status-badge status-cancelled">مسدود</span>
+                      }
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="admin-action-btn"
-                          onClick={() => setEditUser({ ...user })}
-                        >
+                    <td className="td-actions">
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        <button className="admin-action-btn" onClick={() => setEditUser({ ...user })}>
                           ویرایش
                         </button>
-                        <button
-                          className="admin-action-btn"
-                          style={user.is_staff
-                            ? { background: 'var(--warning-bg)', borderColor: 'rgba(251,191,36,.25)', color: 'var(--warning)' }
-                            : {}}
-                          disabled={saving === user.id}
-                          onClick={() => handleToggleStaff(user)}
-                          title={user.is_staff ? 'گرفتن دسترسی ادمین' : 'دادن دسترسی ادمین'}
-                        >
-                          <MdAdminPanelSettings size={14} />
-                        </button>
+                        {(user.role === 'waiter') && (
+                          <button
+                            className="admin-action-btn"
+                            style={{ background: 'var(--primary-bg)', borderColor: 'rgba(240,214,132,.25)', color: 'var(--primary)' }}
+                            title="تنظیم دسترسی‌های گارسون"
+                            onClick={() => openPermissions(user)}
+                          >
+                            <MdTune size={14} /> دسترسی
+                          </button>
+                        )}
                         <button
                           className="admin-action-btn"
                           style={user.is_active
@@ -178,6 +232,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
+      {/* Edit User Modal */}
       <Modal
         isOpen={!!editUser}
         onClose={() => setEditUser(null)}
@@ -199,10 +254,9 @@ export default function AdminUsersPage() {
                 {editUser.phone}
               </div>
             </div>
+
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                نام کامل
-              </label>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>نام کامل</label>
               <input
                 value={editUser.full_name || ''}
                 onChange={(e) => setEditUser((p) => ({ ...p, full_name: e.target.value }))}
@@ -210,26 +264,111 @@ export default function AdminUsersPage() {
                 placeholder="نام و نام خانوادگی"
               />
             </div>
-            <div style={{ display: 'flex', gap: 'var(--space-xl)' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                <input
-                  type="checkbox"
-                  checked={editUser.is_staff}
-                  onChange={(e) => setEditUser((p) => ({ ...p, is_staff: e.target.checked }))}
-                />
-                دسترسی ادمین
+
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>نقش کاربر</label>
+              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                {ROLES.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setEditUser((p) => ({ ...p, role: r.value }))}
+                    style={{
+                      flex: 1,
+                      padding: '10px 8px',
+                      borderRadius: 'var(--radius-md)',
+                      border: `1px solid ${editUser.role === r.value ? 'var(--primary)' : 'var(--border)'}`,
+                      background: editUser.role === r.value ? 'var(--primary-bg)' : 'var(--bg-secondary)',
+                      color: editUser.role === r.value ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontFamily: 'var(--font-family)',
+                      fontSize: '0.82rem',
+                      fontWeight: editUser.role === r.value ? 700 : 400,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {r.icon} {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              <input
+                type="checkbox"
+                checked={editUser.is_active}
+                onChange={(e) => setEditUser((p) => ({ ...p, is_active: e.target.checked }))}
+              />
+              حساب فعال
+            </label>
+
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <MdCake size={14} color="var(--primary)" /> تاریخ تولد (ادمین می‌تواند ویرایش کند)
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                <input
-                  type="checkbox"
-                  checked={editUser.is_active}
-                  onChange={(e) => setEditUser((p) => ({ ...p, is_active: e.target.checked }))}
+              {editUser.birthday && editUser._birthday === undefined ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', flex: 1 }}>
+                    {formatJalali(editUser.birthday)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditUser((p) => ({ ...p, _birthday: '' }))}
+                    style={{ fontSize: '0.78rem', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    ویرایش
+                  </button>
+                </div>
+              ) : (
+                <BirthdayPicker
+                  value={editUser._birthday ?? editUser.birthday ?? ''}
+                  onChange={(v) => setEditUser((p) => ({ ...p, _birthday: v }))}
                 />
-                حساب فعال
-              </label>
+              )}
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Waiter Permissions Modal */}
+      <Modal
+        isOpen={!!permUser}
+        onClose={() => setPermUser(null)}
+        title={`دسترسی‌های گارسون — ${permUser?.full_name || permUser?.phone}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPermUser(null)}>انصراف</Button>
+            <Button onClick={handleSavePerms} loading={savingPerms}>ذخیره دسترسی‌ها</Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            مشخص کنید این گارسون به کدام بخش‌ها دسترسی داشته باشد:
+          </p>
+          {[
+            { key: 'can_manage_orders', label: 'مدیریت سفارشات', desc: 'مشاهده و بروزرسانی وضعیت سفارشات' },
+            { key: 'can_manage_reservations', label: 'مدیریت رزروها', desc: 'مشاهده و تأیید رزروهای میز' },
+            { key: 'can_manage_tables', label: 'مدیریت میزها', desc: 'فعال/غیرفعال کردن میزها' },
+          ].map(({ key, label, desc }) => (
+            <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={perms[key]}
+                onChange={(e) => setPerms((p) => ({ ...p, [key]: e.target.checked }))}
+                style={{ marginTop: 3, flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
       </Modal>
     </div>
   )

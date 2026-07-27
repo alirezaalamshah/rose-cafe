@@ -1,0 +1,245 @@
+/* =====================
+   SECTION CARD
+   ===================== */
+.biz-section {
+  border-radius: var(--radius-lg);
+  overflow: visible;
+  padding: 0;
+}
+
+.biz-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.biz-section__hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* =====================
+   HOURS LIST (card layout — no overflow:hidden so TimePicker can pop)
+   ===================== */
+.biz-hours-list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm);
+  gap: var(--space-sm);
+}
+
+.biz-day-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s;
+}
+
+.biz-day-card--dirty {
+  border-color: rgba(200, 169, 110, 0.4);
+  background: rgba(200, 169, 110, 0.04);
+}
+
+.biz-day-card__name {
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.day-name--today {
+  color: var(--primary);
+}
+
+.day-today-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 6px rgba(200, 169, 110, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.biz-day-card__times {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.biz-day-card__times-sep {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* =====================
+   TOGGLE SWITCH
+   ===================== */
+.biz-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.biz-toggle input {
+  display: none;
+}
+
+.biz-toggle__slider {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.biz-toggle__slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.biz-toggle input:checked + .biz-toggle__slider {
+  background: rgba(200, 169, 110, 0.18);
+  border-color: rgba(200, 169, 110, 0.45);
+}
+
+.biz-toggle input:checked + .biz-toggle__slider::after {
+  transform: translateX(-18px);
+  background: var(--primary);
+}
+
+.biz-toggle__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 34px;
+  transition: color 0.2s;
+}
+
+.biz-toggle__label--open {
+  color: var(--primary);
+}
+
+/* =====================
+   SAVE BUTTON (PER-ROW)
+   ===================== */
+.biz-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.biz-save-btn--dirty {
+  background: var(--primary-bg) !important;
+  border-color: rgba(200, 169, 110, 0.45) !important;
+  color: var(--primary) !important;
+}
+
+/* =====================
+   ROW STATES
+   ===================== */
+.row--past td {
+  opacity: 0.55;
+}
+
+/* =====================
+   BADGES
+   ===================== */
+.biz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.biz-badge--closed {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.biz-badge--special {
+  background: rgba(200, 169, 110, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(200, 169, 110, 0.25);
+}
+
+/* =====================
+   MODAL TOGGLE
+   ===================== */
+.biz-modal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  user-select: none;
+  transition: border-color 0.2s;
+}
+
+.biz-modal-toggle:hover {
+  border-color: var(--border-hover);
+}
+
+.biz-modal-toggle input {
+  display: none;
+}
+
+/* =====================
+   RESPONSIVE
+   ===================== */
+@media (max-width: 768px) {
+  .biz-day-card {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .biz-day-card__name {
+    min-width: 70px;
+  }
+
+  .biz-day-card__times {
+    flex-basis: 100%;
+  }
+}

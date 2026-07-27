@@ -12,7 +12,8 @@ import { formatDate } from '../../utils/helpers.js'
 import './ReviewsPage.css'
 
 export default function ReviewsPage() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
+  const canReview = isAuthenticated && !user?.is_staff
   const [reviews, setReviews] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -41,7 +42,12 @@ export default function ReviewsPage() {
       setRating(5)
       setComment('')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'خطا در ثبت نظر')
+      const data = err.response?.data
+      const msg = data?.detail
+        || data?.non_field_errors?.[0]
+        || Object.values(data || {})?.[0]?.[0]
+        || 'خطا در ثبت نظر'
+      toast.error(msg)
     } finally {
       setSubmitting(false)
     }
@@ -57,7 +63,7 @@ export default function ReviewsPage() {
     <div className="reviews-page">
       <div className="page-header">
         <h1>نظرات کاربران</h1>
-        <p>آنچه مشتریان درباره کافه ما می‌گویند</p>
+        <p>آنچه مشتریان درباره است می‌گویند</p>
       </div>
 
       {/* Stats */}
@@ -86,11 +92,15 @@ export default function ReviewsPage() {
           })}
         </div>
         <div className="reviews-stats__action">
-          {isAuthenticated ? (
+          {canReview ? (
             <Button onClick={() => setModalOpen(true)} size="lg">
               <MdRateReview size={18} />
               ثبت نظر
             </Button>
+          ) : isAuthenticated ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
+              مدیران سیستم امکان ثبت نظر ندارند
+            </p>
           ) : (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
               برای ثبت نظر ابتدا وارد شوید

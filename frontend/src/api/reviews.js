@@ -5,13 +5,15 @@ export const reviewsAPI = {
   getCafeReviews: () => api.get('/reviews/cafe/'),
   getCafeStats: () => api.get('/reviews/cafe/stats/'),
   createReview: (data) => api.post('/reviews/create/', data),
-  updateReview: (id, data) => api.put(`/reviews/${id}/`, data),
+  updateReview: (id, data) => api.patch(`/reviews/${id}/`, data),
   deleteReview: (id) => api.delete(`/reviews/${id}/`),
   createCafeReview: (data) => api.post('/reviews/cafe/create/', data),
 
   // Admin
   adminGetReviews: (params) => api.get('/reviews/admin/', { params }),
-  adminApproveReview: (id) => api.post(`/reviews/admin/${id}/approve/`),
+  adminApproveReview: (id) => api.patch(`/reviews/admin/${id}/approve/`),
+  adminBulkApproveReviews: () => api.post('/reviews/admin/bulk-approve/'),
   adminGetCafeReviews: () => api.get('/reviews/admin/cafe/'),
-  adminApproveCafeReview: (id) => api.post(`/reviews/admin/cafe/${id}/approve/`),
+  adminApproveCafeReview: (id) => api.patch(`/reviews/admin/cafe/${id}/approve/`),
+  adminBulkApproveCafeReviews: () => api.post('/reviews/admin/cafe/bulk-approve/'),
 }

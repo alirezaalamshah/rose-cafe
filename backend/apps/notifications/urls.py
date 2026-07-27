@@ -1,7 +1,6 @@
 from django.urls import path
-from . import views
+from .views import test_sms
 
 urlpatterns = [
-    # مثال:
-    # path('login/', views.login_view),
+    path('test-sms/', test_sms, name='test-sms'),
 ]

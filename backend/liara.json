@@ -1,0 +1,13 @@
+{
+  "app": "rccoffee-api",
+  "platform": "django",
+  "django": {
+    "pythonVersion": "3.12"
+  },
+  "disks": [
+    {
+      "name": "rccoffee-media",
+      "mountTo": "/app/media"
+    }
+  ]
+}

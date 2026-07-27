@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
+from apps.common.image_processing import process_image
 
 
 class UserManager(BaseUserManager):
@@ -24,12 +25,36 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class Role(models.TextChoices):
+        CUSTOMER = 'customer', 'مشتری'
+        WAITER = 'waiter', 'گارسون'
+        ADMIN = 'admin', 'مدیر'
+
+    class Gender(models.TextChoices):
+        MALE = 'male', 'آقا'
+        FEMALE = 'female', 'خانم'
+
+    class MaritalStatus(models.TextChoices):
+        SINGLE = 'single', 'مجرد'
+        MARRIED = 'married', 'متاهل'
+
     phone = PhoneNumberField(unique=True, verbose_name='شماره موبایل')
     full_name = models.CharField(max_length=100, blank=True, verbose_name='نام کامل')
     email = models.EmailField(blank=True, verbose_name='ایمیل')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='تصویر پروفایل')
+    gender = models.CharField(max_length=10, choices=Gender.choices, blank=True, verbose_name='جنسیت')
+    marital_status = models.CharField(max_length=10, choices=MaritalStatus.choices, blank=True, verbose_name='وضعیت تأهل')
+    food_interests = models.CharField(max_length=255, blank=True, verbose_name='علایق غذایی')
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     is_staff = models.BooleanField(default=False, verbose_name='کارمند')
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.CUSTOMER,
+        verbose_name='نقش',
+    )
+    birthday = models.DateField(null=True, blank=True, verbose_name='تاریخ تولد')
+    birthday_set_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان ثبت تاریخ تولد')
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ عضویت')
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -45,9 +70,38 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return str(self.phone)
 
+    def save(self, *args, **kwargs):
+        if self.avatar and not self.avatar._committed:
+            processed, _ = process_image(self.avatar.file, max_dimension=600, base_name=self.avatar.name)
+            self.avatar = processed
+        super().save(*args, **kwargs)
+
     @property
     def is_admin(self):
         return self.is_staff
+
+    @property
+    def is_waiter(self):
+        return self.role == self.Role.WAITER
+
+
+class WaiterPermission(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='waiter_permissions',
+        verbose_name='کاربر',
+    )
+    can_manage_orders = models.BooleanField(default=True, verbose_name='مدیریت سفارشات')
+    can_manage_reservations = models.BooleanField(default=False, verbose_name='مدیریت رزروها')
+    can_manage_tables = models.BooleanField(default=False, verbose_name='مدیریت میزها')
+
+    class Meta:
+        verbose_name = 'دسترسی گارسون'
+        verbose_name_plural = 'دسترسی‌های گارسون'
+
+    def __str__(self):
+        return f'دسترسی‌های {self.user}'
 
 
 class Address(models.Model):

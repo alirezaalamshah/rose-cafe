@@ -2,8 +2,11 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
 
-function getCartKey(itemId, variantId) {
-  return variantId ? `${itemId}_v${variantId}` : String(itemId)
+export function getCartKey(itemId, variantId, addonIds = []) {
+  const base = variantId ? `${itemId}_v${variantId}` : String(itemId)
+  if (!addonIds.length) return base
+  const sorted = [...addonIds].sort((a, b) => a - b)
+  return `${base}_a${sorted.join('-')}`
 }
 
 const useCartStore = create(
@@ -13,10 +16,12 @@ const useCartStore = create(
       discountCode: '',
       discountAmount: 0,
       deliveryType: 'takeaway',
+      tableId: null,
 
-      addItem: (menuItem, variant = null) => {
+      addItem: (menuItem, variant = null, selectedAddons = []) => {
         const items = get().items
-        const cartKey = getCartKey(menuItem.id, variant?.id)
+        const addonIds = selectedAddons.map((a) => a.id)
+        const cartKey = getCartKey(menuItem.id, variant?.id, addonIds)
         const existing = items.find((i) => (i.cartKey || String(i.id)) === cartKey)
 
         if (existing) {
@@ -38,6 +43,7 @@ const useCartStore = create(
                 discounted_price: variant
                   ? (variant.discounted_price || null)
                   : menuItem.discounted_price,
+                addons: selectedAddons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
                 quantity: 1,
               },
             ],
@@ -64,35 +70,17 @@ const useCartStore = create(
       },
 
       clearCart: () => {
-        set({ items: [], discountCode: '', discountAmount: 0 })
+        set({ items: [], discountCode: '', discountAmount: 0, tableId: null })
       },
 
       setDiscountCode: (code) => set({ discountCode: code }),
       setDiscountAmount: (amount) => set({ discountAmount: amount }),
-      setDeliveryType: (type) => set({ deliveryType: type }),
-
-      get totalItems() {
-        return get().items.reduce((sum, i) => sum + i.quantity, 0)
-      },
-
-      get subtotal() {
-        return get().items.reduce(
-          (sum, i) => sum + (i.discounted_price || i.price) * i.quantity,
-          0
-        )
-      },
-
-      get deliveryCost() {
-        return get().deliveryType === 'delivery' ? 15000 : 0
-      },
-
-      get total() {
-        return get().subtotal + get().deliveryCost - get().discountAmount
-      },
+      setDeliveryType: (type) => set({ deliveryType: type, tableId: null }),
+      setTable: (id) => set({ tableId: id }),
     }),
     {
       name: 'cafe-cart',
-      partialize: (state) => ({ items: state.items, deliveryType: state.deliveryType }),
+      partialize: (state) => ({ items: state.items, deliveryType: state.deliveryType, tableId: state.tableId }),
     }
   )
 )

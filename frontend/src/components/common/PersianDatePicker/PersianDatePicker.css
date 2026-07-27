@@ -1,0 +1,234 @@
+.pdp {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.pdp__label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pdp__input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  text-align: right;
+  direction: rtl;
+}
+
+.pdp__input:hover:not(.pdp__input--disabled) {
+  border-color: var(--border-hover);
+}
+
+.pdp__input--open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.pdp__input--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdp__input-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pdp__input-value {
+  flex: 1;
+  text-align: right;
+}
+
+.pdp__input-placeholder {
+  color: var(--text-muted);
+}
+
+.pdp__input-arrow {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Popup */
+.pdp__popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 9999;
+  width: 300px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(240, 214, 132, 0.06);
+  padding: 16px;
+  direction: rtl;
+  animation: pdp-pop 0.15s ease;
+}
+
+@keyframes pdp-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Header */
+.pdp__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pdp__month-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.pdp__year {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.pdp__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 0;
+}
+
+.pdp__nav:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+/* Weekday headers */
+.pdp__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+}
+
+.pdp__weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+/* Day grid */
+.pdp__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.pdp__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-family: var(--font-family);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.pdp__day:hover:not(.pdp__day--disabled):not(.pdp__day--other) {
+  background: var(--primary-bg);
+  border-color: rgba(240, 214, 132, 0.2);
+  color: var(--primary);
+}
+
+.pdp__day--other {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pdp__day--today {
+  border-color: rgba(240, 214, 132, 0.4);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.pdp__day--selected {
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-weight: 700;
+  border-color: var(--primary);
+}
+
+.pdp__day--selected:hover {
+  background: var(--primary-dark);
+  color: var(--text-inverse);
+}
+
+.pdp__day--disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+/* Footer */
+.pdp__footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.pdp__today-btn {
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  padding: 5px 20px;
+  background: var(--primary-bg);
+  border: 1px solid rgba(240, 214, 132, 0.25);
+  border-radius: var(--radius-full);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pdp__today-btn:hover {
+  background: var(--primary);
+  color: var(--text-inverse);
+}

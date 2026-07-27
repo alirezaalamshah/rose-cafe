@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MdAdd, MdRemove, MdTimer, MdLocalFireDepartment, MdTune } from 'react-icons/md'
 import useCartStore from '../../../store/cartStore.js'
@@ -21,19 +22,27 @@ function getDiscountPct(item) {
   return null
 }
 
-export default function MenuCard({ item }) {
-  const { items, addItem, updateQuantity } = useCartStore()
+function MenuCard({ item }) {
   const navigate = useNavigate()
   const isUnavailable = item.status !== 'available'
   const hasVariants = item.variants?.length > 0
   const discountPct = getDiscountPct(item)
 
+  // سلکتورهای محدود: با تغییر آیتم دیگری در سبد، این کارت (و بقیه‌ی کارت‌ها) ری‌رندر نمی‌شوند
+  // چون addItem/updateQuantity در map() فقط رفرنس همان آیتم تغییریافته را عوض می‌کنند
+  const addItem = useCartStore((s) => s.addItem)
+  const updateQuantity = useCartStore((s) => s.updateQuantity)
+
   // For items without variants, look up cart by item id
-  const cartItem = !hasVariants ? items.find((i) => (i.cartKey || String(i.id)) === String(item.id)) : null
+  const cartItem = useCartStore((s) =>
+    !hasVariants ? s.items.find((i) => (i.cartKey || String(i.id)) === String(item.id)) : null
+  )
   const quantity = cartItem?.quantity || 0
 
   // For variant items — any variant of this item currently in cart?
-  const variantInCart = hasVariants && items.some((i) => String(i.id) === String(item.id))
+  const variantInCart = useCartStore((s) =>
+    hasVariants ? s.items.some((i) => String(i.id) === String(item.id)) : false
+  )
 
   // Min price from available variants
   const minVariantPrice = hasVariants
@@ -64,7 +73,7 @@ export default function MenuCard({ item }) {
     <div className="menu-card" onClick={() => navigate(`/menu/${item.slug}`)}>
       <div className="menu-card__image">
         {item.image ? (
-          <img src={getMediaUrl(item.image)} alt={item.name} loading="lazy" />
+          <img src={getMediaUrl(item.image_thumbnail || item.image)} alt={item.name} loading="lazy" />
         ) : (
           <div className="menu-card__image-placeholder">☕</div>
         )}
@@ -130,6 +139,12 @@ export default function MenuCard({ item }) {
               {item.variants.length} نوع
             </span>
           )}
+          {item.addons?.some((a) => a.is_available) && (
+            <span className="menu-card__meta-item">
+              <MdAdd size={14} />
+              افزودنی
+            </span>
+          )}
         </div>
 
         <div className="menu-card__footer">
@@ -185,3 +200,5 @@ export default function MenuCard({ item }) {
     </div>
   )
 }
+
+export default memo(MenuCard)

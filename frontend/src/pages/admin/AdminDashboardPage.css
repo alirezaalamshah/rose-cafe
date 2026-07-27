@@ -1,24 +1,239 @@
-.admin-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.dash {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
 }
 
-.admin-stat-card {
+/* ══════════════════════════════
+   هدر
+══════════════════════════════ */
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.dash-header__title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.dash-header__date {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════
+   برچسب بخش
+══════════════════════════════ */
+.dash-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: calc(-1 * var(--space-sm));
+}
+
+/* ══════════════════════════════
+   نیازمند توجه
+══════════════════════════════ */
+.dash-attention {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  border: 1px solid rgba(240, 214, 132, 0.25);
+}
+
+.dash-attention__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+.dash-attention__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  min-width: 0;
+}
+
+.dash-attention__item:hover {
+  border-color: var(--warning);
+  background: rgba(240, 214, 132, 0.06);
+}
+
+.dash-attention__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.dash-attention__value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.dash-attention__sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════
+   KPI امروز
+══════════════════════════════ */
+.dash-kpi-grid {
+  display: grid;
+  /* minmax(0, 1fr): جلوگیری از باز شدن ستون توسط متن nowrap داخل کارت */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+@media (max-width: 1300px) {
+  .dash-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .dash-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ══════════════════════════════
+   تفکیک سفارشات امروز
+══════════════════════════════ */
+.dash-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .dash-breakdown-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.dash-breakdown__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dash-breakdown__row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+.dash-breakdown__row-head span:first-child {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.dash-breakdown__row-val {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.dash-breakdown__bar-wrap {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.dash-breakdown__bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition);
+}
+
+/* ══════════════════════════════
+   پرفروش‌ترین آیتم‌ها
+══════════════════════════════ */
+.dash-bestsellers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-bestseller-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.dash-bestseller-row__rank {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: rgba(240, 214, 132, 0.15);
+  color: var(--warning);
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-bestseller-row__name {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-bestseller-row__qty {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.dash-kpi {
   padding: var(--space-lg);
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  transition: transform var(--transition);
+  position: relative;
+  transition: transform var(--transition), box-shadow var(--transition);
 }
 
-.admin-stat-card:hover {
+.dash-kpi--clickable {
+  cursor: pointer;
+}
+
+.dash-kpi--clickable:hover {
   transform: translateY(-3px);
 }
 
-.admin-stat-card__icon {
-  width: 52px;
-  height: 52px;
+.dash-kpi--clickable:hover .dash-kpi__arrow {
+  opacity: 1;
+  transform: translateX(-3px);
+}
+
+.dash-kpi__icon {
+  width: 46px;
+  height: 46px;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -26,14 +241,470 @@
   flex-shrink: 0;
 }
 
-.admin-stat-card__label {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+.dash-kpi__body {
+  flex: 1;
+  min-width: 0;
 }
 
-.admin-stat-card__value {
-  font-size: 1.3rem;
+.dash-kpi__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-kpi__value {
+  font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
+}
+
+.dash-kpi__sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.dash-kpi__arrow {
+  color: var(--text-muted);
+  opacity: 0.3;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════
+   ردیف میانی
+══════════════════════════════ */
+.dash-mid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .dash-mid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ══════════════════════════════
+   کارت عمومی
+══════════════════════════════ */
+.dash-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dash-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-card__title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.dash-card__more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: opacity var(--transition-fast);
+}
+
+.dash-card__more:hover { opacity: 0.7; }
+
+.dash-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-lg) 0;
+}
+
+/* ══════════════════════════════
+   سفارشات
+══════════════════════════════ */
+.dash-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-order-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 80px 100px 100px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dash-order-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dash-order-row__id {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.dash-order-row__phone {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-order-row__type {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-order-row__price {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--success);
+  text-align: left;
+}
+
+/* ══════════════════════════════
+   ستون سمت راست
+══════════════════════════════ */
+.dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ══════════════════════════════
+   نمودار هفتگی
+══════════════════════════════ */
+.dash-chart {
+  padding: var(--space-sm) 0 0;
+}
+
+.dash-chart__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 100px;
+}
+
+.dash-chart__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.dash-chart__val {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  height: 14px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dash-chart__bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dash-chart__bar {
+  width: 100%;
+  background: var(--border);
+  border-radius: 4px 4px 0 0;
+  transition: background var(--transition);
+}
+
+.dash-chart__bar--today {
+  background: var(--primary);
+}
+
+.dash-chart__day {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.dash-chart__day--today {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ══════════════════════════════
+   اقدامات سریع
+══════════════════════════════ */
+.dash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dash-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-sm);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  text-align: right;
+  width: 100%;
+}
+
+.dash-action-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--primary);
+}
+
+.dash-action-btn__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-action-btn__label {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.dash-action-btn__badge {
+  background: var(--warning);
+  color: #1a1a0a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  line-height: 1.4;
+}
+
+/* ══════════════════════════════
+   رزروهای پیش رو
+══════════════════════════════ */
+.dash-reservations {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-res-row {
+  display: grid;
+  grid-template-columns: 100px 110px 1fr 70px 60px 90px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  font-size: 0.82rem;
+}
+
+.dash-res-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dash-res-row__date {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dash-res-row__time {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.dash-res-row__phone {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-res-row__table {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.dash-res-row__guests {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* ══════════════════════════════
+   آمار کلی
+══════════════════════════════ */
+.dash-total-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .dash-total-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 500px) {
+  .dash-total-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.dash-total-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 500px) {
+  .dash-total-grid--2 { grid-template-columns: minmax(0, 1fr); }
+}
+
+.dash-total {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  transition: transform var(--transition);
+}
+
+.dash-total--clickable {
+  cursor: pointer;
+}
+
+.dash-total--clickable:hover {
+  transform: translateY(-2px);
+}
+
+.dash-total__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.dash-total__value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ══════════════════════════════
+   وضعیت آماده‌سازی (اضافه)
+══════════════════════════════ */
+.status-preparing {
+  background: rgba(99, 179, 237, 0.1);
+  color: #63b3ed;
+}
+
+.status-ready {
+  background: rgba(72, 187, 120, 0.15);
+  color: #68d391;
+}
+
+.status-delivered {
+  background: rgba(160, 174, 192, 0.1);
+  color: var(--text-muted);
+}
+
+/* ══════════════════════════════
+   MOBILE
+══════════════════════════════ */
+@media (max-width: 768px) {
+  .dash {
+    gap: var(--space-md);
+  }
+
+  .dash-header__title {
+    font-size: 1.15rem;
+  }
+
+  .dash-kpi {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .dash-kpi__icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dash-kpi__value {
+    font-size: 1.1rem;
+  }
+
+  /* ردیف سفارش: دو خط — بالا: شناسه/تلفن/قیمت، پایین: نوع/وضعیت */
+  .dash-order-row {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'id    phone price'
+      'type  badge badge';
+    row-gap: 4px;
+    padding: 10px var(--space-sm);
+  }
+
+  .dash-order-row__id    { grid-area: id; }
+  .dash-order-row__phone { grid-area: phone; }
+  .dash-order-row__price { grid-area: price; }
+  .dash-order-row__type  { grid-area: type; }
+  .dash-order-row .status-badge { grid-area: badge; justify-self: end; }
+
+  /* ردیف رزرو: دو خط — بالا: تاریخ/ساعت/وضعیت، پایین: تلفن/میز/نفرات */
+  .dash-res-row {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'date  time  badge'
+      'phone table guests';
+    row-gap: 4px;
+    padding: 10px var(--space-sm);
+  }
+
+  .dash-res-row__date   { grid-area: date; }
+  .dash-res-row__time   { grid-area: time; }
+  .dash-res-row__phone  { grid-area: phone; }
+  .dash-res-row__table  { grid-area: table; justify-self: start; }
+  .dash-res-row__guests { grid-area: guests; justify-self: end; }
+  .dash-res-row .status-badge { grid-area: badge; justify-self: end; }
+
+  .dash-attention {
+    padding: var(--space-md);
+  }
+
+  .dash-attention__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dash-bestseller-row {
+    grid-template-columns: 22px 1fr auto;
+    font-size: 0.8rem;
+    padding: 8px 4px;
+  }
 }

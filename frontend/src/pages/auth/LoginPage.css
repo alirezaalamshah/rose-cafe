@@ -27,7 +27,7 @@
   left: -200px;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(124, 111, 212, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(171, 77, 53, 0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -60,7 +60,7 @@
 .login-card__logo-icon {
   font-size: 3rem;
   background: var(--primary-bg);
-  border: 1px solid rgba(200, 169, 110, 0.2);
+  border: 1px solid rgba(240, 214, 132, 0.2);
   border-radius: var(--radius-xl);
   width: 72px;
   height: 72px;
@@ -121,7 +121,7 @@
 }
 
 .login-form__otp-input.filled {
-  border-color: rgba(200, 169, 110, 0.4);
+  border-color: rgba(240, 214, 132, 0.4);
   color: var(--primary);
 }
 
@@ -180,4 +180,52 @@
   color: var(--primary);
   direction: ltr;
   display: inline-block;
+}
+
+.login-form__forgot {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: var(--font-family);
+  padding: 0;
+  text-align: right;
+  align-self: flex-start;
+  opacity: 0.85;
+  transition: var(--transition-fast);
+}
+
+.login-form__forgot:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.login-form__link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-form__link:hover {
+  text-decoration: underline;
+}
+
+.login-form__show-pass {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: var(--transition-fast);
+  z-index: 2;
+}
+
+.login-form__show-pass:hover {
+  color: var(--primary);
 }

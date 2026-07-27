@@ -1,0 +1,110 @@
+.banner-slider {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 12 / 5;
+  max-height: 220px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--neu-shadow);
+  background: var(--bg-secondary);
+}
+
+.banner-slider__track {
+  /* چیدمان چپ‌به‌راست استاندارد برای اسلاید‌ها — مستقل از جهت‌ RTL کل صفحه */
+  direction: ltr;
+  display: flex;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.banner-slider__slide {
+  direction: rtl;
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-slider__slide--clickable {
+  cursor: pointer;
+}
+
+.banner-slider__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.banner-slider__caption {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.banner-slider__dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.banner-slider__dot {
+  /* دکمه فقط ناحیه‌ی لمس است؛ شکل واقعی نقطه از ::before ساخته می‌شود
+     تا با min-height سراسری button ها (که بیضی‌اش می‌کرد) تداخل نداشته باشد */
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.banner-slider__dot::before {
+  content: '';
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: var(--transition-fast);
+}
+
+.banner-slider__dot.active::before {
+  background: #fff;
+  width: 18px;
+  border-radius: var(--radius-full);
+}
+
+@media (max-width: 640px) {
+  .banner-slider {
+    max-height: 160px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .banner-slider__caption {
+    font-size: 0.85rem;
+    padding: var(--space-sm) var(--space-md) 6px;
+  }
+}

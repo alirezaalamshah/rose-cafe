@@ -2,6 +2,7 @@ import api from './axios.js'
 
 export const discountsAPI = {
   checkCode: (code, orderTotal) => api.post('/discounts/check/', { code, order_total: orderTotal }),
+  getBirthdayOffer: () => api.get('/discounts/birthday-offer/'),
   adminGetDiscounts: (params) => api.get('/discounts/admin/', { params }),
   adminCreateDiscount: (data) => api.post('/discounts/admin/', data),
   adminUpdateDiscount: (id, data) => api.put(`/discounts/admin/${id}/`, data),

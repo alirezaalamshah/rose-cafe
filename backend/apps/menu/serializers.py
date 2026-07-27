@@ -1,16 +1,15 @@
 from rest_framework import serializers
-from .models import Category, MenuItem, MenuItemImage, MenuItemVariant
+from apps.common.image_processing import validate_image_size
+from .models import Category, MenuItem, MenuItemImage, MenuItemVariant, MenuItemAddon
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    item_count = serializers.SerializerMethodField()
+    # روی get_queryset() ویو annotate می‌شود (بدون کوئری جدا به‌ازای هر دسته)
+    item_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Category
         fields = ['id', 'name', 'slug', 'icon', 'image', 'description', 'order', 'item_count']
-
-    def get_item_count(self, obj):
-        return obj.items.filter(status=MenuItem.Status.AVAILABLE).count()
 
 
 class MenuItemVariantSerializer(serializers.ModelSerializer):
@@ -28,10 +27,19 @@ class MenuItemVariantSerializer(serializers.ModelSerializer):
         return bool(obj.discounted_price and obj.discounted_price < obj.price)
 
 
+class MenuItemAddonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuItemAddon
+        fields = ['id', 'name', 'price', 'is_available', 'order']
+
+
 class MenuItemImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItemImage
-        fields = ['id', 'image', 'order']
+        fields = ['id', 'image', 'image_thumbnail', 'order']
+
+    def validate_image(self, value):
+        return validate_image_size(value)
 
 
 class MenuItemListSerializer(serializers.ModelSerializer):
@@ -41,15 +49,16 @@ class MenuItemListSerializer(serializers.ModelSerializer):
     average_rating = serializers.FloatField(read_only=True)
     review_count = serializers.IntegerField(read_only=True)
     variants = MenuItemVariantSerializer(many=True, read_only=True)
+    addons = MenuItemAddonSerializer(many=True, read_only=True)
 
     class Meta:
         model = MenuItem
         fields = [
             'id', 'name', 'slug', 'category', 'category_name',
             'description', 'price', 'discounted_price', 'final_price',
-            'has_discount', 'image', 'status', 'is_featured',
+            'has_discount', 'image', 'image_thumbnail', 'status', 'is_featured',
             'is_vegetarian', 'calories', 'preparation_time',
-            'average_rating', 'review_count', 'variants',
+            'average_rating', 'review_count', 'variants', 'addons',
         ]
 
 
@@ -63,13 +72,21 @@ class MenuItemDetailSerializer(MenuItemListSerializer):
 class MenuItemAdminSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     variants = MenuItemVariantSerializer(many=True, read_only=True)
+    addons = MenuItemAddonSerializer(many=True, read_only=True)
 
     class Meta:
         model = MenuItem
         fields = '__all__'
+        read_only_fields = ['image_thumbnail']
+
+    def validate_image(self, value):
+        return validate_image_size(value)
 
 
 class CategoryAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+
+    def validate_image(self, value):
+        return validate_image_size(value)

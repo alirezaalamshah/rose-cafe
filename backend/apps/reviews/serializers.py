@@ -33,11 +33,12 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         request = self.context.get('request')
-        if request and Review.objects.filter(
-            user=request.user,
-            menu_item=data['menu_item']
-        ).exists():
-            raise serializers.ValidationError('شما قبلاً برای این آیتم نظر ثبت کرده‌اید')
+        if request and 'menu_item' in data:
+            qs = Review.objects.filter(user=request.user, menu_item=data['menu_item'])
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError('شما قبلاً برای این آیتم نظر ثبت کرده‌اید')
         return data
 
 

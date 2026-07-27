@@ -5,7 +5,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-build-phase-placeholder-override-in-production')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'phonenumber_field',
     'django_filters',
+    'dbbackup',
     # Local apps
     'apps.accounts.apps.AccountsConfig',
     'apps.menu.apps.MenuConfig',
@@ -32,10 +33,12 @@ INSTALLED_APPS = [
     'apps.reviews.apps.ReviewsConfig',
     'apps.discounts.apps.DiscountsConfig',
     'apps.notifications.apps.NotificationsConfig',
+    'apps.business.apps.BusinessConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -95,8 +98,14 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    # محدودیت نرخ روی OTP/ورود — جلوگیری از اسپم پیامکی (هزینه‌ی مالی مستقیم روی ملی‌پیامک)
+    # و brute-force رمز عبور/کد OTP. کلید هر throttle در throttles.py مشخص شده.
+    'DEFAULT_THROTTLE_RATES': {
+        'otp_send': '3/hour',
+        'otp_send_ip': '10/hour',
+        'otp_verify': '5/min',
+        'login': '5/min',
+    },
 }
 
 # JWT
@@ -135,11 +144,33 @@ OTP_LENGTH = 6
 # کد ثابت تست — فقط در DEBUG کار می‌کند، در production خالی بگذارید
 OTP_TEST_CODE = config('OTP_TEST_CODE', default='')
 
-# Melipayamak
+# Melipayamak — Console API (توکن جدید)
+MELIPAYAMAK_API_TOKEN = config('MELIPAYAMAK_API_TOKEN', default='')
+MELIPAYAMAK_FROM = config('MELIPAYAMAK_FROM', default='')
+# اعتبارات قدیمی (فقط fallback)
 MELIPAYAMAK_USERNAME = config('MELIPAYAMAK_USERNAME', default='')
 MELIPAYAMAK_PASSWORD = config('MELIPAYAMAK_PASSWORD', default='')
-MELIPAYAMAK_FROM = config('MELIPAYAMAK_FROM', default='')
+
+# پیامک‌های غیر-OTP (تغییر وضعیت سفارش، تایید رزرو و ...) موقتاً خاموش هستند
+# تا نقشه‌ی درست محتوا/زمان ارسالشان طراحی شود. OTP از این فلگ تأثیر نمی‌گیرد.
+SMS_NOTIFICATIONS_ENABLED = config('SMS_NOTIFICATIONS_ENABLED', default=False, cast=bool)
 
 # Zarinpal
 ZARINPAL_MERCHANT = config('ZARINPAL_MERCHANT', default='')
 ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
+ZARINPAL_CALLBACK_URL = config('ZARINPAL_CALLBACK_URL', default='http://localhost:5173/payment/callback')
+
+# بک‌آپ خودکار دیتابیس (django-dbbackup) — فایل‌سیستم محلی به‌عنوان مقصد پیش‌فرض
+# (روی هاست اشتراکی هدف هم دیسک معمولی است، نه سرویس خارجی). با pg_dump/mysqldump کار می‌کند
+# و بین دو موتور دیتابیس (Postgres فعلی، MySQL بعد از مهاجرت) بدون تغییر کد قابل استفاده است.
+# چون STORAGES را صریح تعریف می‌کنیم، باید default/staticfiles پیش‌فرض جنگو را هم این‌جا نگه داریم.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    'dbbackup': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'OPTIONS': {'location': config('DBBACKUP_LOCATION', default=str(BASE_DIR / 'backups'))},
+    },
+}
+# نگه‌داشتن ۱۴ بک‌آپ آخر (با اجرای روزانه یعنی ~۲ هفته) — قدیمی‌تر با --clean پاک می‌شود
+DBBACKUP_CLEANUP_KEEP = config('DBBACKUP_CLEANUP_KEEP', default=14, cast=int)

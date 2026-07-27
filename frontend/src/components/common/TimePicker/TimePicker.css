@@ -1,0 +1,219 @@
+.tp {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.tp__label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.tp__input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  direction: rtl;
+}
+
+.tp__input:hover:not(.tp__input--disabled) {
+  border-color: var(--border-hover);
+}
+
+.tp__input--open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.tp__input--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tp__input-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tp__input-value {
+  flex: 1;
+  text-align: right;
+  letter-spacing: 0.05em;
+}
+
+.tp__input-placeholder {
+  color: var(--text-muted);
+}
+
+.tp__input-arrow {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Popup */
+.tp__popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 9999;
+  width: 240px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(240, 214, 132, 0.06);
+  direction: rtl;
+  overflow: hidden;
+  animation: tp-pop 0.15s ease;
+}
+
+@keyframes tp-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tp__columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 12px 8px 0;
+}
+
+.tp__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tp__col-header {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.tp__sep {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-top: 28px;
+}
+
+.tp__list {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 4px;
+}
+
+.tp__list::-webkit-scrollbar {
+  width: 4px;
+}
+.tp__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tp__list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.tp__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-family: var(--font-family);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+  letter-spacing: 0.05em;
+  width: 100%;
+}
+
+.tp__item:hover:not(.tp__item--disabled) {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.tp__item--selected {
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-weight: 700;
+  border-color: var(--primary);
+}
+
+.tp__item--selected:hover {
+  background: var(--primary-dark);
+  color: var(--text-inverse);
+}
+
+.tp__item--disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.tp__footer {
+  padding: 10px 12px 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tp__confirm {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.02em;
+}
+
+.tp__confirm:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.tp__confirm--inactive {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: default;
+  font-weight: 400;
+}

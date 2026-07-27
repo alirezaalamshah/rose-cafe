@@ -1,20 +1,33 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
-  MdCoffee, MdShoppingCart, MdPerson, MdLogout,
+  MdShoppingCart, MdPerson, MdLogout,
   MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import useCartStore from '../../../store/cartStore.js'
+import useBusinessInfoStore from '../../../store/businessInfoStore.js'
+import { businessAPI } from '../../../api/business.js'
 import './Header.css'
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuthStore()
   const items = useCartStore((s) => s.items)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
+  const cafeInfo = useBusinessInfoStore((s) => s.cafeInfo)
+  const fetchCafeInfo = useBusinessInfoStore((s) => s.fetchCafeInfo)
+  const cafeName = cafeInfo?.name || ''
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const [cafeOpen, setCafeOpen] = useState(null)
+
+  useEffect(() => {
+    businessAPI.getCafeStatus()
+      .then((data) => setCafeOpen(data.is_open))
+      .catch(() => setCafeOpen(null))
+    fetchCafeInfo()
+  }, [fetchCafeInfo])
 
   useEffect(() => {
     function handleClick(e) {
@@ -35,9 +48,15 @@ export default function Header() {
   return (
     <header className="header">
       <Link to="/" className="header__logo">
-        <MdCoffee className="header__logo-icon" />
-        کافه ما
+        <img src="/ECUC9864.JPEG" alt={cafeName || 'کافه'} className="header__logo-icon" />
+        {cafeName || 'کافه'}
       </Link>
+
+      {cafeOpen !== null && (
+        <span className={`header__status ${cafeOpen ? 'header__status--open' : 'header__status--closed'}`}>
+          {cafeOpen ? 'باز' : 'تعطیل'}
+        </span>
+      )}
 
       <div className="header__spacer" />
 

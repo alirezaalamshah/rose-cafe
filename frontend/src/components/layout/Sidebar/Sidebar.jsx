@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { MdSearch, MdClose } from 'react-icons/md'
 import { menuAPI } from '../../../api/menu.js'
 import './Sidebar.css'
 
@@ -14,10 +13,9 @@ const CATEGORY_ICONS = {
   'پیش‌غذا': '🍽️',
 }
 
-export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryChange, onSearch, onFilterChange, activeFilters }) {
+export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryChange, onFilterChange, activeFilters }) {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchValue, setSearchValue] = useState('')
 
   useEffect(() => {
     menuAPI.getCategories()
@@ -27,12 +25,6 @@ export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryCha
       })
       .finally(() => setLoading(false))
   }, [])
-
-  function handleSearch(e) {
-    const val = e.target.value
-    setSearchValue(val)
-    onSearch?.(val)
-  }
 
   function getCategoryIcon(name) {
     for (const key of Object.keys(CATEGORY_ICONS)) {
@@ -45,23 +37,6 @@ export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryCha
     <>
       {isOpen && <div className="sidebar__overlay" onClick={onClose} />}
       <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
-        <div className="sidebar__search">
-          <MdSearch size={18} className="sidebar__search-icon" />
-          <input
-            placeholder="جستجو در منو..."
-            value={searchValue}
-            onChange={handleSearch}
-          />
-          {searchValue && (
-            <button
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
-              onClick={() => { setSearchValue(''); onSearch?.('') }}
-            >
-              <MdClose size={16} />
-            </button>
-          )}
-        </div>
-
         <p className="sidebar__title">دسته‌بندی‌ها</p>
 
         {loading ? (
@@ -88,15 +63,15 @@ export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryCha
                   {cat.icon || getCategoryIcon(cat.name)}
                 </span>
                 {cat.name}
-                {cat.items_count > 0 && (
-                  <span className="sidebar__category-count">{cat.items_count}</span>
+                {cat.item_count > 0 && (
+                  <span className="sidebar__category-count">{cat.item_count}</span>
                 )}
               </button>
             ))}
           </>
         )}
 
-        <div className="sidebar__divider" />
+        {/* <div className="sidebar__divider" />
 
         <div className="sidebar__filter-section">
           <p className="sidebar__filter-title">فیلترها</p>
@@ -120,7 +95,7 @@ export default function Sidebar({ isOpen, onClose, activeCategory, onCategoryCha
               ✅ موجود
             </button>
           </div>
-        </div>
+        </div> */}
       </aside>
     </>
   )

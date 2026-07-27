@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { MdAdd, MdEdit, MdDelete } from 'react-icons/md'
+import { useState, useEffect, useMemo } from 'react'
+import { MdAdd, MdEdit, MdDelete, MdToggleOn, MdToggleOff, MdSearch } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { menuAPI } from '../../api/menu.js'
+import { confirm } from '../../store/confirmStore.js'
 import Button from '../../components/common/Button/Button.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
 import { Input, Textarea } from '../../components/common/Input/Input.jsx'
@@ -13,10 +14,13 @@ const EMPTY = { name: '', slug: '', icon: '', description: '', order: 0, is_acti
 export default function AdminCategoriesPage() {
   const [cats, setCats] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkSaving, setBulkSaving] = useState(false)
 
   useEffect(() => {
     menuAPI.adminGetCategories()
@@ -70,7 +74,7 @@ export default function AdminCategoriesPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('حذف این دسته‌بندی؟ آیتم‌های منو این دسته حذف نمی‌شوند.')) return
+    if (!(await confirm('حذف این دسته‌بندی؟ آیتم‌های منو این دسته حذف نمی‌شوند.', { title: 'حذف دسته‌بندی' }))) return
     try {
       await menuAPI.adminDeleteCategory(id)
       setCats((prev) => prev.filter((c) => c.id !== id))
@@ -80,24 +84,78 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  const filteredCats = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return cats
+    return cats.filter((c) => c.name?.toLowerCase().includes(q))
+  }, [cats, search])
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+  }
+
+  function toggleSelectAll() {
+    const visibleIds = filteredCats.map((c) => c.id)
+    setSelectedIds((prev) => visibleIds.every((id) => prev.includes(id)) ? [] : visibleIds)
+  }
+
+  async function handleBulkToggle(is_active) {
+    setBulkSaving(true)
+    try {
+      await menuAPI.adminBulkToggleCategories(selectedIds, is_active)
+      setCats((prev) => prev.map((c) => selectedIds.includes(c.id) ? { ...c, is_active } : c))
+      toast.success(`${selectedIds.length} دسته‌بندی ${is_active ? 'فعال' : 'غیرفعال'} شد`)
+      setSelectedIds([])
+    } catch { toast.error('خطا در تغییر وضعیت گروهی') }
+    finally { setBulkSaving(false) }
+  }
+
   if (loading) return <Loading />
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-xl)' }}>
-        <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="admin-page-head">
+        <div className="page-header">
           <h1>دسته‌بندی‌های منو</h1>
+          <p>{search ? `${filteredCats.length} از ${cats.length} دسته‌بندی` : `${cats.length} دسته‌بندی`}</p>
         </div>
         <Button onClick={openCreate}><MdAdd size={18} /> افزودن دسته‌بندی</Button>
       </div>
 
+      <div className="admin-search">
+        <MdSearch size={18} className="admin-search__icon" />
+        <input
+          placeholder="جستجو بر اساس نام دسته‌بندی..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {selectedIds.length > 0 && (
+        <div className="bulk-toolbar">
+          <span className="bulk-toolbar__count">{selectedIds.length} دسته‌بندی انتخاب شده</span>
+          <div className="bulk-toolbar__actions">
+            <Button variant="ghost" size="sm" disabled={bulkSaving} onClick={() => handleBulkToggle(true)}>
+              <MdToggleOn size={16} /> فعال‌سازی گروهی
+            </Button>
+            <Button variant="ghost" size="sm" disabled={bulkSaving} onClick={() => handleBulkToggle(false)}>
+              <MdToggleOff size={16} /> غیرفعال‌سازی گروهی
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>انصراف</Button>
+          </div>
+        </div>
+      )}
+
       <div className="admin-orders__table-wrap">
         {cats.length === 0 ? (
           <div className="empty-state"><div className="icon">📂</div><h3>دسته‌بندی‌ای ثبت نشده</h3></div>
+        ) : filteredCats.length === 0 ? (
+          <div className="empty-state"><div className="icon">🔍</div><h3>دسته‌بندی‌ای با این جستجو یافت نشد</h3></div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
+                <th style={{ width: 36 }}><input type="checkbox" checked={filteredCats.length > 0 && filteredCats.every((c) => selectedIds.includes(c.id))} onChange={toggleSelectAll} /></th>
                 <th>آیکون</th>
                 <th>نام</th>
                 <th>اسلاگ</th>
@@ -107,18 +165,19 @@ export default function AdminCategoriesPage() {
               </tr>
             </thead>
             <tbody>
-              {cats.map((cat) => (
+              {filteredCats.map((cat) => (
                 <tr key={cat.id}>
-                  <td style={{ fontSize: '1.4rem' }}>{cat.icon || '🍽️'}</td>
-                  <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{cat.name}</td>
-                  <td style={{ direction: 'ltr', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{cat.slug}</td>
-                  <td>{cat.order}</td>
-                  <td>
+                  <td data-label="انتخاب"><input type="checkbox" checked={selectedIds.includes(cat.id)} onChange={() => toggleSelect(cat.id)} /></td>
+                  <td data-label="آیکون" style={{ fontSize: '1.4rem' }}>{cat.icon || '🍽️'}</td>
+                  <td data-label="نام" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{cat.name}</td>
+                  <td data-label="اسلاگ" style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}><span dir="ltr">{cat.slug}</span></td>
+                  <td data-label="ترتیب">{cat.order}</td>
+                  <td data-label="وضعیت">
                     <span className={`status-badge ${cat.is_active ? 'status-confirmed' : 'status-cancelled'}`}>
                       {cat.is_active ? 'فعال' : 'غیرفعال'}
                     </span>
                   </td>
-                  <td>
+                  <td className="td-actions">
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="admin-action-btn" onClick={() => openEdit(cat)}>
                         <MdEdit size={14} />

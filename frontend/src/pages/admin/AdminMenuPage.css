@@ -51,7 +51,53 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* ردیف سربرگ گروه دسته‌بندی */
+.menu-table__group-header td {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+}
+
+.menu-table__group-header:hover td {
+  background: var(--bg-secondary);
+}
+
+/* Bulk action toolbar */
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  margin-bottom: var(--space-md);
+  background: var(--primary-bg);
+  border: 1px solid rgba(240, 214, 132, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.bulk-toolbar__count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.bulk-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.bulk-toolbar__actions .input-group {
+  margin: 0;
+}
+
 /* Column widths */
+.menu-table .col-check  { width: 36px; padding: 8px 10px; text-align: center; }
 .menu-table .col-img    { width: 60px; padding: 8px 12px; }
 .menu-table .col-name   { min-width: 140px; max-width: 200px; }
 .menu-table .col-cat    { width: 110px; white-space: nowrap; }
@@ -100,7 +146,7 @@
 .admin-action-btn {
   padding: 5px 10px;
   background: var(--primary-bg);
-  border: 1px solid rgba(200, 169, 110, 0.25);
+  border: 1px solid rgba(240, 214, 132, 0.25);
   border-radius: var(--radius-sm);
   color: var(--primary);
   font-size: 0.8rem;
@@ -116,7 +162,7 @@
 
 .admin-action-btn:hover:not(:disabled) {
   background: var(--primary);
-  color: #1a1205;
+  color: #1a0800;
 }
 
 .admin-action-btn:disabled {
@@ -267,7 +313,7 @@
 
 .variant-row--new {
   background: var(--primary-bg);
-  border-color: rgba(200, 169, 110, 0.3);
+  border-color: rgba(240, 214, 132, 0.3);
   margin: var(--space-sm);
 }
 
@@ -418,4 +464,141 @@
   color: var(--text-secondary);
   font-size: 0.9rem;
   user-select: none;
+}
+
+/* =====================
+   MOBILE
+   ===================== */
+@media (max-width: 768px) {
+  .menu-page-header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  /* ═══ جدول منو → کارت (بدون اسکرول افقی) ═══ */
+  .menu-table-wrap {
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .menu-table {
+    min-width: 0;
+    display: block;
+    background: transparent;
+  }
+
+  .menu-table thead {
+    display: none;
+  }
+
+  .menu-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .menu-table tr {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    grid-template-areas:
+      'img name   check'
+      'img cat    price'
+      'img status flag'
+      'action action action';
+    column-gap: var(--space-sm);
+    row-gap: 4px;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--neu-shadow-sm);
+    padding: var(--space-md);
+  }
+
+  .menu-table tr:hover td {
+    background: transparent;
+  }
+
+  .menu-table td {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+    width: auto !important;
+    max-width: none !important;
+    white-space: normal !important;
+  }
+
+  .menu-table .col-check  { grid-area: check; text-align: left; }
+  .menu-table .col-img    { grid-area: img; align-self: start; }
+  .menu-table .col-name   { grid-area: name; }
+  .menu-table .col-cat    { grid-area: cat; font-size: 0.8rem; color: var(--text-muted); }
+  .menu-table .col-price  { grid-area: price; text-align: left; }
+  .menu-table .col-status { grid-area: status; }
+  .menu-table .col-flag   { grid-area: flag; text-align: left; }
+
+  .menu-table .col-action {
+    grid-area: action;
+    border-top: 1px dashed var(--border);
+    padding-top: var(--space-sm);
+    margin-top: var(--space-xs);
+  }
+
+  .menu-table .col-action .menu-actions {
+    display: flex;
+    width: 100%;
+    gap: var(--space-sm);
+  }
+
+  .menu-table .col-action .menu-actions {
+    flex-wrap: wrap;
+  }
+
+  .menu-table .col-action .admin-action-btn {
+    flex: 1 1 64px;
+    justify-content: center;
+  }
+
+  /* ردیف سربرگ دسته‌بندی: خارج از چیدمان کارت — یک برچسب ساده تمام‌عرض */
+  .menu-table tr.menu-table__group-header {
+    display: block;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    box-shadow: none;
+    padding: 8px 14px;
+  }
+
+  .menu-table__group-header td {
+    display: block !important;
+  }
+
+  .menu-thumb,
+  .menu-thumb-placeholder {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* فرم مودال: تک‌ستونه */
+  .menu-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-checkboxes {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  /* واریانت‌ها: دکمه‌های لمسی بزرگ‌تر */
+  .variant-action-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .variant-input--num {
+    max-width: 90px;
+    flex: 0 0 90px;
+  }
 }

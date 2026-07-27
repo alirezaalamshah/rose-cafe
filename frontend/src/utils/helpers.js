@@ -1,15 +1,20 @@
+import { formatJalali, toPersianNum } from './jalali.js'
+
 export function formatPrice(price) {
   if (!price && price !== 0) return '—'
   return new Intl.NumberFormat('fa-IR').format(price) + ' تومان'
 }
 
 export function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('fa-IR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  return formatJalali(dateStr)
+}
+
+/** "YYYY-MM-DDTHH:MM:SS+03:30" → "۱ تیر ۱۴۰۵ - ۱۴:۳۲" */
+export function formatDateTime(isoDatetime) {
+  if (!isoDatetime) return '—'
+  const datePart = formatJalali(isoDatetime.slice(0, 10))
+  const timePart = toPersianNum(isoDatetime.slice(11, 16))
+  return `${datePart} - ${timePart}`
 }
 
 export function formatTime(timeStr) {
@@ -19,8 +24,8 @@ export function formatTime(timeStr) {
 
 export function getStatusLabel(status) {
   const map = {
-    pending: 'در انتظار',
-    confirmed: 'تایید شده',
+    waiting_payment: 'در انتظار پرداخت',
+    paid: 'پرداخت شده',
     preparing: 'در حال آماده‌سازی',
     ready: 'آماده تحویل',
     delivered: 'تحویل داده شد',
@@ -35,17 +40,25 @@ export function getStatusLabel(status) {
 
 export function getStatusClass(status) {
   const map = {
-    pending: 'status-pending',
-    confirmed: 'status-confirmed',
+    waiting_payment: 'status-pending',
+    paid: 'status-confirmed',
     preparing: 'status-preparing',
     ready: 'status-ready',
     delivered: 'status-delivered',
     completed: 'status-completed',
     cancelled: 'status-cancelled',
+    no_show: 'status-cancelled',
     success: 'status-confirmed',
     failed: 'status-cancelled',
   }
   return map[status] || ''
+}
+
+/** قیمت واحد یک ردیف سبد/سفارش — قیمت پایه یا نوع، به‌علاوه‌ی جمع افزودنی‌های انتخابی */
+export function itemUnitPrice(item) {
+  const base = item.discounted_price || item.price
+  const addonsTotal = (item.addons || []).reduce((s, a) => s + a.price, 0)
+  return base + addonsTotal
 }
 
 export function getMediaUrl(path) {

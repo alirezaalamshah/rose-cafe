@@ -266,7 +266,7 @@
   gap: 4px;
   padding: 7px 10px;
   background: var(--primary-bg);
-  border: 1px solid rgba(200, 169, 110, 0.25);
+  border: 1px solid rgba(240, 214, 132, 0.25);
   border-radius: var(--radius-md);
   color: var(--primary);
   font-size: 0.78rem;
@@ -337,7 +337,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(200, 169, 110, 0.92);
+  background: rgba(240, 214, 132, 0.92);
   color: #1a1205;
   font-size: 0.65rem;
   font-weight: 800;

@@ -67,15 +67,15 @@ export default function AdminPaymentsPage() {
               <tbody>
                 {payments.map((p) => (
                   <tr key={p.id}>
-                    <td>#{p.id}</td>
-                    <td>{p.user?.phone || '—'}</td>
-                    <td>سفارش #{p.order_id}</td>
-                    <td className="price">{formatPrice(p.amount)}</td>
-                    <td style={{ direction: 'ltr', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {p.ref_id || '—'}
+                    <td data-label="شناسه">#{p.id}</td>
+                    <td data-label="کاربر">{p.user?.phone || '—'}</td>
+                    <td data-label="سفارش">سفارش #{p.order_id}</td>
+                    <td data-label="مبلغ" className="price">{formatPrice(p.amount)}</td>
+                    <td data-label="کد پیگیری" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <span dir="ltr">{p.ref_id || '—'}</span>
                     </td>
-                    <td>{formatDate(p.created_at)}</td>
-                    <td>
+                    <td data-label="تاریخ">{formatDate(p.created_at)}</td>
+                    <td data-label="وضعیت">
                       <span className={`status-badge ${getStatusClass(p.status)}`}>
                         {getStatusLabel(p.status)}
                       </span>

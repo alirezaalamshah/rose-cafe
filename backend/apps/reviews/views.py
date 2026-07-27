@@ -9,6 +9,7 @@ from .serializers import (
     CafeReviewSerializer, CafeReviewCreateSerializer,
     AdminReviewSerializer, AdminCafeReviewSerializer,
 )
+from apps.common.pagination import StandardPagination
 
 
 class MenuItemReviewListView(generics.ListAPIView):
@@ -27,6 +28,11 @@ class ReviewCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        if request.user.is_staff:
+            return Response(
+                {'detail': 'مدیران سیستم امکان ثبت نظر ندارند'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = ReviewCreateSerializer(
             data=request.data,
             context={'request': request}
@@ -84,6 +90,11 @@ class CafeReviewCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        if request.user.is_staff:
+            return Response(
+                {'detail': 'مدیران سیستم امکان ثبت نظر ندارند'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = CafeReviewCreateSerializer(
             data=request.data,
             context={'request': request}
@@ -112,6 +123,7 @@ class CafeStatsView(APIView):
 class AdminReviewListView(generics.ListAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = AdminReviewSerializer
+    pagination_class = StandardPagination
 
     def get_queryset(self):  # type: ignore[override]
         qs = Review.objects.all().select_related('user', 'menu_item')
@@ -139,6 +151,7 @@ class AdminReviewApproveView(APIView):
 class AdminCafeReviewListView(generics.ListAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = AdminCafeReviewSerializer
+    pagination_class = StandardPagination
 
     def get_queryset(self):  # type: ignore[override]
         return CafeReview.objects.all().select_related('user')
@@ -157,3 +170,19 @@ class AdminCafeReviewApproveView(APIView):
         review.save(update_fields=['is_approved'])
         action = 'تایید' if review.is_approved else 'رد'
         return Response({'detail': f'نظر {action} شد', 'is_approved': review.is_approved})
+
+
+class AdminReviewBulkApproveView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        updated = Review.objects.filter(is_approved=False).update(is_approved=True)
+        return Response({'updated': updated})
+
+
+class AdminCafeReviewBulkApproveView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        updated = CafeReview.objects.filter(is_approved=False).update(is_approved=True)
+        return Response({'updated': updated})

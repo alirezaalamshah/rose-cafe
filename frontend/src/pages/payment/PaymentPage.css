@@ -111,3 +111,28 @@
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
 }
+
+.payment-result__refid {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  width: 100%;
+  justify-content: center;
+}
+
+.payment-result__refid strong {
+  color: var(--primary);
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

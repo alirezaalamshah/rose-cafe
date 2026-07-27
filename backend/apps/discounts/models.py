@@ -20,6 +20,7 @@ class Discount(models.Model):
     usage_limit = models.PositiveIntegerField(null=True, blank=True, verbose_name='محدودیت استفاده')
     used_count = models.PositiveIntegerField(default=0, verbose_name='تعداد استفاده')
     is_active = models.BooleanField(default=True, verbose_name='فعال')
+    is_birthday_type = models.BooleanField(default=False, verbose_name='تخفیف تولد')
     valid_from = models.DateTimeField(verbose_name='از تاریخ')
     valid_until = models.DateTimeField(verbose_name='تا تاریخ')
     users = models.ManyToManyField(
@@ -47,8 +48,8 @@ class DiscountUsage(models.Model):
     )
     order_id = models.PositiveIntegerField(verbose_name='شناسه سفارش')
     used_at = models.DateTimeField(auto_now_add=True)
+    used_year = models.PositiveIntegerField(null=True, blank=True, verbose_name='سال استفاده')
 
     class Meta:
         verbose_name = 'استفاده از تخفیف'
         verbose_name_plural = 'استفاده‌های تخفیف'
-        unique_together = ['discount', 'user']

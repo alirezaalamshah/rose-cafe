@@ -4,6 +4,7 @@ from .views import (
     CafeReviewListView, CafeReviewCreateView, CafeStatsView,
     AdminReviewListView, AdminReviewApproveView,
     AdminCafeReviewListView, AdminCafeReviewApproveView,
+    AdminReviewBulkApproveView, AdminCafeReviewBulkApproveView,
 )
 
 urlpatterns = [
@@ -20,6 +21,8 @@ urlpatterns = [
     # Admin
     path('admin/', AdminReviewListView.as_view(), name='admin-reviews'),
     path('admin/<int:pk>/approve/', AdminReviewApproveView.as_view(), name='admin-review-approve'),
+    path('admin/bulk-approve/', AdminReviewBulkApproveView.as_view(), name='admin-review-bulk-approve'),
     path('admin/cafe/', AdminCafeReviewListView.as_view(), name='admin-cafe-reviews'),
     path('admin/cafe/<int:pk>/approve/', AdminCafeReviewApproveView.as_view(), name='admin-cafe-review-approve'),
+    path('admin/cafe/bulk-approve/', AdminCafeReviewBulkApproveView.as_view(), name='admin-cafe-review-bulk-approve'),
 ]

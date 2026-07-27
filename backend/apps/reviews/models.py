@@ -41,7 +41,7 @@ class CafeReview(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         verbose_name='امتیاز'
     )
-    comment = models.TextField(verbose_name='نظر')
+    comment = models.TextField(blank=True, verbose_name='نظر')
     is_approved = models.BooleanField(default=False, verbose_name='تایید شده')
     created_at = models.DateTimeField(auto_now_add=True)
 

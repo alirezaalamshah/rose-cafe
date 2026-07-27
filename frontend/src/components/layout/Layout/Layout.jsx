@@ -3,11 +3,11 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Header from '../Header/Header.jsx'
 import Sidebar from '../Sidebar/Sidebar.jsx'
 import CategoryBar from '../../menu/CategoryBar/CategoryBar.jsx'
+import Footer from '../Footer/Footer.jsx'
 import './Layout.css'
 
 export default function Layout() {
   const [activeCategory, setActiveCategory] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeFilters, setActiveFilters] = useState({})
   const location = useLocation()
 
@@ -27,7 +27,6 @@ export default function Layout() {
           <Sidebar
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
-            onSearch={setSearchQuery}
             onFilterChange={handleFilterChange}
             activeFilters={activeFilters}
           />
@@ -45,9 +44,10 @@ export default function Layout() {
       <div className={`layout__content ${isMenuPage ? 'layout__content--with-sidebar' : ''}`}>
         <main className="layout__main">
           <Outlet
-            context={{ activeCategory, searchQuery, activeFilters }}
+            context={{ activeCategory, activeFilters }}
           />
         </main>
+        <Footer />
       </div>
     </div>
   )

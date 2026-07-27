@@ -6,6 +6,7 @@ class SMSLog(models.Model):
     class Status(models.TextChoices):
         SENT = 'sent', 'ارسال شد'
         FAILED = 'failed', 'ناموفق'
+        SKIPPED = 'skipped', 'غیرفعال (موقتاً خاموش)'
 
     phone = models.CharField(max_length=20, verbose_name='شماره موبایل')
     message = models.TextField(verbose_name='متن پیام')

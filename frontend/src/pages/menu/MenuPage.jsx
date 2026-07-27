@@ -4,6 +4,7 @@ import { MdShoppingCart, MdSearch, MdClose } from 'react-icons/md'
 import { menuAPI } from '../../api/menu.js'
 import MenuCard from '../../components/menu/MenuCard/MenuCard.jsx'
 import CartDrawer from '../../components/menu/CartDrawer/CartDrawer.jsx'
+import BannerSlider from '../../components/menu/BannerSlider/BannerSlider.jsx'
 import useCartStore from '../../store/cartStore.js'
 import './MenuPage.css'
 
@@ -23,7 +24,7 @@ function SkeletonCard() {
 
 export default function MenuPage() {
   const context = useOutletContext() || {}
-  const { activeCategory, searchQuery: sidebarSearch, activeFilters } = context
+  const { activeCategory, activeFilters } = context
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('order')
@@ -34,7 +35,22 @@ export default function MenuPage() {
   const cartItems = useCartStore((s) => s.items)
   const totalItems = cartItems.reduce((s, i) => s + i.quantity, 0)
 
-  const effectiveSearch = debouncedSearch || sidebarSearch || ''
+  const [featuredItems, setFeaturedItems] = useState([])
+
+  const effectiveSearch = debouncedSearch || ''
+
+  // Fetch featured items when no filters active
+  const showFeaturedSection = !activeCategory && !effectiveSearch && !activeFilters?.featured && !activeFilters?.vegetarian
+
+  useEffect(() => {
+    if (showFeaturedSection) {
+      menuAPI.getItems({ is_featured: true, ordering: 'order' })
+        .then((data) => setFeaturedItems(Array.isArray(data) ? data : (data.results || [])))
+        .catch(() => setFeaturedItems([]))
+    } else {
+      setFeaturedItems([])
+    }
+  }, [showFeaturedSection])
 
   const fetchItems = useCallback(() => {
     setLoading(true)
@@ -74,6 +90,8 @@ export default function MenuPage() {
 
   return (
     <div>
+      {showFeaturedSection && <BannerSlider />}
+
       <div className="menu-page__topbar">
         <div>
           <h1 className="menu-page__title">
@@ -118,6 +136,17 @@ export default function MenuPage() {
           </button>
         )}
       </div>
+
+      {/* Featured items section */}
+      {showFeaturedSection && featuredItems.length > 0 && (
+        <div className="menu-page__featured">
+          <h2 className="menu-page__featured-title">⭐ آیتم‌های ویژه</h2>
+          <div className="menu-page__featured-grid">
+            {featuredItems.map((item) => <MenuCard key={item.id} item={item} />)}
+          </div>
+          <div className="menu-page__featured-sep" />
+        </div>
+      )}
 
       <div className="menu-page__grid">
         {loading

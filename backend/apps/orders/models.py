@@ -1,20 +1,25 @@
 from django.db import models
 from apps.accounts.models import User, Address
-from apps.menu.models import MenuItem, MenuItemVariant
+from apps.menu.models import MenuItem, MenuItemVariant, MenuItemAddon
 
 
 class Order(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'pending', 'در انتظار پرداخت'
-        CONFIRMED = 'confirmed', 'تایید شده'
+        WAITING_PAYMENT = 'waiting_payment', 'در انتظار پرداخت'
+        PAID = 'paid', 'پرداخت شده — در صف آماده‌سازی'
         PREPARING = 'preparing', 'در حال آماده‌سازی'
         READY = 'ready', 'آماده تحویل'
         DELIVERED = 'delivered', 'تحویل داده شد'
         CANCELLED = 'cancelled', 'لغو شده'
 
     class DeliveryType(models.TextChoices):
-        TAKEAWAY = 'takeaway', 'تحویل در محل'
+        TAKEAWAY = 'takeaway', 'تحویل در محل (برون‌بر)'
         DELIVERY = 'delivery', 'ارسال با پیک'
+        DINE_IN = 'dine_in', 'سرو در کافه'
+
+    class PaymentMethod(models.TextChoices):
+        ONLINE = 'online', 'پرداخت آنلاین'
+        CASH = 'cash', 'پرداخت در محل'
 
     user = models.ForeignKey(
         User, on_delete=models.PROTECT,
@@ -22,7 +27,7 @@ class Order(models.Model):
     )
     status = models.CharField(
         max_length=20, choices=Status.choices,
-        default=Status.PENDING, verbose_name='وضعیت'
+        default=Status.WAITING_PAYMENT, verbose_name='وضعیت', db_index=True
     )
     delivery_type = models.CharField(
         max_length=20, choices=DeliveryType.choices,
@@ -33,13 +38,24 @@ class Order(models.Model):
         null=True, blank=True,
         related_name='orders', verbose_name='آدرس تحویل'
     )
+    table = models.ForeignKey(
+        'reservations.Table', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='orders', verbose_name='میز'
+    )
+    payment_method = models.CharField(
+        max_length=10, choices=PaymentMethod.choices,
+        default=PaymentMethod.ONLINE, verbose_name='روش پرداخت'
+    )
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده')
     note = models.TextField(blank=True, verbose_name='توضیحات سفارش')
     total_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ کل')
     delivery_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه ارسال')
+    packaging_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه بسته‌بندی')
     discount_amount = models.PositiveIntegerField(default=0, verbose_name='مبلغ تخفیف')
     final_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ نهایی')
     discount_code = models.CharField(max_length=50, blank=True, verbose_name='کد تخفیف')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت', db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -54,7 +70,7 @@ class Order(models.Model):
         self.total_price = sum(
             item.subtotal for item in self.items.all()
         )
-        self.final_price = self.total_price + self.delivery_cost - self.discount_amount
+        self.final_price = self.total_price + self.delivery_cost + self.packaging_cost - self.discount_amount
         self.save(update_fields=['total_price', 'final_price'])
 
 
@@ -84,4 +100,30 @@ class OrderItem(models.Model):
 
     @property
     def subtotal(self):
-        return self.unit_price * self.quantity
+        addons_total = sum(a.price for a in self.addons.all())
+        return (self.unit_price + addons_total) * self.quantity
+
+
+class OrderItemAddon(models.Model):
+    """
+    افزودنی انتخاب‌شده روی یک ردیف سفارش — نام و قیمت لحظه‌ی سفارش snapshot می‌شود
+    (نه ارجاع زنده به MenuItemAddon) تا اگر بعداً قیمت افزودنی تغییر کرد یا حذف شد،
+    سفارش‌های قبلی دست‌نخورده بمانند؛ دقیقاً همان الگوی variant_name در OrderItem.
+    """
+    order_item = models.ForeignKey(
+        OrderItem, on_delete=models.CASCADE,
+        related_name='addons', verbose_name='آیتم سفارش'
+    )
+    addon = models.ForeignKey(
+        MenuItemAddon, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='افزودنی'
+    )
+    name = models.CharField(max_length=100, verbose_name='نام افزودنی')
+    price = models.PositiveIntegerField(verbose_name='قیمت افزودنی')
+
+    class Meta:
+        verbose_name = 'افزودنی سفارش'
+        verbose_name_plural = 'افزودنی‌های سفارش'
+
+    def __str__(self):
+        return f'{self.name} (+{self.price})'

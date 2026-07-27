@@ -2,12 +2,17 @@ import { useNavigate } from 'react-router-dom'
 import { MdClose, MdShoppingCart, MdDelete } from 'react-icons/md'
 import useCartStore from '../../../store/cartStore.js'
 import Button from '../../common/Button/Button.jsx'
-import { formatPrice, getMediaUrl } from '../../../utils/helpers.js'
+import { formatPrice, getMediaUrl, itemUnitPrice } from '../../../utils/helpers.js'
 import './CartDrawer.css'
 
 export default function CartDrawer({ isOpen, onClose }) {
-  const { items, updateQuantity, removeItem, clearCart } = useCartStore()
-  const subtotal = items.reduce((s, i) => s + (i.discounted_price || i.price) * i.quantity, 0)
+  // سلکتورهای محدود: با تغییر discountCode/deliveryType (که در همین استور هستند ولی
+  // به سبد ربطی ندارند) دیگر کل دراور ری‌رندر نمی‌شود
+  const items = useCartStore((s) => s.items)
+  const updateQuantity = useCartStore((s) => s.updateQuantity)
+  const removeItem = useCartStore((s) => s.removeItem)
+  const clearCart = useCartStore((s) => s.clearCart)
+  const subtotal = items.reduce((s, i) => s + itemUnitPrice(i) * i.quantity, 0)
   const navigate = useNavigate()
 
   if (!isOpen) return null
@@ -43,7 +48,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <div className="cart-item__image">
                     {item.image ? (
                       <img
-                        src={getMediaUrl(item.image)}
+                        src={getMediaUrl(item.image_thumbnail || item.image)}
                         alt={item.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
                       />
@@ -54,8 +59,19 @@ export default function CartDrawer({ isOpen, onClose }) {
                     {item.variantName && (
                       <p className="cart-item__variant">{item.variantName}</p>
                     )}
+                    {item.addons?.length > 0 && (
+                      <p className="cart-item__variant">+ {item.addons.map((a) => a.name).join('، ')}</p>
+                    )}
+                    {item.slug && (
+                      <button
+                        className="cart-item__customize-link"
+                        onClick={() => { onClose(); navigate(`/menu/${item.slug}`) }}
+                      >
+                        افزودن با گزینه‌های متفاوت
+                      </button>
+                    )}
                     <span className="cart-item__price">
-                      {formatPrice((item.discounted_price || item.price) * item.quantity)}
+                      {formatPrice(itemUnitPrice(item) * item.quantity)}
                     </span>
                     <div className="cart-item__controls">
                       <button

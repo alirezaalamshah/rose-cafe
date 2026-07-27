@@ -91,3 +91,20 @@
   min-height: 100px;
   resize: vertical;
 }
+
+/* =====================
+   MOBILE
+   ===================== */
+@media (max-width: 640px) {
+  /* iOS با فونت زیر 16px موقع focus زوم می‌کند */
+  .input-field,
+  .select-field,
+  .textarea-field {
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+
+  .input-field.has-icon-right { padding-left: 42px; }
+  .input-field.has-icon-left  { padding-right: 42px; }
+  .select-field { padding-left: 36px; }
+}

@@ -8,7 +8,7 @@ class TableSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Table
-        fields = ['id', 'number', 'capacity', 'location', 'location_display', 'description']
+        fields = ['id', 'number', 'capacity', 'location', 'location_display', 'is_active', 'description']
 
 
 class ReservationSerializer(serializers.ModelSerializer):

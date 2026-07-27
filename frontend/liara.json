@@ -1,0 +1,8 @@
+{
+  "app": "rccoffee",
+  "platform": "static",
+  "spa": true,
+  "static": {
+    "root": "dist"
+  }
+}

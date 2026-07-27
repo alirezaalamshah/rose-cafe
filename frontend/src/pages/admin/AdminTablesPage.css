@@ -59,3 +59,35 @@
   gap: 6px;
   margin-top: 4px;
 }
+
+.admin-table-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-table-toggle--on {
+  background: var(--success-bg);
+  border-color: rgba(74, 222, 128, 0.25);
+  color: var(--success);
+}
+
+.admin-table-toggle--off {
+  background: var(--warning-bg);
+  border-color: rgba(240, 214, 132, 0.25);
+  color: var(--warning);
+}
+
+/* =====================
+   MOBILE
+   ===================== */
+@media (max-width: 768px) {
+  .admin-tables__grid {
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .admin-table-card__actions {
+    flex-wrap: wrap;
+  }
+}

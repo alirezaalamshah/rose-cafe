@@ -190,9 +190,10 @@ input, textarea, select, button {
 .status-confirmed { background: var(--success-bg);  color: var(--success); }
 .status-cancelled { background: var(--error-bg);    color: var(--error); }
 .status-preparing { background: var(--info-bg);     color: var(--info); }
-.status-ready     { background: rgba(124,111,212,.15); color: var(--accent); }
+.status-ready     { background: rgba(171,77,53,.15); color: var(--accent); }
 .status-delivered,
 .status-completed { background: var(--success-bg);  color: var(--success); }
+.status-full      { background: rgba(249,115,22,.1); color: #f97316; }
 
 /* =====================
    COMMON ELEMENTS

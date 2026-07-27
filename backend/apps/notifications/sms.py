@@ -4,26 +4,36 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# RetStatus error codes from Melipayamak REST API
-MELIPAYAMAK_ERRORS = {
+# ─── Console API (توکن‌محور — روش اصلی) ────────────────────────────────────
+CONSOLE_BASE = 'https://console.melipayamak.com/api/send'
+
+# bodyId الگوی OTP در پنل ملی‌پیامک (480231 = الگوی تایید شده)
+MELIPAYAMAK_OTP_BODY_ID = 480231
+
+# ─── Legacy API (username/password — fallback) ───────────────────────────────
+LEGACY_BASE = 'https://rest.payamak-panel.com/api/SendSMS'
+
+# کدهای خطای API قدیمی
+LEGACY_ERRORS = {
     '0':    'نام کاربری یا رمز عبور اشتباه است',
     '2':    'اعتبار کافی نیست',
     '3':    'محدودیت ارسال روزانه',
     '5':    'شماره فرستنده معتبر نیست',
-    '7':    'متن پیام دارای کلمات فیلتر شده است',
+    '7':    'پیام دارای کلمات فیلتر شده است',
     '10':   'حساب کاربری غیرفعال است',
+    '11':   'شماره گیرنده در لیست سیاه مخابرات است',
     '16':   'شماره گیرنده یافت نشد',
     '17':   'متن پیام خالی است',
     '18':   'فرمت شماره گیرنده اشتباه است',
-    '35':   'شماره گیرنده در لیست سیاه است',
-    '-109': 'IP شما در whitelist نیست — از پنل ملی‌پیامک IP سرور را اضافه کنید',
-    '-110': 'باید از ApiKey به جای رمز عبور استفاده کنید',
-    '-108': 'IP شما به دلیل تلاش‌های ناموفق مسدود شده است',
+    '35':   'شماره گیرنده در لیست سیاه پنل است',
+    '-108': 'IP به دلیل تلاش‌های ناموفق مسدود شده',
+    '-109': 'IP سرور در whitelist پنل تنظیم نشده',
+    '-110': 'این حساب نیاز به ApiKey دارد — از Console API استفاده کنید',
 }
 
 
 def _normalize_phone(phone: str) -> str:
-    phone = phone.strip()
+    phone = str(phone).strip()
     if phone.startswith('+98'):
         phone = '0' + phone[3:]
     elif phone.startswith('98') and len(phone) == 12:
@@ -31,101 +41,180 @@ def _normalize_phone(phone: str) -> str:
     return phone
 
 
-def send_sms(phone: str, message: str) -> bool:
-    username = getattr(settings, 'MELIPAYAMAK_USERNAME', '')
+# ═══════════════════════════════════════════════════════════════════
+#  Console API  (روش اصلی — توکن در URL)
+# ═══════════════════════════════════════════════════════════════════
 
-    # حالت توسعه — اگر username تنظیم نشده فقط log می‌کنیم
-    if settings.DEBUG and not username:
-        logger.info(f'[DEV SMS] به {phone}: {message}')
-        _save_log(phone, message, True)
-        return True
-
-    phone = _normalize_phone(phone)
+def _console_send_otp(phone: str, otp: str) -> bool:
+    """
+    Console API — ارسال OTP از طریق پترن shared
+    POST https://console.melipayamak.com/api/send/shared/{token}
+    Body JSON: { "bodyId": 480231, "to": "09...", "args": ["123456"] }
+    """
+    token = getattr(settings, 'MELIPAYAMAK_API_TOKEN', '')
+    if not token:
+        return False
 
     try:
-        # مستندات: https://www.melipayamak.com/api/sendsimplesms2/
-        # Content-Type باید application/x-www-form-urlencoded باشد (نه JSON)
-        payload = {
-            'username': username,
-            'password': settings.MELIPAYAMAK_PASSWORD,
-            'to': phone,
-            'from': settings.MELIPAYAMAK_FROM,
-            'text': message,
-            'isflash': 'false',
-        }
         response = requests.post(
-            'https://rest.payamak-panel.com/api/SendSMS/SendSMS',
-            data=payload,           # form-encoded، نه json=
+            f'{CONSOLE_BASE}/shared/{token}',
+            json={
+                'bodyId': MELIPAYAMAK_OTP_BODY_ID,
+                'to': phone,
+                'args': [str(otp)],
+            },
+            headers={'Content-Type': 'application/json'},
             timeout=10,
         )
         response.raise_for_status()
-
-        success = _parse_response(response)
-        _save_log(phone, message, success)
-        return success
-
+        return _parse_console_response(response, 'OTP')
     except requests.exceptions.Timeout:
-        logger.error('Melipayamak timeout')
-        _save_log(phone, message, False)
+        logger.error('Console API OTP timeout')
         return False
     except Exception as e:
-        logger.exception(f'SMS send failed: {e}')
-        _save_log(phone, message, False)
+        logger.error(f'Console API OTP error: {e}')
         return False
 
 
-def send_otp_sms(phone: str, otp: str) -> bool:
-    phone = _normalize_phone(phone)
-    username = getattr(settings, 'MELIPAYAMAK_USERNAME', '')
-
-    # حالت توسعه
-    if settings.DEBUG and not username:
-        logger.info(f'[DEV OTP] به {phone}: {otp}')
-        _save_log(phone, f'OTP: {otp}', True)
-        return True
+def _console_send_simple(phone: str, message: str) -> bool:
+    """
+    Console API — ارسال پیامک ساده
+    POST https://console.melipayamak.com/api/send/simple/{token}
+    Body JSON: { "from": "5000...", "to": "09...", "text": "..." }
+    """
+    token = getattr(settings, 'MELIPAYAMAK_API_TOKEN', '')
+    if not token:
+        return False
 
     try:
-        # endpoint اختصاصی OTP ملی‌پیامک
-        # مستندات: https://www.melipayamak.com/api/sendotp/
-        payload = {
-            'username': username,
-            'password': settings.MELIPAYAMAK_PASSWORD,
-            'from': settings.MELIPAYAMAK_FROM,
-            'to': phone,
-            'code': int(otp),
-        }
         response = requests.post(
-            'https://rest.payamak-panel.com/api/SendSMS/SendOtp',
-            data=payload,
+            f'{CONSOLE_BASE}/simple/{token}',
+            json={
+                'from': settings.MELIPAYAMAK_FROM,
+                'to': phone,
+                'text': message,
+            },
+            headers={'Content-Type': 'application/json'},
             timeout=10,
         )
         response.raise_for_status()
-        success = _parse_response(response)
-
-        if success:
-            _save_log(phone, f'OTP: {otp}', True)
-            return True
-
-        # fallback — اگر SendOtp کار نکرد از SendSMS معمولی استفاده کن
-        logger.warning('SendOtp failed, falling back to SendSMS')
-        message = f'کد تایید شما: {otp}\nاین کد ۲ دقیقه معتبر است.\nکافه ما'
-        return send_sms(phone, message)
-
+        return _parse_console_response(response, 'SMS')
+    except requests.exceptions.Timeout:
+        logger.error('Console API SMS timeout')
+        return False
     except Exception as e:
-        logger.exception(f'OTP SMS failed: {e}')
-        # fallback
-        message = f'کد تایید شما: {otp}\nاین کد ۲ دقیقه معتبر است.\nکافه ما'
-        return send_sms(phone, message)
+        logger.error(f'Console API SMS error: {e}')
+        return False
 
 
-def _parse_response(response: requests.Response) -> bool:
+def _parse_console_response(response: requests.Response, label: str) -> bool:
     """
-    پاسخ API ملی‌پیامک:
-    - عدد مثبت = RecId (موفق)
-    - 0 = نام کاربری / رمز اشتباه
-    - اعداد منفی یا خاص = خطا
-    پاسخ ممکن است JSON یا plain text باشد.
+    پاسخ Console API:
+    موفق: {"recId": "12345...", ...} یا {"status": 1, ...}
+    خطا:  {"recId": "0", ...} یا کد منفی
     """
+    try:
+        data = response.json()
+        logger.debug(f'Console API {label} response: {data}')
+
+        if isinstance(data, dict):
+            rec_id = data.get('recId') or data.get('RecId') or data.get('value') or data.get('Value')
+            ret_status = data.get('retStatus') or data.get('RetStatus') or data.get('status')
+
+            if rec_id is not None:
+                try:
+                    rec_id_int = int(float(str(rec_id)))
+                    if rec_id_int > 0:
+                        logger.info(f'Console API {label} sent OK — recId={rec_id_int}')
+                        return True
+                    logger.error(f'Console API {label} failed — recId={rec_id_int}')
+                    return False
+                except (ValueError, TypeError):
+                    pass
+
+            if ret_status == 1 or ret_status == '1':
+                logger.info(f'Console API {label} sent OK — status=1')
+                return True
+
+        # اگر مستقیماً عدد برگرداند
+        if isinstance(data, (int, float)):
+            return int(data) > 0
+
+    except ValueError:
+        pass
+
+    # plain text
+    text = response.text.strip().strip('"')
+    try:
+        val = int(float(text))
+        if val > 0:
+            logger.info(f'Console API {label} sent OK — recId={val}')
+            return True
+        logger.error(f'Console API {label} failed — code={val}')
+    except (ValueError, TypeError):
+        logger.warning(f'Console API {label} unexpected response: {response.text[:200]}')
+
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Legacy API  (fallback — username/password)
+# ═══════════════════════════════════════════════════════════════════
+
+def _legacy_send_sms(phone: str, message: str) -> bool:
+    username = getattr(settings, 'MELIPAYAMAK_USERNAME', '')
+    password = getattr(settings, 'MELIPAYAMAK_PASSWORD', '')
+    sender = getattr(settings, 'MELIPAYAMAK_FROM', '')
+    if not username:
+        return False
+
+    try:
+        response = requests.post(
+            f'{LEGACY_BASE}/SendSMS',
+            data={
+                'username': username,
+                'password': password,
+                'to': phone,
+                'from': sender,
+                'text': message,
+                'isflash': 'false',
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return _parse_legacy_response(response)
+    except Exception as e:
+        logger.error(f'Legacy SMS error: {e}')
+        return False
+
+
+def _legacy_send_otp(phone: str, otp: str) -> bool:
+    username = getattr(settings, 'MELIPAYAMAK_USERNAME', '')
+    password = getattr(settings, 'MELIPAYAMAK_PASSWORD', '')
+    sender = getattr(settings, 'MELIPAYAMAK_FROM', '')
+    if not username:
+        return False
+
+    try:
+        response = requests.post(
+            f'{LEGACY_BASE}/SendOtp',
+            data={
+                'username': username,
+                'password': password,
+                'from': sender,
+                'to': phone,
+                'code': int(otp),
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return _parse_legacy_response(response)
+    except Exception as e:
+        logger.error(f'Legacy OTP error: {e}')
+        return False
+
+
+def _parse_legacy_response(response: requests.Response) -> bool:
     try:
         data = response.json()
         if isinstance(data, dict):
@@ -133,65 +222,114 @@ def _parse_response(response: requests.Response) -> bool:
             value = str(data.get('Value', '0'))
             if ret_status == 1:
                 return True
-            rec_id = _extract_rec_id(value)
-            if rec_id and rec_id > 0:
-                return True
-            _log_error(value)
-            return False
+            code = str(value).strip()
+            try:
+                val = int(float(code))
+                if val > 0:
+                    return True
+                err = LEGACY_ERRORS.get(code, f'خطای ناشناخته: {code}')
+                logger.error(f'Legacy SMS error — {err}')
+                return False
+            except (ValueError, TypeError):
+                pass
         elif isinstance(data, (int, float)):
             return int(data) > 0
     except ValueError:
         pass
 
-    # plain text response
     text = response.text.strip().strip('"')
-    rec_id = _extract_rec_id(text)
-    if rec_id is not None:
-        if rec_id > 0:
+    try:
+        val = int(float(text))
+        if val > 0:
             return True
-        _log_error(text)
-        return False
+        err = LEGACY_ERRORS.get(text, f'خطای ناشناخته: {text}')
+        logger.error(f'Legacy SMS error — {err}')
+    except (ValueError, TypeError):
+        logger.warning(f'Legacy SMS unexpected response: {response.text[:200]}')
 
     return False
 
 
-def _extract_rec_id(value: str) -> int | None:
-    try:
-        return int(float(str(value).strip()))
-    except (ValueError, TypeError):
-        return None
+# ═══════════════════════════════════════════════════════════════════
+#  Public Interface
+# ═══════════════════════════════════════════════════════════════════
+
+def send_otp_sms(phone: str, otp: str) -> bool:
+    phone = _normalize_phone(phone)
+
+    if settings.DEBUG and not getattr(settings, 'MELIPAYAMAK_API_TOKEN', ''):
+        logger.info(f'[DEV OTP] {phone}: {otp}')
+        _save_log(phone, f'OTP:{otp}', True)
+        return True
+
+    # ۱. Console API (روش اصلی)
+    success = _console_send_otp(phone, otp)
+
+    # ۲. Legacy API (fallback)
+    if not success:
+        logger.warning('Console OTP failed — trying legacy SendOtp')
+        success = _legacy_send_otp(phone, otp)
+
+    # ۳. Legacy SMS متنی (آخرین راه)
+    if not success:
+        logger.warning('Legacy OTP failed — sending as plain SMS')
+        msg = f'کد تایید شما: {otp}\nاین کد ۲ دقیقه معتبر است.'
+        success = _legacy_send_sms(phone, msg)
+
+    _save_log(phone, f'OTP:{otp}', success)
+    return success
 
 
-def _log_error(code: str) -> None:
-    msg = MELIPAYAMAK_ERRORS.get(str(code).strip(), f'خطای ناشناخته: {code}')
-    logger.error(f'Melipayamak error — {msg}')
+def send_sms(phone: str, message: str) -> bool:
+    phone = _normalize_phone(phone)
 
+    if not getattr(settings, 'SMS_NOTIFICATIONS_ENABLED', False):
+        logger.info(f'[SMS DISABLED] {phone}: {message}')
+        _save_log(phone, message, success=False, skipped=True)
+        return False
 
-def _save_log(phone: str, message: str, success: bool) -> None:
-    try:
-        from .models import SMSLog
-        SMSLog.objects.create(
-            phone=phone,
-            message=message,
-            status=SMSLog.Status.SENT if success else SMSLog.Status.FAILED,
-        )
-    except Exception:
-        pass
+    if settings.DEBUG and not getattr(settings, 'MELIPAYAMAK_API_TOKEN', ''):
+        logger.info(f'[DEV SMS] {phone}: {message}')
+        _save_log(phone, message, True)
+        return True
+
+    # ۱. Console API
+    success = _console_send_simple(phone, message)
+
+    # ۲. Legacy fallback
+    if not success:
+        logger.warning('Console SMS failed — trying legacy')
+        success = _legacy_send_sms(phone, message)
+
+    _save_log(phone, message, success)
+    return success
 
 
 def send_order_status_sms(phone: str, order_id: int, status: str) -> bool:
     status_map = {
-        'confirmed': 'تایید شد',
+        'confirmed': 'تایید شد ✓',
         'preparing': 'در حال آماده‌سازی است',
-        'ready': 'آماده تحویل است',
+        'ready':     'آماده تحویل است ✓',
         'delivered': 'تحویل داده شد',
         'cancelled': 'لغو شد',
     }
-    status_fa = status_map.get(status, status)
-    message = f'کافه ما\nسفارش #{order_id} شما {status_fa}.'
+    label = status_map.get(status, status)
+    message = f'سفارش #{order_id} شما {label}.'
     return send_sms(phone, message)
 
 
 def send_reservation_confirmation_sms(phone: str, reservation_id: int, date: str, time: str) -> bool:
-    message = f'کافه ما\nرزرو #{reservation_id} شما برای {date} ساعت {time} تایید شد.'
+    message = f'رزرو #{reservation_id} برای {date} ساعت {time} تایید شد ✓'
     return send_sms(phone, message)
+
+
+def _save_log(phone: str, message: str, success: bool, skipped: bool = False) -> None:
+    try:
+        from .models import SMSLog
+        if skipped:
+            status = SMSLog.Status.SKIPPED
+        else:
+            status = SMSLog.Status.SENT if success else SMSLog.Status.FAILED
+        SMSLog.objects.create(phone=phone, message=message, status=status)
+    except Exception:
+        pass

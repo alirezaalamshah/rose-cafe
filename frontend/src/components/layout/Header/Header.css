@@ -27,9 +27,29 @@
   white-space: nowrap;
 }
 
-.header__logo-icon { font-size: 1.4rem; }
+.header__logo-icon { width: 36px; height: 36px; object-fit: cover; border-radius: 50%; }
 
 .header__spacer { flex: 1; }
+
+.header__status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.header__status--open {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+}
+
+.header__status--closed {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
 
 /* ناوبری دسکتاپ */
 .header__nav {
@@ -96,7 +116,7 @@
   min-width: 18px;
   height: 18px;
   background: var(--primary);
-  color: #1a1205;
+  color: #1a0800;
   border-radius: var(--radius-full);
   font-size: 0.68rem;
   font-weight: 800;

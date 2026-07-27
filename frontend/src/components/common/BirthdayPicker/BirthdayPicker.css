@@ -1,0 +1,47 @@
+.bday-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bday-picker__label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.bday-picker__row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.bday-picker__select {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  appearance: none;
+  text-align: center;
+  min-width: 0;
+}
+
+.bday-picker__select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.bday-picker__select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bday-picker__select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}

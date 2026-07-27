@@ -251,6 +251,63 @@
   gap: var(--space-sm);
 }
 
+/* =====================
+   ADDONS (افزودنی‌های اختیاری)
+   ===================== */
+.item-detail__addons {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.item-detail__addons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.addon-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.addon-check:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.addon-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.addon-check__name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.addon-check__price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  direction: ltr;
+  white-space: nowrap;
+}
+
 .variant-btn {
   display: flex;
   flex-direction: column;
@@ -369,7 +426,7 @@
 
 .item-detail__thumb--active {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 2px rgba(200, 169, 110, 0.3);
+  box-shadow: 0 0 0 2px rgba(240, 214, 132, 0.3);
 }
 
 @media (max-width: 700px) {

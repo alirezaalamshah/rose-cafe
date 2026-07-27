@@ -5,13 +5,13 @@ from .models import User, Address
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['phone', 'full_name', 'is_active', 'is_staff', 'date_joined']
-    list_filter = ['is_active', 'is_staff']
+    list_display = ['phone', 'full_name', 'gender', 'is_active', 'is_staff', 'date_joined']
+    list_filter = ['is_active', 'is_staff', 'gender', 'marital_status']
     search_fields = ['phone', 'full_name']
     ordering = ['-date_joined']
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
-        ('اطلاعات شخصی', {'fields': ('full_name', 'email', 'avatar')}),
+        ('اطلاعات شخصی', {'fields': ('full_name', 'email', 'avatar', 'gender', 'marital_status', 'food_interests', 'birthday')}),
         ('دسترسی‌ها', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
     )
     add_fieldsets = (

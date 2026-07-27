@@ -1,50 +1,50 @@
 :root {
-  /* Dark Neumorphism Colors */
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-surface: #1e1e35;
-  --bg-card: #22223a;
-  --bg-card-hover: #262640;
+  /* Warm Dark Theme */
+  --bg-primary: #0e0101;
+  --bg-secondary: #160202;
+  --bg-surface: #1b0202;
+  --bg-card: #200303;
+  --bg-card-hover: #280404;
 
-  /* Neumorphic Shadows */
-  --shadow-dark: #12122a;
-  --shadow-light: rgba(255, 255, 255, 0.06);
+  /* Neumorphic Shadows - warm red */
+  --shadow-dark: #080000;
+  --shadow-light: rgba(171, 77, 53, 0.06);
   --neu-shadow: 6px 6px 12px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
   --neu-shadow-sm: 3px 3px 8px var(--shadow-dark), -2px -2px 6px var(--shadow-light);
   --neu-shadow-lg: 10px 10px 20px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
   --neu-inset: inset 4px 4px 8px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
   --neu-inset-sm: inset 2px 2px 5px var(--shadow-dark), inset -1px -1px 4px var(--shadow-light);
 
-  /* Primary - Amber/Gold (Cafe theme) */
-  --primary: #c8a96e;
-  --primary-dark: #a07845;
-  --primary-light: #e8c98e;
-  --primary-glow: rgba(200, 169, 110, 0.25);
-  --primary-bg: rgba(200, 169, 110, 0.1);
+  /* Primary - Golden Yellow */
+  --primary: #f0d684;
+  --primary-dark: #d4b85a;
+  --primary-light: #f5e4a8;
+  --primary-glow: rgba(240, 214, 132, 0.25);
+  --primary-bg: rgba(240, 214, 132, 0.1);
 
-  /* Accent */
-  --accent: #7c6fd4;
-  --accent-light: rgba(124, 111, 212, 0.2);
+  /* Accent - Terracotta */
+  --accent: #ab4d35;
+  --accent-light: rgba(171, 77, 53, 0.2);
 
   /* Text */
-  --text-primary: #e8ddd0;
-  --text-secondary: #9090b0;
-  --text-muted: #606080;
-  --text-inverse: #1a1a2e;
+  --text-primary: #f2ede6;
+  --text-secondary: #c2a090;
+  --text-muted: #875a4e;
+  --text-inverse: #0e0101;
 
   /* Status Colors */
   --success: #4ade80;
   --success-bg: rgba(74, 222, 128, 0.1);
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
-  --warning: #fbbf24;
-  --warning-bg: rgba(251, 191, 36, 0.1);
+  --warning: #f0d684;
+  --warning-bg: rgba(240, 214, 132, 0.1);
   --info: #60a5fa;
   --info-bg: rgba(96, 165, 250, 0.1);
 
   /* Border */
-  --border: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(200, 169, 110, 0.3);
+  --border: rgba(171, 77, 53, 0.15);
+  --border-hover: rgba(240, 214, 132, 0.4);
 
   /* Sidebar */
   --sidebar-width: 210px;
@@ -66,7 +66,7 @@
   --radius-full: 9999px;
 
   /* Font */
-  --font-family: 'Vazirmatn', sans-serif;
+  --font-family: 'Vazirmatn Variable', sans-serif;
 
   /* Transitions */
   --transition: 0.3s ease;
