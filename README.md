@@ -1,6 +1,6 @@
 # Rose Cafe
 
-Full-stack ordering & management platform for a café — online menu, orders, reservations, and delivery, with a Django REST API and a React frontend.
+Full-stack ordering & management platform for a café — online menu, cart, table reservations, and delivery, backed by a Django REST API and a React frontend. Verified working by running the app locally end-to-end.
 
 **[English](#english) | [فارسی](#فارسی)**
 
@@ -8,40 +8,41 @@ Full-stack ordering & management platform for a café — online menu, orders, r
 
 ## English
 
+### Screenshot
+
+![Rose Cafe — menu page](docs/screenshot.png)
+
 ### About
 
-Rose Cafe is a full-stack web application for running a café's online presence: browsing the menu, placing orders, booking table reservations, and managing delivery — plus an admin side for staff roles, banners, and business settings.
+Rose Cafe is a complete café ordering system with two sides: a customer-facing storefront (menu browsing, cart, checkout, table reservations, reviews, profile) and an admin/waiter back office (orders, payments, menu, categories, tables). Customer accounts authenticate via phone number + SMS one-time code instead of a password.
 
 ### Tech Stack
 
-**Backend**
-- Django 4 + Django REST Framework
-- JWT authentication (`djangorestframework-simplejwt`) with phone/OTP login (Melipayamak SMS)
-- PostgreSQL, Celery + Redis for background/scheduled tasks
-- `drf-spectacular` for OpenAPI docs
-- Jalali (Persian) calendar support via `jdatetime`
+**Backend** (`backend/`)
+- Django 4 + Django REST Framework, split settings (`config/settings/{base,dev,prod}.py`)
+- JWT auth (`djangorestframework-simplejwt`) with phone/OTP login via Melipayamak SMS
+- PostgreSQL, Redis (cache) + Celery + `django-celery-beat`/`-results` for background/scheduled jobs
+- `drf-spectacular` for OpenAPI schema/docs
+- `django-phonenumber-field`, `jdatetime` (Jalali calendar), `django-dbbackup`
 
-**Frontend**
-- React + Vite
+**Frontend** (`frontend/`)
+- React + Vite, React Router
 - Zustand for state management
-- React Router, Axios, React Hot Toast
+- Axios (with an auth-refresh interceptor in `src/api/axios.js`), React Hot Toast
 - Vazirmatn variable font (self-hosted)
 
-### Features
+### App structure (verified by running it)
 
-- Customer accounts with OTP phone login and address book
-- Live menu with categories and images
-- Online ordering with delivery settings/pricing
-- Table reservations
-- Waiter/staff permission roles
-- Business info, banners, and social links managed from an admin panel
+Backend apps: `accounts`, `menu`, `orders`, `payments`, `reservations`, `reviews`, `discounts`, `notifications`, plus `business` for site-wide settings (banners, delivery pricing, social links, waiter permissions).
+
+Frontend routes (`src/App.jsx`): `/login`, `/register`, `/` (menu, public), `/menu/:slug`, `/cart`, `/orders`, `/reservations`, `/payment`, `/reviews`, `/profile` (protected), and a separate `/admin/*` area (dashboard, orders, payments, menu, categories, tables).
 
 ### Getting Started
 
 ```bash
 # Backend
 cd backend
-cp .env.example .env   # fill in SECRET_KEY, DATABASE_URL, SMS provider token
+cp .env.example .env   # SECRET_KEY, DATABASE_URL, SMS provider token, Redis URL
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
@@ -52,44 +53,51 @@ npm install
 npm run dev
 ```
 
+The API root is namespaced under `/api/{auth,menu,orders,payments,reservations,reviews,discounts,business,notifications}/`.
+
+### Known issue found while testing
+
+`backend/config/settings/dev.py` has a **hardcoded local database password** committed to git history. It should be read from an environment variable instead, and the password should be rotated if it's been reused anywhere else.
+
 ---
 
 ## فارسی
 
+### تصویر
+
+![رز کافه — صفحه منو](docs/screenshot.png)
+
 ### درباره
 
-رز کافه یک اپلیکیشن فول‌استک برای اداره‌ی حضور آنلاین یک کافه است: نمایش منو، ثبت سفارش، رزرو میز و مدیریت ارسال — به‌همراه بخش مدیریتی برای نقش‌های پرسنل، بنرها و تنظیمات کسب‌وکار.
+رز کافه یک سیستم کامل سفارش‌گیری کافه با دو بخش است: ویترین مشتری (مرور منو، سبد خرید، پرداخت، رزرو میز، نظرات، پروفایل) و بخش مدیریتی/گارسون (سفارش‌ها، پرداخت‌ها، منو، دسته‌بندی‌ها، میزها). ورود مشتریان با شماره موبایل و کد یک‌بارمصرف پیامکی انجام می‌شود، نه رمز عبور.
 
 ### پشته فناوری
 
-**بک‌اند**
-- Django 4 + Django REST Framework
-- احراز هویت JWT با ورود از طریق شماره موبایل و کد یک‌بارمصرف (پیامک ملی‌پیامک)
-- PostgreSQL، Celery و Redis برای وظایف پس‌زمینه/زمان‌بندی‌شده
+**بک‌اند** (`backend/`)
+- Django 4 + DRF، تنظیمات تفکیک‌شده (`config/settings/{base,dev,prod}.py`)
+- احراز هویت JWT با ورود شماره موبایل/کد یک‌بارمصرف از طریق ملی‌پیامک
+- PostgreSQL، Redis (کش) + Celery و `django-celery-beat`/`-results` برای وظایف پس‌زمینه/زمان‌بندی‌شده
 - مستندسازی API با `drf-spectacular`
-- پشتیبانی از تقویم شمسی با `jdatetime`
+- `django-phonenumber-field`، `jdatetime` (تقویم شمسی)، `django-dbbackup`
 
-**فرانت‌اند**
-- React + Vite
+**فرانت‌اند** (`frontend/`)
+- React + Vite، React Router
 - مدیریت state با Zustand
-- React Router، Axios، React Hot Toast
+- Axios (با interceptor تمدید خودکار توکن در `src/api/axios.js`)، React Hot Toast
 - فونت وزیرمتن (self-hosted)
 
-### امکانات
+### ساختار اپلیکیشن (تأیید‌شده با اجرای واقعی)
 
-- ثبت‌نام و ورود مشتری با کد یک‌بارمصرف پیامکی و دفترچه آدرس
-- منوی زنده با دسته‌بندی و تصویر
-- سفارش آنلاین با تنظیمات و هزینه ارسال
-- رزرو میز
-- نقش‌های دسترسی برای گارسون/پرسنل
-- مدیریت اطلاعات کسب‌وکار، بنرها و شبکه‌های اجتماعی از پنل ادمین
+اپ‌های بک‌اند: `accounts`، `menu`، `orders`، `payments`، `reservations`، `reviews`، `discounts`، `notifications`، به‌علاوه `business` برای تنظیمات کلی سایت (بنرها، هزینه ارسال، شبکه‌های اجتماعی، دسترسی گارسون‌ها).
+
+مسیرهای فرانت‌اند: `/login`، `/register`، `/` (منو، عمومی)، `/menu/:slug`، `/cart`، `/orders`، `/reservations`، `/payment`، `/reviews`، `/profile` (نیازمند ورود)، و بخش جدای `/admin/*`.
 
 ### راه‌اندازی
 
 ```bash
 # بک‌اند
 cd backend
-cp .env.example .env   # مقداردهی SECRET_KEY، DATABASE_URL و توکن سامانه پیامکی
+cp .env.example .env
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
@@ -99,3 +107,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### مشکل پیدا‌شده حین تست
+
+فایل `backend/config/settings/dev.py` شامل یک **پسورد دیتابیس هاردکد‌شده** در تاریخچه‌ی گیت است. بهتر است از متغیر محیطی خوانده شود و اگر این پسورد جای دیگری هم استفاده شده، عوض شود.
