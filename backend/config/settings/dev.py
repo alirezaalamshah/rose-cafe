@@ -7,12 +7,13 @@ ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': 'cafe_db',
         'USER': 'cafe_user',
         'PASSWORD': 'Alireza.6683',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'HOST': '127.0.0.1',
+        'PORT': config('DB_PORT', default='3307'),
+        'OPTIONS': {'charset': 'utf8mb4'},
         'CONN_MAX_AGE': 60,
     }
 }
