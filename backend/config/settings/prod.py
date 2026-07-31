@@ -10,7 +10,7 @@ ALLOWED_HOSTS = [h for h in cast(str, config('ALLOWED_HOSTS', default='')).split
 
 # برخلاف mysqlclient، PyMySQL برای HOST='localhost' خودکار سراغ Unix socket نمی‌رود
 # و واقعاً TCP امتحان می‌کند — روی هاست‌های اشتراکی که فقط socket فعال است باید صریح بدهیم
-_mysql_options = {'charset': 'utf8mb4'}
+_mysql_options = {'charset': 'utf8mb4', 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
 _db_socket = config('DB_SOCKET', default='')
 if _db_socket:
     _mysql_options['unix_socket'] = _db_socket
