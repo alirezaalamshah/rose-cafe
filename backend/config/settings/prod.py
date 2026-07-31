@@ -44,14 +44,12 @@ if REDIS_URL:
             'LOCATION': REDIS_URL,
         }
     }
-    CELERY_BROKER_URL = REDIS_URL
 else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         }
     }
-    CELERY_BROKER_URL = 'memory://'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_BROWSER_XSS_FILTER = True

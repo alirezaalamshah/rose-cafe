@@ -19,8 +19,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
-    'django_celery_beat',
-    'django_celery_results',
     'phonenumber_field',
     'django_filters',
     'dbbackup',
@@ -122,13 +120,6 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API مدیریت کافه',
     'VERSION': '1.0.0',
 }
-
-# Celery
-CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'django-cache'
-CELERY_TIMEZONE = 'Asia/Tehran'
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Cache (Redis)
 CACHES = {
