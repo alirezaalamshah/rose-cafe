@@ -6,7 +6,15 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.dev')
+    # os.environ به‌تنهایی فایل .env را نمی‌بیند (آن فقط داخل settings از طریق
+    # decouple خوانده می‌شود) — برای دستورات دستی (migrate/collectstatic/...) روی
+    # هاست باید همین‌جا هم صریح از .env بخوانیم، وگرنه همیشه dev پیش‌فرض لود می‌شود.
+    try:
+        from decouple import config
+        default_settings = config('DJANGO_SETTINGS_MODULE', default='config.settings.dev')
+    except ImportError:
+        default_settings = 'config.settings.dev'
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', default_settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
