@@ -8,6 +8,13 @@ ALLOWED_HOSTS = [h for h in cast(str, config('ALLOWED_HOSTS', default='')).split
 # مسیرهای media/static از base.py (نسبت به BASE_DIR) استفاده می‌شوند — مسیر کانتینری
 # مخصوص Liara قبلاً این‌جا override شده بود که روی هاست اشتراکی معنا نداشت.
 
+# برخلاف mysqlclient، PyMySQL برای HOST='localhost' خودکار سراغ Unix socket نمی‌رود
+# و واقعاً TCP امتحان می‌کند — روی هاست‌های اشتراکی که فقط socket فعال است باید صریح بدهیم
+_mysql_options = {'charset': 'utf8mb4'}
+_db_socket = config('DB_SOCKET', default='')
+if _db_socket:
+    _mysql_options['unix_socket'] = _db_socket
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -16,7 +23,7 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='3306'),
-        'OPTIONS': {'charset': 'utf8mb4'},
+        'OPTIONS': _mysql_options,
         'CONN_MAX_AGE': config('CONN_MAX_AGE', default=60, cast=int),
     }
 }
