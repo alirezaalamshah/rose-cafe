@@ -265,7 +265,10 @@ export default function AdminMenuPage() {
       await menuAPI.adminDeleteItem(id)
       setItems((prev) => prev.filter((i) => i.id !== id))
       toast.success('آیتم حذف شد')
-    } catch { toast.error('خطا در حذف') }
+    } catch (err) {
+      const errors = err.response?.data
+      toast.error(errors ? Object.values(errors).flat().join(' — ') : 'خطا در حذف')
+    }
   }
 
   // --- Bulk action handlers ---

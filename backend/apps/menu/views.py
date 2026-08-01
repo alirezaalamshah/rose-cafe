@@ -1,8 +1,9 @@
 from rest_framework import generics, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, ProtectedError
 from django.db.models.functions import Round
 
 from .models import Category, MenuItem, MenuItemVariant, MenuItemAddon
@@ -106,6 +107,15 @@ class AdminMenuItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):  # type: ignore[override]
         return MenuItem.objects.all()
 
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ValidationError(
+                'این آیتم در سفارش‌های قبلی استفاده شده و برای حفظ سابقه‌ی سفارش‌ها قابل حذف نیست. '
+                'به‌جای حذف، می‌توانید آن را غیرفعال کنید.'
+            )
+
 
 class AdminCategoryListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAdminUser]
@@ -119,6 +129,15 @@ class AdminCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):  # type: ignore[override]
         return Category.objects.all()
+
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ValidationError(
+                'این دسته‌بندی شامل آیتم‌های منو است و قابل حذف نیست. '
+                'ابتدا آیتم‌های آن را حذف یا به دسته‌ی دیگری منتقل کنید.'
+            )
 
 
 def _sync_item_price(item_pk):
