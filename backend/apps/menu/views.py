@@ -314,7 +314,13 @@ class AdminMenuBulkDeleteView(APIView):
         if not item_ids:
             return Response({'detail': 'هیچ آیتمی انتخاب نشده است'}, status=400)
 
-        deleted, _ = MenuItem.objects.filter(pk__in=item_ids).delete()
+        try:
+            deleted, _ = MenuItem.objects.filter(pk__in=item_ids).delete()
+        except ProtectedError:
+            return Response(
+                {'detail': 'برخی از آیتم‌های انتخاب‌شده در سفارش‌های قبلی استفاده شده‌اند و قابل حذف نیستند.'},
+                status=400,
+            )
         return Response({'deleted': deleted})
 
 

@@ -267,7 +267,8 @@ export default function AdminMenuPage() {
       toast.success('آیتم حذف شد')
     } catch (err) {
       const errors = err.response?.data
-      toast.error(errors ? Object.values(errors).flat().join(' — ') : 'خطا در حذف')
+      const isPlainObject = errors && typeof errors === 'object'
+      toast.error(isPlainObject ? Object.values(errors).flat().join(' — ') : 'خطا در حذف')
     }
   }
 
