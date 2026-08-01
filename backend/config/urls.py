@@ -212,7 +212,7 @@ def admin_dashboard(request):
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('api/admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/auth/', include('apps.accounts.urls')),
@@ -225,5 +225,5 @@ urlpatterns = [
     path('api/business/', include('apps.business.urls')),
     path('api/dashboard/', admin_dashboard, name='admin-dashboard'),
     path('api/notifications/', include('apps.notifications.urls')),
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^api/media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
