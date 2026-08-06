@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   MdShoppingCart, MdPerson, MdLogout,
-  MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview
+  MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview, MdRestaurantMenu
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import useCartStore from '../../../store/cartStore.js'
@@ -105,6 +105,11 @@ export default function Header() {
               {user?.is_staff && (
                 <Link to="/admin" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   <MdAdminPanelSettings size={17} /> پنل ادمین
+                </Link>
+              )}
+              {user?.role === 'waiter' && (
+                <Link to="/waiter" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                  <MdRestaurantMenu size={17} /> پنل گارسون
                 </Link>
               )}
               <button className="header__dropdown-item danger" onClick={handleLogout}>
