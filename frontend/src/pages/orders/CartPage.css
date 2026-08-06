@@ -332,9 +332,6 @@
   .cart-layout {
     grid-template-columns: 1fr;
   }
-  .cart-summary {
-    order: -1;
-  }
 }
 
 @media (max-width: 500px) {
