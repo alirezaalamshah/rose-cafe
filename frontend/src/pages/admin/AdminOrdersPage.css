@@ -244,6 +244,18 @@
   border-color: var(--border-hover);
 }
 
+/* نسخه‌ی عریض — وقتی علاوه بر آیکون، متن تاریخ انتخاب‌شده هم نمایش داده می‌شود */
+.admin-orders__archive-jump-btn--wide {
+  width: auto;
+  height: auto;
+  padding: 9px 14px;
+  gap: 6px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .admin-order-list {
   display: flex;
   flex-direction: column;

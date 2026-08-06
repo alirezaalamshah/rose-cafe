@@ -160,6 +160,7 @@ export default function ReservationPage() {
 
   const [selectedTable, setSelectedTable] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [datePickerModal, setDatePickerModal] = useState(false)
   const [bookForm, setBookForm] = useState({ start_time: '', end_time: '', note: '' })
   const [submitting, setSubmitting] = useState(false)
 
@@ -360,12 +361,17 @@ export default function ReservationPage() {
           <label className="res-search__label">
             <MdCalendarToday size={16} /> تاریخ
           </label>
-          <PersianDatePicker
-            value={date}
-            min={today}
-            onChange={handleDateChange}
-            placeholder="انتخاب تاریخ"
-          />
+          <button
+            type="button"
+            className="res-search__input"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', width: '100%', textAlign: 'right' }}
+            onClick={() => setDatePickerModal(true)}
+          >
+            <MdCalendarToday size={16} color="var(--text-muted)" />
+            <span style={{ color: date ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              {date ? formatJalali(date) : 'انتخاب تاریخ'}
+            </span>
+          </button>
         </div>
         <div className="res-search__field">
           <label className="res-search__label">
@@ -512,6 +518,21 @@ export default function ReservationPage() {
             />
           </div>
         )}
+      </Modal>
+
+      {/* Date Picker Modal */}
+      <Modal
+        isOpen={datePickerModal}
+        onClose={() => setDatePickerModal(false)}
+        title="انتخاب تاریخ"
+        size="sm"
+      >
+        <PersianDatePicker
+          inline
+          value={date}
+          min={today}
+          onChange={(v) => { handleDateChange(v); setDatePickerModal(false) }}
+        />
       </Modal>
 
       {/* My Reservations */}

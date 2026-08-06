@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { MdRefresh } from 'react-icons/md'
+import { MdRefresh, MdCalendarToday } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { reservationsAPI } from '../../api/reservations.js'
 import { Select } from '../../components/common/Input/Input.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
+import Modal from '../../components/common/Modal/Modal.jsx'
 import { formatJalali } from '../../utils/jalali.js'
 import { getStatusLabel, getStatusClass } from '../../utils/helpers.js'
 import './AdminOrdersPage.css'
@@ -24,6 +25,7 @@ export default function AdminReservationsPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [updating, setUpdating] = useState(null)
+  const [datePickerModal, setDatePickerModal] = useState(false)
 
   function fetch() {
     setLoading(true)
@@ -70,14 +72,13 @@ export default function AdminReservationsPage() {
           {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Select>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 200 }}>
-          <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>تاریخ:</label>
-          <PersianDatePicker
-            value={filterDate}
-            onChange={(val) => setFilterDate(val)}
-            placeholder="همه تاریخ‌ها"
-          />
-        </div>
+        <button
+          className="admin-orders__archive-jump-btn admin-orders__archive-jump-btn--wide"
+          onClick={() => setDatePickerModal(true)}
+        >
+          <MdCalendarToday size={16} />
+          {filterDate ? formatJalali(filterDate) : 'همه تاریخ‌ها'}
+        </button>
 
         {(filterStatus || filterDate) && (
           <button
@@ -200,6 +201,27 @@ export default function AdminReservationsPage() {
           )}
         </div>
       )}
+
+      <Modal isOpen={datePickerModal} onClose={() => setDatePickerModal(false)} title="فیلتر بر اساس تاریخ" size="sm">
+        <PersianDatePicker
+          inline
+          value={filterDate}
+          onChange={(v) => { setFilterDate(v); setDatePickerModal(false) }}
+        />
+        {filterDate && (
+          <button
+            onClick={() => { setFilterDate(''); setDatePickerModal(false) }}
+            style={{
+              width: '100%', marginTop: 'var(--space-md)', padding: '10px',
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)', color: 'var(--text-muted)',
+              cursor: 'pointer', fontFamily: 'var(--font-family)', fontSize: '0.85rem',
+            }}
+          >
+            نمایش همه تاریخ‌ها
+          </button>
+        )}
+      </Modal>
     </div>
   )
 }
