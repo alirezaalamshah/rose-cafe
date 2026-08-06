@@ -52,6 +52,7 @@
   color: var(--text-secondary);
 }
 
+.waiter-header__back,
 .waiter-header__logout {
   display: flex;
   align-items: center;
@@ -64,6 +65,11 @@
   color: var(--text-muted);
   cursor: pointer;
   transition: all var(--transition);
+}
+
+.waiter-header__back:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .waiter-header__logout:hover {

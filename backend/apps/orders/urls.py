@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     OrderListCreateView, OrderDetailView, OrderCancelView,
     AdminOrderListView, AdminOrderDetailView, AdminOrderStatusUpdateView,
-    AdminNearestOrderDateView,
+    NearestOrderDateView,
     WaiterOrderListView, WaiterOrderStatusUpdateView,
     ConfirmCashPaymentView,
 )
@@ -15,11 +15,12 @@ urlpatterns = [
 
     # Admin
     path('admin/', AdminOrderListView.as_view(), name='admin-orders'),
-    path('admin/nearest-date/', AdminNearestOrderDateView.as_view(), name='admin-orders-nearest-date'),
+    path('admin/nearest-date/', NearestOrderDateView.as_view(), name='admin-orders-nearest-date'),
     path('admin/<int:pk>/', AdminOrderDetailView.as_view(), name='admin-order-detail'),
     path('admin/<int:pk>/status/', AdminOrderStatusUpdateView.as_view(), name='admin-order-status'),
 
     # Waiter
     path('waiter/', WaiterOrderListView.as_view(), name='waiter-orders'),
+    path('waiter/nearest-date/', NearestOrderDateView.as_view(), name='waiter-orders-nearest-date'),
     path('waiter/<int:pk>/status/', WaiterOrderStatusUpdateView.as_view(), name='waiter-order-status'),
 ]

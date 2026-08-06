@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { MdRefresh, MdPeople, MdAccessTime } from 'react-icons/md'
+import { MdRefresh, MdPeople, MdAccessTime, MdCalendarToday } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
+import Modal from '../../components/common/Modal/Modal.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import { formatJalali, jalaliToIso, getTodayJalali } from '../../utils/jalali.js'
 import { getStatusLabel, getStatusClass } from '../../utils/helpers.js'
+import './WaiterOrdersPage.css'
 import './WaiterReservationsPage.css'
 
 export default function WaiterReservationsPage() {
@@ -16,6 +18,7 @@ export default function WaiterReservationsPage() {
   const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
+  const [datePickerModal, setDatePickerModal] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -56,12 +59,13 @@ export default function WaiterReservationsPage() {
       </div>
 
       <div className="waiter-res__filter">
-        <PersianDatePicker
-          value={date}
-          onChange={setDate}
-          placeholder="انتخاب تاریخ"
-          label="تاریخ"
-        />
+        <button
+          className="waiter-archive-jump-btn waiter-archive-jump-btn--wide"
+          onClick={() => setDatePickerModal(true)}
+        >
+          <MdCalendarToday size={16} />
+          {date ? formatJalali(date) : 'انتخاب تاریخ'}
+        </button>
       </div>
 
       {loading ? <Loading /> : reservations.length === 0 ? (
@@ -130,6 +134,19 @@ export default function WaiterReservationsPage() {
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={datePickerModal}
+        onClose={() => setDatePickerModal(false)}
+        title="انتخاب تاریخ"
+        size="sm"
+      >
+        <PersianDatePicker
+          inline
+          value={date}
+          onChange={(v) => { setDate(v); setDatePickerModal(false) }}
+        />
+      </Modal>
     </div>
   )
 }

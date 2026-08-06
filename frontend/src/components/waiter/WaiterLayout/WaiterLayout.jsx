@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { MdRestaurantMenu, MdTableBar, MdEventNote, MdLogout, MdDashboard } from 'react-icons/md'
+import { MdRestaurantMenu, MdTableBar, MdEventNote, MdLogout, MdDashboard, MdArrowForward } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import './WaiterLayout.css'
 
@@ -23,6 +23,9 @@ export default function WaiterLayout() {
         </div>
         <div className="waiter-header__user">
           <span className="waiter-header__name">{user?.full_name || user?.phone}</span>
+          <NavLink to="/" className="waiter-header__back" title="بازگشت به سایت">
+            <MdArrowForward size={18} />
+          </NavLink>
           <button className="waiter-header__logout" onClick={handleLogout} title="خروج">
             <MdLogout size={18} />
           </button>

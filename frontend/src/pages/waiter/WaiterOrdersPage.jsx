@@ -1,18 +1,34 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MdRefresh, MdBolt, MdHistory } from 'react-icons/md'
+import {
+  MdRefresh, MdBolt, MdHistory, MdChevronRight, MdChevronLeft, MdCalendarToday,
+} from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import { ordersAPI } from '../../api/orders.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
+import Modal from '../../components/common/Modal/Modal.jsx'
 import usePolling from '../../hooks/usePolling.js'
 import { formatDateTime, formatPrice, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
+import { formatJalali, isoToJalali, toPersianNum, MONTH_NAMES } from '../../utils/jalali.js'
 import './WaiterOrdersPage.css'
 
 function todayIso() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function shiftIsoDate(isoDate, days) {
+  const d = new Date(isoDate + 'T12:00:00')
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatJalaliShort(isoDate) {
+  const j = isoToJalali(isoDate)
+  if (!j) return '—'
+  return `${toPersianNum(j.jd)} ${MONTH_NAMES[j.jm - 1]}`
 }
 
 const POLL_INTERVAL_MS = 10000
@@ -39,6 +55,8 @@ export default function WaiterOrdersPage() {
   const [confirmingCash, setConfirmingCash] = useState(null)
   const [view, setView] = useState('active') // 'active' | 'archive'
   const [archiveDate, setArchiveDate] = useState(todayIso())
+  const [jumping, setJumping] = useState(null) // 'prev' | 'next' | null
+  const [datePickerModal, setDatePickerModal] = useState(false)
 
   const activeTab = searchParams.get('status') || ''
 
@@ -61,6 +79,22 @@ export default function WaiterOrdersPage() {
 
   // سفارشات جاری هر ۱۰ ثانیه بی‌صدا به‌روز می‌شوند تا سفارش تازه بدون فشردن دکمه دیده شود
   usePolling(() => load(true), POLL_INTERVAL_MS, view === 'active')
+
+  async function jumpToNearestOrderDate(direction) {
+    setJumping(direction)
+    try {
+      const res = await waiterAPI.nearestOrderDate(archiveDate, direction)
+      if (res.date) {
+        setArchiveDate(res.date)
+      } else {
+        toast.error(direction === 'prev' ? 'سفارش قدیمی‌تری در بایگانی نیست' : 'سفارش جدیدتری در بایگانی نیست')
+      }
+    } catch {
+      toast.error('خطا در جستجوی روز قبل/بعد')
+    } finally {
+      setJumping(null)
+    }
+  }
 
   async function handleConfirmCash(order) {
     setConfirmingCash(order.id)
@@ -113,10 +147,55 @@ export default function WaiterOrdersPage() {
         >
           <MdHistory size={15} /> بایگانی
         </button>
-        {view === 'archive' && (
-          <PersianDatePicker value={archiveDate} onChange={setArchiveDate} />
-        )}
       </div>
+
+      {view === 'archive' && (
+        <div className="waiter-archive-nav">
+          <div className="waiter-day-strip">
+            {[-3, -2, -1, 0, 1, 2, 3].map((offset) => {
+              const iso = shiftIsoDate(archiveDate, offset)
+              return (
+                <button
+                  key={iso}
+                  className={`waiter-day-btn ${offset === 0 ? 'active' : ''}`}
+                  onClick={() => setArchiveDate(iso)}
+                >
+                  {formatJalaliShort(iso)}
+                </button>
+              )
+            })}
+          </div>
+
+          <button
+            className="waiter-archive-skip waiter-archive-skip--prev"
+            onClick={() => jumpToNearestOrderDate('prev')}
+            disabled={jumping !== null}
+            title="نزدیک‌ترین روز قبلی که سفارش دارد"
+          >
+            <MdChevronRight size={18} />
+            {jumping === 'prev' ? '...' : 'روز قبل'}
+          </button>
+
+          <button
+            className="waiter-archive-skip waiter-archive-skip--next"
+            onClick={() => jumpToNearestOrderDate('next')}
+            disabled={jumping !== null}
+            title="نزدیک‌ترین روز بعدی که سفارش دارد"
+          >
+            {jumping === 'next' ? '...' : 'روز بعد'}
+            <MdChevronLeft size={18} />
+          </button>
+
+          <button
+            className="waiter-archive-jump-btn"
+            onClick={() => setDatePickerModal(true)}
+            title="پرش به تاریخ خاص"
+            aria-label="پرش به تاریخ خاص"
+          >
+            <MdCalendarToday size={18} />
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="waiter-tabs">
@@ -134,7 +213,7 @@ export default function WaiterOrdersPage() {
       {loading ? <Loading /> : displayOrders.length === 0 ? (
         <div className="empty-state">
           <div className="icon">📋</div>
-          <h3>سفارشی یافت نشد</h3>
+          <h3>{view === 'archive' ? `سفارشی برای ${formatJalali(archiveDate)} یافت نشد` : 'سفارشی یافت نشد'}</h3>
         </div>
       ) : (
         <div className="waiter-order-grid">
@@ -220,6 +299,19 @@ export default function WaiterOrdersPage() {
           })}
         </div>
       )}
+
+      <Modal
+        isOpen={datePickerModal}
+        onClose={() => setDatePickerModal(false)}
+        title="پرش به تاریخ خاص"
+        size="sm"
+      >
+        <PersianDatePicker
+          inline
+          value={archiveDate}
+          onChange={(v) => { setArchiveDate(v); setDatePickerModal(false) }}
+        />
+      </Modal>
     </div>
   )
 }

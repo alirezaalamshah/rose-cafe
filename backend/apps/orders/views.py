@@ -12,7 +12,7 @@ from .serializers import (
     AdminOrderSerializer, OrderStatusUpdateSerializer,
 )
 from apps.accounts.models import Address
-from apps.accounts.permissions import IsWaiter
+from apps.accounts.permissions import IsWaiter, IsAdminOrWaiter
 from apps.discounts.utils import apply_discount
 from apps.notifications.sms import send_order_status_sms
 from apps.common.utils import local_day_range
@@ -257,13 +257,15 @@ class AdminOrderListView(generics.ListAPIView):
         return qs
 
 
-class AdminNearestOrderDateView(APIView):
+class NearestOrderDateView(APIView):
     """
     نزدیک‌ترین روزی که سفارش دارد را نسبت به یک تاریخ برمی‌گرداند — برای دکمه‌های
-    «روز قبل/بعد» صفحه‌ی بایگانی، که باید روزهای خالی را رد کنند و مستقیم به
-    نزدیک‌ترین روز واقعاً دارای سفارش بپرند.
+    «روز قبل/بعد» صفحه‌ی بایگانی (هم پنل ادمین، هم پنل گارسون)، که باید روزهای
+    خالی را رد کنند و مستقیم به نزدیک‌ترین روز واقعاً دارای سفارش بپرند.
+    برای گارسون، فقط در محدوده‌ی همان سفارش‌هایی جستجو می‌کند که در لیست بایگانی‌اش
+    هم می‌بیند (بدون WAITING_PAYMENT، و فقط اگر دسترسی مدیریت سفارش داشته باشد).
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminOrWaiter]
 
     def get(self, request):
         date_str = request.query_params.get('date')
@@ -271,11 +273,18 @@ class AdminNearestOrderDateView(APIView):
         if not date_str or direction not in ('prev', 'next'):
             return Response({'detail': 'پارامترهای date و direction الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
 
+        qs = Order.objects.all()
+        if request.user.role == 'waiter':
+            perm = getattr(request.user, 'waiter_permissions', None)
+            if not perm or not perm.can_manage_orders:
+                return Response({'date': None})
+            qs = qs.exclude(status=Order.Status.WAITING_PAYMENT)
+
         start, end = local_day_range(date_str)
         if direction == 'prev':
-            found = Order.objects.filter(created_at__lt=start).order_by('-created_at').first()
+            found = qs.filter(created_at__lt=start).order_by('-created_at').first()
         else:
-            found = Order.objects.filter(created_at__gte=end).order_by('created_at').first()
+            found = qs.filter(created_at__gte=end).order_by('created_at').first()
 
         if not found:
             return Response({'date': None})
