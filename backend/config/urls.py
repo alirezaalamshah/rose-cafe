@@ -91,6 +91,7 @@ def admin_dashboard(request):
     for o in Order.objects.select_related('user').prefetch_related('items').order_by('-created_at')[:8]:
         recent_orders.append({
             'id': o.id,
+            'order_number': o.order_number,
             'status': o.status,
             'user_phone': str(o.user.phone),
             'items_count': len(o.items.all()),

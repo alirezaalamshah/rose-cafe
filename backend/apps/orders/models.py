@@ -1,6 +1,40 @@
-from django.db import models
+import jdatetime
+from django.db import models, transaction
+from django.utils import timezone
 from apps.accounts.models import User, Address
 from apps.menu.models import MenuItem, MenuItemVariant, MenuItemAddon
+
+
+class DailyOrderCounter(models.Model):
+    """
+    شمارنده‌ی سفارش برای هر روز شمسی — پایه‌ی ساخت شماره‌ی خوانای سفارش
+    (تاریخ شمسی + شماره‌ی ترتیبی همان روز، مثلاً 140505151 برای اولین سفارش 1405/05/15).
+    select_for_update در generate_order_number از تکراری شدن شماره در ثبت هم‌زمان دو سفارش جلوگیری می‌کند.
+    """
+    jalali_date = models.CharField(max_length=8, unique=True, verbose_name='تاریخ شمسی (YYYYMMDD)')
+    last_number = models.PositiveIntegerField(default=0, verbose_name='آخرین شماره صادرشده')
+
+    class Meta:
+        verbose_name = 'شمارنده روزانه سفارش'
+        verbose_name_plural = 'شمارنده‌های روزانه سفارش'
+
+    def __str__(self):
+        return f'{self.jalali_date} — {self.last_number} سفارش'
+
+
+def generate_order_number() -> str:
+    # timezone.localdate از TIME_ZONE تنظیم‌شده (آسیا/تهران) استفاده می‌کند، نه ساعت سیستم هاست
+    today_jalali = jdatetime.date.fromgregorian(date=timezone.localdate())
+    date_prefix = f'{today_jalali.year:04d}{today_jalali.month:02d}{today_jalali.day:02d}'
+
+    # atomic تودرتو: چه این تابع از داخل یک تراکنش دیگر صدا زده شود چه نشود، صحیح کار می‌کند
+    with transaction.atomic():
+        counter, _ = DailyOrderCounter.objects.select_for_update().get_or_create(
+            jalali_date=date_prefix, defaults={'last_number': 0}
+        )
+        counter.last_number += 1
+        counter.save(update_fields=['last_number'])
+        return f'{date_prefix}{counter.last_number}'
 
 
 class Order(models.Model):
@@ -55,6 +89,11 @@ class Order(models.Model):
     discount_amount = models.PositiveIntegerField(default=0, verbose_name='مبلغ تخفیف')
     final_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ نهایی')
     discount_code = models.CharField(max_length=50, blank=True, verbose_name='کد تخفیف')
+    order_number = models.CharField(
+        max_length=20, unique=True, blank=True, editable=False, db_index=True,
+        verbose_name='شماره سفارش',
+        help_text='بر اساس تاریخ شمسی روز ثبت + شماره ترتیبی همان روز — خودکار ساخته می‌شود',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت', db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -64,7 +103,12 @@ class Order(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'سفارش #{self.id} - {self.user}'
+        return f'سفارش #{self.order_number or self.id} - {self.user}'
+
+    def save(self, *args, **kwargs):
+        if not self.order_number:
+            self.order_number = generate_order_number()
+        super().save(*args, **kwargs)
 
     def calculate_totals(self):
         self.total_price = sum(

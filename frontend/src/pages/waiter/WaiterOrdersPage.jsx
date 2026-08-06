@@ -67,7 +67,7 @@ export default function WaiterOrdersPage() {
     try {
       await ordersAPI.confirmCashPayment(order.id)
       setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, is_paid: true } : o))
-      toast.success(`وجه سفارش #${order.id} دریافت و تأیید شد`)
+      toast.success(`وجه سفارش #${order.order_number || order.id} دریافت و تأیید شد`)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'خطا در تأیید دریافت وجه')
     } finally {
@@ -80,7 +80,7 @@ export default function WaiterOrdersPage() {
     try {
       const updated = await waiterAPI.updateOrderStatus(order.id, newStatus)
       setOrders((prev) => prev.map((o) => o.id === order.id ? updated : o))
-      toast.success(`وضعیت سفارش #${order.id} به ${getStatusLabel(newStatus)} تغییر کرد`)
+      toast.success(`وضعیت سفارش #${order.order_number || order.id} به ${getStatusLabel(newStatus)} تغییر کرد`)
     } catch {
       toast.error('خطا در بروزرسانی وضعیت')
     } finally {
@@ -143,7 +143,7 @@ export default function WaiterOrdersPage() {
             return (
               <div key={order.id} className={`waiter-order-card neu-card-sm waiter-order-card--${order.status}`}>
                 <div className="waiter-order-card__top">
-                  <span className="waiter-order-card__id">#{order.id}</span>
+                  <span className="waiter-order-card__id">#{order.order_number || order.id}</span>
                   <span className={`status-badge ${getStatusClass(order.status)}`}>
                     {getStatusLabel(order.status)}
                   </span>

@@ -277,7 +277,7 @@ class AdminOrderStatusUpdateView(APIView):
 
         # ارسال SMS
         phone = str(order.user.phone)
-        send_order_status_sms(phone, order.id, order.status)
+        send_order_status_sms(phone, order.order_number, order.status)
 
         return Response(OrderSerializer(order).data)
 
@@ -346,7 +346,7 @@ class WaiterOrderStatusUpdateView(APIView):
         order.save()
 
         phone = str(order.user.phone)
-        send_order_status_sms(phone, order.id, order.status)
+        send_order_status_sms(phone, order.order_number, order.status)
 
         return Response(AdminOrderSerializer(order).data)
 

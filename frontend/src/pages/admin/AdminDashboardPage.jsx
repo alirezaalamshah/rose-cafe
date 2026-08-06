@@ -310,7 +310,7 @@ export default function AdminDashboardPage() {
                     className="dash-order-row"
                     onClick={() => navigate('/admin/orders')}
                   >
-                    <span className="dash-order-row__id">#{toPersianNum(o.id)}</span>
+                    <span className="dash-order-row__id">#{toPersianNum(o.order_number || o.id)}</span>
                     <span className="dash-order-row__phone" dir="ltr">{o.user_phone}</span>
                     <span className="dash-order-row__type">{dt.icon} {dt.label}</span>
                     <span className={`status-badge ${st.cls}`}>{st.label}</span>

@@ -305,7 +305,7 @@ def send_sms(phone: str, message: str) -> bool:
     return success
 
 
-def send_order_status_sms(phone: str, order_id: int, status: str) -> bool:
+def send_order_status_sms(phone: str, order_number: str, status: str) -> bool:
     status_map = {
         'confirmed': 'تایید شد ✓',
         'preparing': 'در حال آماده‌سازی است',
@@ -314,7 +314,7 @@ def send_order_status_sms(phone: str, order_id: int, status: str) -> bool:
         'cancelled': 'لغو شد',
     }
     label = status_map.get(status, status)
-    message = f'سفارش #{order_id} شما {label}.'
+    message = f'سفارش #{order_number} شما {label}.'
     return send_sms(phone, message)
 
 

@@ -40,11 +40,11 @@ export default function PaymentPage() {
                 <MdPayment size={20} color="var(--primary)" />
                 <div>
                   <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                    پرداخت سفارش #{p.order}
+                    پرداخت سفارش #{p.order_number || p.order_id}
                   </p>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 2 }}>
                     {formatDate(p.created_at)}
-                    {p.ref_id && p.ref_id !== 'FREE' && p.ref_id !== `CASH-${p.order}`
+                    {p.ref_id && p.ref_id !== 'FREE' && p.ref_id !== `CASH-${p.order_id}`
                       ? ` — کد پیگیری: ${p.ref_id}` : ''}
                   </p>
                 </div>

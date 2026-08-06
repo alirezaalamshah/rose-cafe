@@ -86,8 +86,9 @@ export default function AdminOrdersPage() {
     setConfirmingCash(id)
     try {
       await ordersAPI.confirmCashPayment(id)
+      const orderNumber = orders.find((o) => o.id === id)?.order_number || id
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, is_paid: true } : o))
-      toast.success(`وجه سفارش #${id} تأیید شد`)
+      toast.success(`وجه سفارش #${orderNumber} تأیید شد`)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'خطا در تأیید دریافت وجه')
     } finally {
@@ -162,7 +163,7 @@ export default function AdminOrdersPage() {
                 <div className="admin-order-card__header">
                   <div className="admin-order-card__id">
                     <MdShoppingBag size={16} color="var(--primary)" />
-                    سفارش #{order.id}
+                    سفارش #{order.order_number || order.id}
                   </div>
                   <div className="admin-order-card__header-meta">
                     <span className="admin-order-card__user">

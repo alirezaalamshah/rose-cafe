@@ -73,7 +73,7 @@ export default function OrdersPage() {
               <div className="order-card__header">
                 <div className="order-card__id">
                   <MdShoppingBag size={18} color="var(--primary)" />
-                  سفارش #{order.id}
+                  سفارش #{order.order_number || order.id}
                 </div>
                 <span className={`status-badge ${getStatusClass(order.status)}`}>
                   {getStatusLabel(order.status)}

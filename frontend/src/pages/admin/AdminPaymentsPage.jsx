@@ -69,7 +69,7 @@ export default function AdminPaymentsPage() {
                   <tr key={p.id}>
                     <td data-label="شناسه">#{p.id}</td>
                     <td data-label="کاربر">{p.user?.phone || '—'}</td>
-                    <td data-label="سفارش">سفارش #{p.order_id}</td>
+                    <td data-label="سفارش">سفارش #{p.order_number || p.order_id}</td>
                     <td data-label="مبلغ" className="price">{formatPrice(p.amount)}</td>
                     <td data-label="کد پیگیری" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       <span dir="ltr">{p.ref_id || '—'}</span>
