@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.utils import timezone
+from apps.common.utils import local_day_range
 
 
 @api_view(['GET'])
@@ -20,32 +21,42 @@ def admin_dashboard(request):
     from apps.menu.models import MenuItem, Category
     from apps.business.models import Banner
     from django.db.models import Sum, Count, Q
-    from django.db.models.functions import TruncDate
     from datetime import timedelta
 
-    today = timezone.now().date()
+    # timezone.localdate (نه timezone.now().date()) و بازه‌های UTC محاسبه‌شده در پایتون
+    # (نه lookup مستقیم __date یا TruncDate) — چون هر دوی این‌ها روی MySQL به
+    # CONVERT_TZ با نام منطقه‌ی زمانی ترجمه می‌شوند که بدون جدول‌های tzinfo سمت سرور
+    # (خیلی از هاست‌های اشتراکی) همیشه NULL برمی‌گرداند و هیچ ردیفی match نمی‌شود.
+    today = timezone.localdate()
     week_start = today - timedelta(days=6)
+    today_start, today_end = local_day_range(today)
+    week_start_utc, _ = local_day_range(week_start)
 
-    today_orders = Order.objects.filter(created_at__date=today)
+    today_orders = Order.objects.filter(created_at__gte=today_start, created_at__lt=today_end)
     today_revenue = Payment.objects.filter(
-        status='success', created_at__date=today
+        status='success', created_at__gte=today_start, created_at__lt=today_end,
     ).aggregate(total=Sum('amount'))['total'] or 0
-    today_payment_count = Payment.objects.filter(status='success', created_at__date=today).count()
+    today_payment_count = Payment.objects.filter(
+        status='success', created_at__gte=today_start, created_at__lt=today_end,
+    ).count()
     today_aov = round(today_revenue / today_payment_count) if today_payment_count else 0
 
-    # درآمد ۷ روز گذشته — به‌جای ۱۴ کوئری جدا (۲ به‌ازای هر روز)، فقط ۲ کوئری گروهی
-    revenue_by_day = {
-        row['day']: row['total']
-        for row in Payment.objects.filter(
-            status='success', created_at__date__gte=week_start, created_at__date__lte=today,
-        ).annotate(day=TruncDate('created_at')).values('day').annotate(total=Sum('amount')).values('day', 'total')
-    }
-    orders_by_day = {
-        row['day']: row['cnt']
-        for row in Order.objects.filter(
-            created_at__date__gte=week_start, created_at__date__lte=today,
-        ).annotate(day=TruncDate('created_at')).values('day').annotate(cnt=Count('id')).values('day', 'cnt')
-    }
+    # درآمد ۷ روز گذشته — به‌جای ۱۴ کوئری جدا (۲ به‌ازای هر روز)، فقط ۲ کوئری؛ گروه‌بندی
+    # بر اساس روز محلی در پایتون انجام می‌شود (نه TruncDate سمت دیتابیس، به همان دلیل بالا)
+    revenue_by_day = {}
+    for row in Payment.objects.filter(
+        status='success', created_at__gte=week_start_utc, created_at__lt=today_end,
+    ).values('created_at', 'amount'):
+        d = timezone.localtime(row['created_at']).date()
+        revenue_by_day[d] = revenue_by_day.get(d, 0) + row['amount']
+
+    orders_by_day = {}
+    for row in Order.objects.filter(
+        created_at__gte=week_start_utc, created_at__lt=today_end,
+    ).values('created_at'):
+        d = timezone.localtime(row['created_at']).date()
+        orders_by_day[d] = orders_by_day.get(d, 0) + 1
+
     weekly_revenue = []
     for i in range(6, -1, -1):
         d = today - timedelta(days=i)
@@ -156,8 +167,7 @@ def admin_dashboard(request):
     # پرفروش‌ترین آیتم‌های ۷ روز گذشته
     best_sellers = list(
         OrderItem.objects.filter(
-            order__created_at__date__gte=today - timedelta(days=6),
-            order__created_at__date__lte=today,
+            order__created_at__gte=week_start_utc, order__created_at__lt=today_end,
         ).exclude(order__status='cancelled')
         .values('menu_item_id', 'menu_item__name')
         .annotate(quantity_sold=Sum('quantity'))
@@ -204,7 +214,7 @@ def admin_dashboard(request):
                 total=Sum('amount')
             )['total'] or 0,
             'pending_reviews': pending_reviews,
-            'new_users_this_week': User.objects.filter(date_joined__date__gte=today - timedelta(days=6)).count(),
+            'new_users_this_week': User.objects.filter(date_joined__gte=week_start_utc).count(),
         },
         'weekly_revenue': weekly_revenue,
         'recent_orders': recent_orders,

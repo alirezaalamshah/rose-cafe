@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { MdRefresh, MdShoppingBag, MdPerson, MdAccessTime, MdTableRestaurant, MdHistory, MdBolt } from 'react-icons/md'
+import {
+  MdRefresh, MdShoppingBag, MdPerson, MdAccessTime, MdTableRestaurant, MdHistory, MdBolt,
+  MdChevronRight, MdChevronLeft,
+} from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { ordersAPI } from '../../api/orders.js'
 import { Select } from '../../components/common/Input/Input.jsx'
@@ -7,11 +10,27 @@ import PersianDatePicker from '../../components/common/PersianDatePicker/Persian
 import Loading from '../../components/common/Loading/Loading.jsx'
 import usePolling from '../../hooks/usePolling.js'
 import { formatPrice, formatDateTime, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
+import { formatJalali, isoToJalali, toPersianNum, MONTH_NAMES } from '../../utils/jalali.js'
 import './AdminOrdersPage.css'
 
 function todayIso() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// شیفت روزانه روی تاریخ گرگوری ISO — چون یک روز فارغ از تقویم (شمسی/میلادی) همیشه یک روز است،
+// فقط نمایش با formatJalali به شمسی تبدیل می‌شود
+function shiftIsoDate(isoDate, days) {
+  const d = new Date(isoDate + 'T12:00:00')
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// نسخه‌ی کوتاه بدون سال — برای نوار ۷ روزه جای کافی روی موبایل ندارد
+function formatJalaliShort(isoDate) {
+  const j = isoToJalali(isoDate)
+  if (!j) return '—'
+  return `${toPersianNum(j.jd)} ${MONTH_NAMES[j.jm - 1]}`
 }
 
 const POLL_INTERVAL_MS = 10000
@@ -53,6 +72,7 @@ export default function AdminOrdersPage() {
   const [confirmingCash, setConfirmingCash] = useState(null)
   const [view, setView] = useState('active') // 'active' | 'archive'
   const [archiveDate, setArchiveDate] = useState(todayIso())
+  const [jumping, setJumping] = useState(null) // 'prev' | 'next' | null
 
   const fetchOrders = useCallback((silent = false) => {
     if (!silent) setLoading(true)
@@ -66,6 +86,22 @@ export default function AdminOrdersPage() {
 
   // سفارشات جاری هر ۱۰ ثانیه بی‌صدا به‌روز می‌شوند تا سفارش تازه بدون فشردن دکمه دیده شود
   usePolling(() => fetchOrders(true), POLL_INTERVAL_MS, view === 'active')
+
+  async function jumpToNearestOrderDate(direction) {
+    setJumping(direction)
+    try {
+      const res = await ordersAPI.adminNearestOrderDate(archiveDate, direction)
+      if (res.date) {
+        setArchiveDate(res.date)
+      } else {
+        toast.error(direction === 'prev' ? 'سفارش قدیمی‌تری در بایگانی نیست' : 'سفارش جدیدتری در بایگانی نیست')
+      }
+    } catch {
+      toast.error('خطا در جستجوی روز قبل/بعد')
+    } finally {
+      setJumping(null)
+    }
+  }
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 
@@ -119,10 +155,50 @@ export default function AdminOrdersPage() {
         >
           <MdHistory size={16} /> بایگانی
         </button>
-        {view === 'archive' && (
-          <PersianDatePicker value={archiveDate} onChange={setArchiveDate} />
-        )}
       </div>
+
+      {view === 'archive' && (
+        <div className="admin-orders__archive-nav">
+          <button
+            className="admin-orders__archive-skip"
+            onClick={() => jumpToNearestOrderDate('prev')}
+            disabled={jumping !== null}
+            title="نزدیک‌ترین روز قبلی که سفارش دارد"
+          >
+            <MdChevronRight size={18} />
+            {jumping === 'prev' ? '...' : 'روز قبل'}
+          </button>
+
+          <div className="admin-orders__day-strip">
+            {[-3, -2, -1, 0, 1, 2, 3].map((offset) => {
+              const iso = shiftIsoDate(archiveDate, offset)
+              return (
+                <button
+                  key={iso}
+                  className={`admin-orders__day-btn ${offset === 0 ? 'active' : ''}`}
+                  onClick={() => setArchiveDate(iso)}
+                >
+                  {formatJalaliShort(iso)}
+                </button>
+              )
+            })}
+          </div>
+
+          <button
+            className="admin-orders__archive-skip"
+            onClick={() => jumpToNearestOrderDate('next')}
+            disabled={jumping !== null}
+            title="نزدیک‌ترین روز بعدی که سفارش دارد"
+          >
+            {jumping === 'next' ? '...' : 'روز بعد'}
+            <MdChevronLeft size={18} />
+          </button>
+
+          <div className="admin-orders__archive-jump">
+            <PersianDatePicker value={archiveDate} onChange={setArchiveDate} placeholder="پرش به تاریخ" />
+          </div>
+        </div>
+      )}
 
       <div className="admin-orders__filters">
         <Select
@@ -151,7 +227,7 @@ export default function AdminOrdersPage() {
       {loading ? <Loading /> : displayOrders.length === 0 ? (
         <div className="empty-state">
           <div className="icon">📦</div>
-          <h3>سفارشی یافت نشد</h3>
+          <h3>{view === 'archive' ? `سفارشی برای ${formatJalali(archiveDate)} یافت نشد` : 'سفارشی یافت نشد'}</h3>
         </div>
       ) : (
         <div className="admin-order-list">

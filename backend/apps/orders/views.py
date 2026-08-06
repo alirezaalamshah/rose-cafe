@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import transaction
 from django.conf import settings
+from django.utils import timezone
 
 from .models import Order, OrderItem, OrderItemAddon
 from apps.menu.models import MenuItemVariant, MenuItemAddon
@@ -14,6 +15,7 @@ from apps.accounts.models import Address
 from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
 from apps.notifications.sms import send_order_status_sms
+from apps.common.utils import local_day_range
 
 class OrderListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -244,7 +246,8 @@ class AdminOrderListView(generics.ListAPIView):
         status_filter = self.request.query_params.get('status')
         date_filter = self.request.query_params.get('date')
         if date_filter:
-            qs = qs.filter(created_at__date=date_filter)
+            start, end = local_day_range(date_filter)
+            qs = qs.filter(created_at__gte=start, created_at__lt=end)
             if status_filter:
                 qs = qs.filter(status=status_filter)
         elif status_filter:
@@ -252,6 +255,31 @@ class AdminOrderListView(generics.ListAPIView):
         else:
             qs = qs.exclude(status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED])
         return qs
+
+
+class AdminNearestOrderDateView(APIView):
+    """
+    نزدیک‌ترین روزی که سفارش دارد را نسبت به یک تاریخ برمی‌گرداند — برای دکمه‌های
+    «روز قبل/بعد» صفحه‌ی بایگانی، که باید روزهای خالی را رد کنند و مستقیم به
+    نزدیک‌ترین روز واقعاً دارای سفارش بپرند.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        direction = request.query_params.get('direction')
+        if not date_str or direction not in ('prev', 'next'):
+            return Response({'detail': 'پارامترهای date و direction الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        start, end = local_day_range(date_str)
+        if direction == 'prev':
+            found = Order.objects.filter(created_at__lt=start).order_by('-created_at').first()
+        else:
+            found = Order.objects.filter(created_at__gte=end).order_by('created_at').first()
+
+        if not found:
+            return Response({'date': None})
+        return Response({'date': str(timezone.localtime(found.created_at).date())})
 
 
 class AdminOrderDetailView(generics.RetrieveAPIView):
@@ -306,7 +334,8 @@ class WaiterOrderListView(generics.ListAPIView):
         status_filter = self.request.query_params.get('status')
         date_filter = self.request.query_params.get('date')
         if date_filter:
-            qs = qs.filter(created_at__date=date_filter)
+            start, end = local_day_range(date_filter)
+            qs = qs.filter(created_at__gte=start, created_at__lt=end)
             if status_filter:
                 qs = qs.filter(status=status_filter)
         elif status_filter:

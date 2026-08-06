@@ -11,6 +11,8 @@ export const ordersAPI = {
   adminGetOrders: (params) => api.get('/orders/admin/', { params }),
   adminGetOrder: (id) => api.get(`/orders/admin/${id}/`),
   adminUpdateStatus: (id, status) => api.patch(`/orders/admin/${id}/status/`, { status }),
+  adminNearestOrderDate: (date, direction) =>
+    api.get('/orders/admin/nearest-date/', { params: { date, direction } }),
 
   // Waiter
   waiterGetOrders: (params) => api.get('/orders/waiter/', { params }),
