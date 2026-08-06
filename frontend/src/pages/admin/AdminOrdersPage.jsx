@@ -161,16 +161,6 @@ export default function AdminOrdersPage() {
 
       {view === 'archive' && (
         <div className="admin-orders__archive-nav">
-          <button
-            className="admin-orders__archive-skip"
-            onClick={() => jumpToNearestOrderDate('prev')}
-            disabled={jumping !== null}
-            title="نزدیک‌ترین روز قبلی که سفارش دارد"
-          >
-            <MdChevronRight size={18} />
-            {jumping === 'prev' ? '...' : 'روز قبل'}
-          </button>
-
           <div className="admin-orders__day-strip">
             {[-3, -2, -1, 0, 1, 2, 3].map((offset) => {
               const iso = shiftIsoDate(archiveDate, offset)
@@ -187,7 +177,17 @@ export default function AdminOrdersPage() {
           </div>
 
           <button
-            className="admin-orders__archive-skip"
+            className="admin-orders__archive-skip admin-orders__archive-skip--prev"
+            onClick={() => jumpToNearestOrderDate('prev')}
+            disabled={jumping !== null}
+            title="نزدیک‌ترین روز قبلی که سفارش دارد"
+          >
+            <MdChevronRight size={18} />
+            {jumping === 'prev' ? '...' : 'روز قبل'}
+          </button>
+
+          <button
+            className="admin-orders__archive-skip admin-orders__archive-skip--next"
             onClick={() => jumpToNearestOrderDate('next')}
             disabled={jumping !== null}
             title="نزدیک‌ترین روز بعدی که سفارش دارد"
@@ -214,6 +214,7 @@ export default function AdminOrdersPage() {
         size="sm"
       >
         <PersianDatePicker
+          inline
           value={archiveDate}
           onChange={(v) => { setArchiveDate(v); setDatePickerModal(false) }}
         />

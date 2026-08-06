@@ -14,6 +14,8 @@ export default function PersianDatePicker({
   placeholder = 'انتخاب تاریخ',
   label,
   disabled = false,
+  // برای استفاده داخل Modal — بدون دکمه‌ی کومبو، مستقیم خود تقویم نمایش داده می‌شود
+  inline = false,
 }) {
   const today = getTodayJalali()
   const selJ = value ? isoToJalali(value) : null
@@ -21,7 +23,7 @@ export default function PersianDatePicker({
 
   const [viewYear, setViewYear] = useState(selJ?.jy || today.jy)
   const [viewMonth, setViewMonth] = useState(selJ?.jm || today.jm)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(inline)
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function PersianDatePicker({
   }, [value])
 
   useEffect(() => {
+    if (inline) return // در حالت inline دکمه‌ای برای بازکردن دوباره نیست، پس هیچ‌وقت نباید بسته شود
     function handleClick(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false)
@@ -39,7 +42,7 @@ export default function PersianDatePicker({
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }, [inline])
 
   function prevMonth() {
     if (viewMonth === 1) { setViewYear((y) => y - 1); setViewMonth(12) }
@@ -111,21 +114,23 @@ export default function PersianDatePicker({
   return (
     <div className="pdp" ref={containerRef}>
       {label && <label className="pdp__label">{label}</label>}
-      <button
-        type="button"
-        className={`pdp__input ${open ? 'pdp__input--open' : ''} ${disabled ? 'pdp__input--disabled' : ''}`}
-        onClick={() => !disabled && setOpen((p) => !p)}
-        disabled={disabled}
-      >
-        <MdCalendarToday size={16} className="pdp__input-icon" />
-        <span className={`pdp__input-value ${!displayText ? 'pdp__input-placeholder' : ''}`}>
-          {displayText || placeholder}
-        </span>
-        <span className="pdp__input-arrow">{open ? '▲' : '▼'}</span>
-      </button>
+      {!inline && (
+        <button
+          type="button"
+          className={`pdp__input ${open ? 'pdp__input--open' : ''} ${disabled ? 'pdp__input--disabled' : ''}`}
+          onClick={() => !disabled && setOpen((p) => !p)}
+          disabled={disabled}
+        >
+          <MdCalendarToday size={16} className="pdp__input-icon" />
+          <span className={`pdp__input-value ${!displayText ? 'pdp__input-placeholder' : ''}`}>
+            {displayText || placeholder}
+          </span>
+          <span className="pdp__input-arrow">{open ? '▲' : '▼'}</span>
+        </button>
+      )}
 
-      {open && (
-        <div className="pdp__popup">
+      {(open || inline) && (
+        <div className={`pdp__popup ${inline ? 'pdp__popup--inline' : ''}`}>
           {/* Navigation header */}
           <div className="pdp__header">
             <button type="button" className="pdp__nav" onClick={nextMonth} aria-label="ماه بعد">

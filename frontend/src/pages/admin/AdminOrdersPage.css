@@ -128,20 +128,37 @@
   color: #1a1205;
 }
 
-/* ===== ARCHIVE DAY NAVIGATION ===== */
+/* ===== ARCHIVE DAY NAVIGATION =====
+   از CSS Grid با grid-template-areas استفاده می‌شود تا چیدمان دسکتاپ/موبایل
+   مستقل از ترتیب DOM باشد — فقط نام ناحیه‌ها بین دو حالت عوض می‌شود */
 .admin-orders__archive-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  grid-template-areas: "prev strip next jump";
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
-  flex-wrap: wrap;
+}
+
+.admin-orders__archive-skip--prev { grid-area: prev; }
+.admin-orders__archive-skip--next { grid-area: next; }
+
+@media (max-width: 640px) {
+  .admin-orders__archive-nav {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      "strip strip strip"
+      "prev next jump";
+  }
+  .admin-orders__archive-skip {
+    justify-content: center;
+  }
 }
 
 .admin-orders__archive-skip {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
   padding: 8px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -166,12 +183,12 @@
 }
 
 .admin-orders__day-strip {
+  grid-area: strip;
   display: flex;
   align-items: center;
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
-  flex: 1;
   min-width: 0;
 }
 
@@ -206,6 +223,7 @@
 }
 
 .admin-orders__archive-jump-btn {
+  grid-area: jump;
   display: flex;
   align-items: center;
   justify-content: center;
