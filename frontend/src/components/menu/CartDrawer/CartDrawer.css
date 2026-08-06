@@ -11,7 +11,9 @@
   top: 0;
   left: 0;
   width: 360px;
+  /* 100dvh تا پایین کشو (دکمه‌ی نهایی‌سازی سفارش) زیر نوار آدرس موبایل پنهان نشود */
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-card);
   border-right: 1px solid var(--border);
   box-shadow: var(--neu-shadow-lg);

@@ -1,6 +1,7 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-primary);
 }
 
@@ -9,7 +10,11 @@
    ===================== */
 .admin-sidebar {
   width: 240px;
-  min-height: 100vh;
+  /* 100vh روی موبایل ارتفاع را بر مبنای viewport وقتی نوار آدرس مخفی است حساب می‌کند —
+     وقتی نوار آدرس نمایان است، پایین سایدبار (دکمه‌های خروج/بازگشت) زیرش پنهان می‌شود.
+     100dvh ارتفاع واقعیِ در دسترس را دنبال می‌کند. */
+  height: 100vh;
+  height: 100dvh;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   display: flex;
@@ -17,7 +22,6 @@
   position: fixed;
   top: 0;
   right: 0;
-  bottom: 0;
   z-index: var(--z-sidebar);
   transition: width 0.25s ease;
   overflow: hidden;
@@ -164,6 +168,7 @@
   /* جلوگیری از باز شدن flex item توسط محتوای عریض (جدول/فیلتر) — ریشه اسکرول افقی صفحه */
   min-width: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-xl);
   transition: margin-right 0.25s ease;
 }
