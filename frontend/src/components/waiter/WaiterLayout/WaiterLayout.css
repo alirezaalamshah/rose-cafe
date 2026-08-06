@@ -52,31 +52,6 @@
   color: var(--text-secondary);
 }
 
-.waiter-header__back,
-.waiter-header__logout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.waiter-header__back:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.waiter-header__logout:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* Body */
 .waiter-body {
   display: flex;
@@ -114,6 +89,33 @@
 .waiter-nav__item:hover {
   background: var(--primary-bg);
   color: var(--primary);
+}
+
+/* footer آیتم‌ها هم <a> (NavLink) و هم <button> (خروج) هستند — استایل مشترک با ریست دیفالت‌های دکمه */
+.waiter-nav__footer {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waiter-nav__footer .waiter-nav__item {
+  width: 100%;
+  background: none;
+  font-family: var(--font-family);
+  cursor: pointer;
+  text-align: right;
+}
+
+.waiter-nav__item--logout {
+  color: var(--error);
+}
+
+.waiter-nav__item--logout:hover {
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 .waiter-nav__item--active {

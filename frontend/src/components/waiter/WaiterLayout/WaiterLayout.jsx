@@ -23,12 +23,6 @@ export default function WaiterLayout() {
         </div>
         <div className="waiter-header__user">
           <span className="waiter-header__name">{user?.full_name || user?.phone}</span>
-          <NavLink to="/" className="waiter-header__back" title="بازگشت به سایت">
-            <MdArrowForward size={18} />
-          </NavLink>
-          <button className="waiter-header__logout" onClick={handleLogout} title="خروج">
-            <MdLogout size={18} />
-          </button>
         </div>
       </header>
 
@@ -60,6 +54,17 @@ export default function WaiterLayout() {
               <span>میزها</span>
             </NavLink>
           )}
+
+          <div className="waiter-nav__footer">
+            <NavLink to="/" className="waiter-nav__item">
+              <MdArrowForward size={22} />
+              <span>بازگشت به سایت</span>
+            </NavLink>
+            <button className="waiter-nav__item waiter-nav__item--logout" onClick={handleLogout}>
+              <MdLogout size={20} />
+              <span>خروج از سیستم</span>
+            </button>
+          </div>
         </nav>
 
         {/* Content */}
