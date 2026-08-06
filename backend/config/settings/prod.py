@@ -35,7 +35,11 @@ CORS_ALLOW_CREDENTIALS = True
 # WhiteNoise برای static files ادمین Django
 MIDDLEWARE.insert(2, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
-# Cache: اگر REDIS_URL تنظیم نشده باشد از memory cache استفاده می‌کند
+# Cache: اگر REDIS_URL تنظیم نشده باشد از DatabaseCache استفاده می‌کند.
+# LocMemCache عمداً استفاده نمی‌شود — Passenger چند پردازش (worker) جدا اجرا می‌کند
+# و LocMemCache فقط داخل حافظه‌ی همان یک پردازش معتبر است، پس مثلاً کد OTP که در یک
+# پردازش ذخیره شده، در پردازشی که درخواست تایید را می‌گیرد اصلاً دیده نمی‌شود.
+# DatabaseCache روی جدولی در همان MySQL مشترک بین همه‌ی پردازش‌ها کار می‌کند.
 REDIS_URL = config('REDIS_URL', default='')
 if REDIS_URL:
     CACHES = {
@@ -47,7 +51,8 @@ if REDIS_URL:
 else:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
         }
     }
 
