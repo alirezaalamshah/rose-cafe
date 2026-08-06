@@ -205,8 +205,25 @@
   color: #1a1205;
 }
 
-.admin-orders__archive-jump {
+.admin-orders__archive-jump-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.admin-orders__archive-jump-btn:hover {
+  color: var(--primary);
+  border-color: var(--border-hover);
 }
 
 .admin-order-list {

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   MdRefresh, MdShoppingBag, MdPerson, MdAccessTime, MdTableRestaurant, MdHistory, MdBolt,
-  MdChevronRight, MdChevronLeft,
+  MdChevronRight, MdChevronLeft, MdCalendarToday,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { ordersAPI } from '../../api/orders.js'
 import { Select } from '../../components/common/Input/Input.jsx'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
+import Modal from '../../components/common/Modal/Modal.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import usePolling from '../../hooks/usePolling.js'
 import { formatPrice, formatDateTime, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
@@ -73,6 +74,7 @@ export default function AdminOrdersPage() {
   const [view, setView] = useState('active') // 'active' | 'archive'
   const [archiveDate, setArchiveDate] = useState(todayIso())
   const [jumping, setJumping] = useState(null) // 'prev' | 'next' | null
+  const [datePickerModal, setDatePickerModal] = useState(false)
 
   const fetchOrders = useCallback((silent = false) => {
     if (!silent) setLoading(true)
@@ -194,11 +196,28 @@ export default function AdminOrdersPage() {
             <MdChevronLeft size={18} />
           </button>
 
-          <div className="admin-orders__archive-jump">
-            <PersianDatePicker value={archiveDate} onChange={setArchiveDate} placeholder="پرش به تاریخ" />
-          </div>
+          <button
+            className="admin-orders__archive-jump-btn"
+            onClick={() => setDatePickerModal(true)}
+            title="پرش به تاریخ خاص"
+            aria-label="پرش به تاریخ خاص"
+          >
+            <MdCalendarToday size={18} />
+          </button>
         </div>
       )}
+
+      <Modal
+        isOpen={datePickerModal}
+        onClose={() => setDatePickerModal(false)}
+        title="پرش به تاریخ خاص"
+        size="sm"
+      >
+        <PersianDatePicker
+          value={archiveDate}
+          onChange={(v) => { setArchiveDate(v); setDatePickerModal(false) }}
+        />
+      </Modal>
 
       <div className="admin-orders__filters">
         <Select
