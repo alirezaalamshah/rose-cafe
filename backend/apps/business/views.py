@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +10,34 @@ from .serializers import (
     BannerSerializer, BannerAdminSerializer, SocialLinkSerializer,
 )
 from .utils import get_cafe_status
+
+
+class AdminForceCloseTodayView(APIView):
+    """
+    بستن/بازکردن فوری کافه فقط برای امروز — با اولویت بر ساعات هفتگی تعریف‌شده.
+    از همان رکورد SpecialDay امروز استفاده می‌کند که get_cafe_status پیش از
+    ساعات هفتگی بررسی می‌کند؛ چون کلید آن تاریخ «امروز» است، فردا خودکار و
+    بدون نیاز به هیچ job زمان‌بندی‌شده‌ای به برنامه‌ی عادی هفتگی برمی‌گردد.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        today = timezone.localdate()
+        SpecialDay.objects.update_or_create(
+            date=today,
+            defaults={
+                'is_closed': True,
+                'open_time': None,
+                'close_time': None,
+                'note': 'بسته شده دستی توسط ادمین',
+            },
+        )
+        return Response(get_cafe_status())
+
+    def delete(self, request):
+        today = timezone.localdate()
+        SpecialDay.objects.filter(date=today).delete()
+        return Response(get_cafe_status())
 
 
 class CafeStatusView(APIView):

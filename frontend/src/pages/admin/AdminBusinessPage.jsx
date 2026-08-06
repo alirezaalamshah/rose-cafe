@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   MdAccessTime, MdEventBusy, MdAdd, MdDelete,
   MdSave, MdCalendarToday, MdCheckCircle, MdCancel,
+  MdPowerSettingsNew, MdLockOpen,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { businessAPI } from '../../api/business.js'
@@ -119,6 +120,8 @@ function DayRow({ day, onSaved }) {
 export default function AdminBusinessPage() {
   const [hours, setHours] = useState([])
   const [specialDays, setSpecialDays] = useState([])
+  const [cafeStatus, setCafeStatus] = useState(null)
+  const [togglingStatus, setTogglingStatus] = useState(false)
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY_SPECIAL)
@@ -131,18 +134,44 @@ export default function AdminBusinessPage() {
     Promise.all([
       businessAPI.adminGetHours(),
       businessAPI.adminGetSpecialDays(),
+      businessAPI.getCafeStatus(),
     ])
-      .then(([h, s]) => {
+      .then(([h, s, st]) => {
         const rawHours = Array.isArray(h) ? h : (h.results || [])
         const sorted = [...rawHours].sort(
           (a, b) => PERSIAN_WEEK_ORDER.indexOf(a.day_of_week) - PERSIAN_WEEK_ORDER.indexOf(b.day_of_week)
         )
         setHours(sorted)
         setSpecialDays(Array.isArray(s) ? s : (s.results || []))
+        setCafeStatus(st)
       })
       .catch(() => toast.error('خطا در بارگذاری'))
       .finally(() => setLoading(false))
   }, [rev])
+
+  const isForceClosed = cafeStatus?.reason === 'special_closed'
+
+  async function handleToggleForceClose() {
+    const closing = !isForceClosed
+    const msg = closing
+      ? 'کافه از همین الان تا پایان امروز بسته می‌شود (فردا طبق ساعات معمول باز خواهد شد). ادامه می‌دهید؟'
+      : 'کافه دوباره طبق ساعات کاری تعریف‌شده باز می‌شود. ادامه می‌دهید؟'
+    if (!(await confirm(msg, { title: closing ? 'بستن فوری کافه' : 'باز کردن کافه' }))) return
+
+    setTogglingStatus(true)
+    try {
+      const st = closing
+        ? await businessAPI.adminForceCloseToday()
+        : await businessAPI.adminReopenToday()
+      setCafeStatus(st)
+      toast.success(closing ? 'کافه بسته شد' : 'کافه باز شد')
+      setRev((v) => v + 1) // لیست روزهای خاص هم به‌روزرسانی شود
+    } catch {
+      toast.error('خطا در تغییر وضعیت کافه')
+    } finally {
+      setTogglingStatus(false)
+    }
+  }
 
   function openAdd() {
     const today = new Date().toISOString().slice(0, 10)
@@ -205,6 +234,57 @@ export default function AdminBusinessPage() {
           <MdAccessTime size={24} style={{ marginLeft: 8, verticalAlign: 'middle', color: 'var(--primary)' }} />
           ساعات کاری
         </h1>
+      </div>
+
+      {/* ===== FORCE CLOSE / OPEN NOW ===== */}
+      <div
+        className="neu-card"
+        style={{
+          marginBottom: 'var(--space-2xl)',
+          padding: 'var(--space-lg) var(--space-xl)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-md)',
+          flexWrap: 'wrap',
+          border: isForceClosed ? '1px solid rgba(248,113,113,0.35)' : '1px solid var(--border)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span
+            style={{
+              width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+              background: cafeStatus?.is_open ? 'var(--success)' : 'var(--error)',
+              boxShadow: `0 0 8px ${cafeStatus?.is_open ? 'var(--success)' : 'var(--error)'}`,
+            }}
+          />
+          <div>
+            <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+              {cafeStatus?.is_open ? 'کافه هم‌اکنون باز است' : 'کافه هم‌اکنون بسته است'}
+            </p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
+              {isForceClosed
+                ? 'به‌صورت دستی توسط ادمین بسته شده — تا پایان امروز بسته می‌ماند'
+                : (cafeStatus?.message || '')}
+            </p>
+          </div>
+        </div>
+
+        {isForceClosed ? (
+          <Button size="sm" onClick={handleToggleForceClose} loading={togglingStatus}>
+            <MdLockOpen size={16} /> باز کردن کافه
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="secondary"
+            style={{ color: 'var(--error)', borderColor: 'rgba(248,113,113,0.3)' }}
+            onClick={handleToggleForceClose}
+            loading={togglingStatus}
+          >
+            <MdPowerSettingsNew size={16} /> بستن فوری کافه (تا پایان امروز)
+          </Button>
+        )}
       </div>
 
       <div className="biz-section neu-card" style={{ marginBottom: 'var(--space-2xl)' }}>
