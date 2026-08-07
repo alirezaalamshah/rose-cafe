@@ -25,10 +25,12 @@ export function formatTime(timeStr) {
 export function getStatusLabel(status) {
   const map = {
     waiting_payment: 'در انتظار پرداخت',
-    paid: 'پرداخت شده',
+    pending_confirmation: 'در انتظار تأیید کافه',
+    paid: 'تأیید شده',
     preparing: 'در حال آماده‌سازی',
     ready: 'آماده تحویل',
     delivered: 'تحویل داده شد',
+    rejected: 'رد شده',
     cancelled: 'لغو شده',
     completed: 'انجام شده',
     no_show: 'حضور نیافت',
@@ -41,10 +43,12 @@ export function getStatusLabel(status) {
 export function getStatusClass(status) {
   const map = {
     waiting_payment: 'status-pending',
+    pending_confirmation: 'status-pending',
     paid: 'status-confirmed',
     preparing: 'status-preparing',
     ready: 'status-ready',
     delivered: 'status-delivered',
+    rejected: 'status-cancelled',
     completed: 'status-completed',
     cancelled: 'status-cancelled',
     no_show: 'status-cancelled',

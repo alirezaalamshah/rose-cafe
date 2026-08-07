@@ -12,10 +12,37 @@ from .serializers import (
     AdminOrderSerializer, OrderStatusUpdateSerializer,
 )
 from apps.accounts.models import Address
-from apps.accounts.permissions import IsWaiter, IsAdminOrWaiter
+from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
-from apps.notifications.sms import send_order_status_sms
+from apps.notifications.sms import send_order_status_sms, send_order_rejected_sms
 from apps.common.utils import local_day_range
+from apps.staff_activity.models import StaffActionLog, log_staff_action
+
+
+def _staff_display_name(user):
+    return user.full_name or str(user.phone)
+
+
+def _already_actioned_response(order):
+    """
+    وقتی دو گارسون هم‌زمان تأیید/رد بزنند، دومی این پیام را می‌گیرد — با ذکر اینکه
+    سفارش قبلاً توسط چه کسی تأیید/رد شده (اگر گارسونی مسئولش شده باشد).
+    """
+    who = _staff_display_name(order.assigned_waiter) if order.assigned_waiter else None
+    verb = 'رد شد' if order.status == Order.Status.REJECTED else 'تأیید شد'
+    detail = f'این سفارش قبلاً {("توسط " + who + " ") if who else ""}{verb}'
+    return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _assigned_waiter_suffix(order, actor):
+    """
+    وقتی ادمین به‌جای گارسونِ مسئولِ سفارش اکشنی می‌زند (مثلاً وصول وجه)، این پسوند
+    به متن رکورد ردگیری اضافه می‌شود تا در گزارش کاملاً شفاف باشد چه کسی مسئول سفارش بوده.
+    """
+    if order.assigned_waiter_id and order.assigned_waiter_id != actor.id:
+        return f' — مسئول سفارش: {_staff_display_name(order.assigned_waiter)}'
+    return ''
+
 
 class OrderListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -174,9 +201,10 @@ class OrderListCreateView(APIView):
 
         order.final_price = total + delivery_cost + packaging_cost - discount_amount
 
-        # سفارش نقدی بلافاصله PAID می‌شود — آشپزخانه فوری شروع می‌کند
+        # سفارش نقدی بلافاصله در انتظار تأیید کافه قرار می‌گیرد — پیش از آماده‌سازی
+        # باید گارسون/ادمین تأیید کند (ممکن است کافه امکان آماده کردنش را نداشته باشد)
         if payment_method == Order.PaymentMethod.CASH:
-            order.status = Order.Status.PAID
+            order.status = Order.Status.PENDING_CONFIRMATION
 
         order.save()
 
@@ -243,6 +271,7 @@ class AdminOrderListView(generics.ListAPIView):
         qs = Order.objects.all().select_related(
             'user', 'address', 'table'
         ).prefetch_related('items__menu_item')
+        closed_statuses = [Order.Status.DELIVERED, Order.Status.CANCELLED, Order.Status.REJECTED]
         status_filter = self.request.query_params.get('status')
         date_filter = self.request.query_params.get('date')
         if date_filter:
@@ -252,20 +281,24 @@ class AdminOrderListView(generics.ListAPIView):
                 qs = qs.filter(status=status_filter)
         elif status_filter:
             qs = qs.filter(status=status_filter)
+            if status_filter in closed_statuses:
+                # بدون تاریخ، سفارش‌های بسته‌شده فقط برای امروز نشان داده می‌شوند — برای
+                # دیدن تاریخچه‌ی کامل باید از حالت بایگانی (با date) استفاده شود
+                start, end = local_day_range(timezone.localdate())
+                qs = qs.filter(created_at__gte=start, created_at__lt=end)
         else:
-            qs = qs.exclude(status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED])
+            qs = qs.exclude(status__in=closed_statuses)
         return qs
 
 
 class NearestOrderDateView(APIView):
     """
     نزدیک‌ترین روزی که سفارش دارد را نسبت به یک تاریخ برمی‌گرداند — برای دکمه‌های
-    «روز قبل/بعد» صفحه‌ی بایگانی (هم پنل ادمین، هم پنل گارسون)، که باید روزهای
-    خالی را رد کنند و مستقیم به نزدیک‌ترین روز واقعاً دارای سفارش بپرند.
-    برای گارسون، فقط در محدوده‌ی همان سفارش‌هایی جستجو می‌کند که در لیست بایگانی‌اش
-    هم می‌بیند (بدون WAITING_PAYMENT، و فقط اگر دسترسی مدیریت سفارش داشته باشد).
+    «روز قبل/بعد» صفحه‌ی بایگانی پنل ادمین، که باید روزهای خالی را رد کنند و
+    مستقیم به نزدیک‌ترین روز واقعاً دارای سفارش بپرند. گارسون به بایگانی دسترسی
+    ندارد، پس این ویو فقط برای ادمین است.
     """
-    permission_classes = [IsAdminOrWaiter]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         date_str = request.query_params.get('date')
@@ -274,12 +307,6 @@ class NearestOrderDateView(APIView):
             return Response({'detail': 'پارامترهای date و direction الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
 
         qs = Order.objects.all()
-        if request.user.role == 'waiter':
-            perm = getattr(request.user, 'waiter_permissions', None)
-            if not perm or not perm.can_manage_orders:
-                return Response({'date': None})
-            qs = qs.exclude(status=Order.Status.WAITING_PAYMENT)
-
         start, end = local_day_range(date_str)
         if direction == 'prev':
             found = qs.filter(created_at__lt=start).order_by('-created_at').first()
@@ -312,11 +339,117 @@ class AdminOrderStatusUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        if order.status == Order.Status.DELIVERED and not order.delivered_at:
+            order.delivered_at = timezone.now()
+            order.save(update_fields=['delivered_at'])
+
+        log_staff_action(
+            request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,
+            f'وضعیت سفارش #{order.order_number} را به «{order.get_status_display()}»'
+            f' تغییر داد{_assigned_waiter_suffix(order, request.user)}',
+            order=order,
+        )
+
         # ارسال SMS
         phone = str(order.user.phone)
         send_order_status_sms(phone, order.order_number, order.status)
 
         return Response(OrderSerializer(order).data)
+
+
+class OrderApproveView(APIView):
+    """گارسون یا ادمین سفارشی که در انتظار تأیید کافه است را تأیید می‌کند — به صف آماده‌سازی می‌رود."""
+
+    def get_permissions(self):
+        if self.request.user and self.request.user.is_staff:
+            return [permissions.IsAdminUser()]
+        return [IsWaiter()]
+
+    def _check_waiter_permission(self, request):
+        if request.user.is_staff:
+            return None
+        perm = getattr(request.user, 'waiter_permissions', None)
+        if not perm or not perm.can_manage_orders:
+            return Response({'detail': 'دسترسی به مدیریت سفارشات ندارید'}, status=status.HTTP_403_FORBIDDEN)
+        return None
+
+    @transaction.atomic
+    def post(self, request, pk):
+        denied = self._check_waiter_permission(request)
+        if denied:
+            return denied
+        try:
+            order = Order.objects.select_for_update().get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'detail': 'سفارش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status != Order.Status.PENDING_CONFIRMATION:
+            return _already_actioned_response(order)
+
+        order.status = Order.Status.PAID
+        order.approved_at = timezone.now()
+        # سفارشی که مستقیم توسط ادمین تأیید می‌شود، به هیچ گارسونی قفل نمی‌شود — مشترک باقی می‌ماند
+        if not request.user.is_staff:
+            order.assigned_waiter = request.user
+        order.save(update_fields=['status', 'approved_at', 'assigned_waiter'])
+
+        log_staff_action(
+            request.user, StaffActionLog.Action.ORDER_APPROVED,
+            f'سفارش #{order.order_number} را تأیید کرد', order=order,
+        )
+
+        return Response(AdminOrderSerializer(order).data)
+
+
+class OrderRejectView(APIView):
+    """گارسون یا ادمین سفارشی که در انتظار تأیید کافه است را رد می‌کند — مثلاً وقتی کافه امکان آماده کردنش را ندارد."""
+
+    def get_permissions(self):
+        if self.request.user and self.request.user.is_staff:
+            return [permissions.IsAdminUser()]
+        return [IsWaiter()]
+
+    def _check_waiter_permission(self, request):
+        if request.user.is_staff:
+            return None
+        perm = getattr(request.user, 'waiter_permissions', None)
+        if not perm or not perm.can_manage_orders:
+            return Response({'detail': 'دسترسی به مدیریت سفارشات ندارید'}, status=status.HTTP_403_FORBIDDEN)
+        return None
+
+    @transaction.atomic
+    def post(self, request, pk):
+        denied = self._check_waiter_permission(request)
+        if denied:
+            return denied
+
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'detail': 'دلیل رد سفارش الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.select_for_update().get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'detail': 'سفارش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status != Order.Status.PENDING_CONFIRMATION:
+            return _already_actioned_response(order)
+
+        order.status = Order.Status.REJECTED
+        order.rejection_reason = reason
+        if not request.user.is_staff:
+            order.assigned_waiter = request.user
+        order.save(update_fields=['status', 'rejection_reason', 'assigned_waiter'])
+
+        log_staff_action(
+            request.user, StaffActionLog.Action.ORDER_REJECTED,
+            f'سفارش #{order.order_number} را رد کرد — دلیل: {reason}', order=order,
+        )
+
+        # پیامک به مشتری — مثل بقیه‌ی پیامک‌های اطلاع‌رسانی، فقط اگر SMS_NOTIFICATIONS_ENABLED فعال باشد
+        send_order_rejected_sms(str(order.user.phone), order.order_number, reason)
+
+        return Response(AdminOrderSerializer(order).data)
 
 
 # ─── Waiter Views ────────────────────────────────────────────────────────────
@@ -329,6 +462,10 @@ WAITER_ALLOWED_STATUSES_EXTENDED = WAITER_ALLOWED_STATUSES
 
 
 class WaiterOrderListView(generics.ListAPIView):
+    """
+    فقط سفارشات جاری — گارسون به بایگانی (سفارش‌های روزهای گذشته) دسترسی ندارد،
+    پس برخلاف AdminOrderListView پارامتر date اصلاً پذیرفته/بررسی نمی‌شود.
+    """
     permission_classes = [IsWaiter]
     serializer_class = AdminOrderSerializer
 
@@ -336,21 +473,26 @@ class WaiterOrderListView(generics.ListAPIView):
         perm = getattr(self.request.user, 'waiter_permissions', None)
         if not perm or not perm.can_manage_orders:
             return Order.objects.none()
+        from django.db.models import Q
         # WAITING_PAYMENT یعنی پرداخت آنلاین ناتمام — گارسون نباید آن را ببیند
+        # سفارشی که گارسون دیگری تأیید/رد کرده (assigned_waiter) تا پایان مسیرش فقط برای
+        # همان گارسون نمایش داده می‌شود؛ سفارش‌های تخصیص‌نیافته (هنوز کسی claim نکرده، یا
+        # مستقیم توسط ادمین تأیید شده) برای همه‌ی گارسون‌ها مشترک می‌ماند
         qs = Order.objects.exclude(
             status=Order.Status.WAITING_PAYMENT
+        ).filter(
+            Q(assigned_waiter__isnull=True) | Q(assigned_waiter=self.request.user)
         ).select_related('user', 'address', 'table').prefetch_related('items__menu_item')
+        closed_statuses = [Order.Status.DELIVERED, Order.Status.CANCELLED, Order.Status.REJECTED]
         status_filter = self.request.query_params.get('status')
-        date_filter = self.request.query_params.get('date')
-        if date_filter:
-            start, end = local_day_range(date_filter)
-            qs = qs.filter(created_at__gte=start, created_at__lt=end)
-            if status_filter:
-                qs = qs.filter(status=status_filter)
-        elif status_filter:
+        if status_filter:
             qs = qs.filter(status=status_filter)
+            if status_filter in closed_statuses:
+                # بدون تاریخ، سفارش‌های بسته‌شده فقط برای امروز نشان داده می‌شوند (نه کل تاریخچه)
+                start, end = local_day_range(timezone.localdate())
+                qs = qs.filter(created_at__gte=start, created_at__lt=end)
         else:
-            qs = qs.exclude(status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED])
+            qs = qs.exclude(status__in=closed_statuses)
         return qs.order_by('-created_at')
 
     def list(self, request, *args, **kwargs):
@@ -373,6 +515,10 @@ class WaiterOrderStatusUpdateView(APIView):
         except Order.DoesNotExist:
             return Response({'detail': 'سفارش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
 
+        # سفارشی که به گارسون دیگری قفل شده، برای این گارسون اصلاً قابل مشاهده/اکشن نیست
+        if order.assigned_waiter_id and order.assigned_waiter_id != request.user.id:
+            return Response({'detail': 'این سفارش به گارسون دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
+
         new_status = request.data.get('status')
         if new_status not in [s.value for s in WAITER_ALLOWED_STATUSES]:
             return Response(
@@ -381,7 +527,15 @@ class WaiterOrderStatusUpdateView(APIView):
             )
 
         order.status = new_status
+        if new_status == Order.Status.DELIVERED and not order.delivered_at:
+            order.delivered_at = timezone.now()
         order.save()
+
+        log_staff_action(
+            request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,
+            f'وضعیت سفارش #{order.order_number} را به «{order.get_status_display()}» تغییر داد',
+            order=order,
+        )
 
         phone = str(order.user.phone)
         send_order_status_sms(phone, order.order_number, order.status)
@@ -403,6 +557,10 @@ class ConfirmCashPaymentView(APIView):
             order = Order.objects.select_for_update().get(pk=pk)
         except Order.DoesNotExist:
             return Response({'detail': 'سفارش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        if (not request.user.is_staff and order.assigned_waiter_id
+                and order.assigned_waiter_id != request.user.id):
+            return Response({'detail': 'این سفارش به گارسون دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
 
         if order.payment_method != Order.PaymentMethod.CASH:
             return Response(
@@ -427,6 +585,12 @@ class ConfirmCashPaymentView(APIView):
                 'ref_id': f'CASH-{order.id}',
                 'description': f'پرداخت نقدی سفارش #{order.id}',
             }
+        )
+
+        log_staff_action(
+            request.user, StaffActionLog.Action.CASH_COLLECTED,
+            f'وجه نقد سفارش #{order.order_number} را وصول کرد{_assigned_waiter_suffix(order, request.user)}',
+            order=order,
         )
 
         return Response({'detail': 'دریافت وجه تأیید شد', 'order_id': order.id})

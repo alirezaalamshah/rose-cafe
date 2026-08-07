@@ -4,8 +4,6 @@ export const waiterAPI = {
   getMe: () => api.get('/auth/waiter/me/'),
   getOrders: (params) => api.get('/orders/waiter/', { params }),
   updateOrderStatus: (id, status) => api.patch(`/orders/waiter/${id}/status/`, { status }),
-  nearestOrderDate: (date, direction) =>
-    api.get('/orders/waiter/nearest-date/', { params: { date, direction } }),
   getReservations: (params) => api.get('/reservations/waiter/', { params }),
   updateReservation: (id, data) => api.patch(`/reservations/waiter/${id}/`, data),
   getTables: () => api.get('/reservations/waiter/tables/'),

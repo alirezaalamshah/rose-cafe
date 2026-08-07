@@ -6,6 +6,7 @@ import {
   MdTableBar, MdRateReview, MdLogout, MdArrowForward,
   MdPeople, MdLocalOffer, MdPayments, MdCategory, MdMenu,
   MdChevronLeft, MdAccessTime, MdSettings, MdClose, MdViewCarousel,
+  MdHistory,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import './AdminSidebar.css'
@@ -39,6 +40,12 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/users', icon: MdPeople, label: 'کاربران' },
       { to: '/admin/discounts', icon: MdLocalOffer, label: 'کدهای تخفیف' },
+    ],
+  },
+  {
+    title: 'کارکنان',
+    items: [
+      { to: '/admin/activity', icon: MdHistory, label: 'عملکرد گارسون‌ها' },
     ],
   },
   {

@@ -103,6 +103,25 @@ export default function OrdersPage() {
                 </div>
               )}
 
+              {/* بنر دلیل رد سفارش */}
+              {order.status === 'rejected' && order.rejection_reason && (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: 4,
+                  padding: '10px 14px', marginTop: 'var(--space-sm)',
+                  background: 'rgba(248,113,113,0.1)', borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(248,113,113,0.3)',
+                }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--error)', fontWeight: 600 }}>
+                    ❌ دلیل رد سفارش: {order.rejection_reason}
+                  </span>
+                  {order.payment_method === 'online' && order.is_paid && (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      به زودی وجه شما عودت داده خواهد شد.
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* بنر پرداخت نشده برای سفارشات آنلاین pending */}
               {order.status === 'waiting_payment' && order.payment_method === 'online' && (
                 <div style={{

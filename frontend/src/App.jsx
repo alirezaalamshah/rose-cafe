@@ -34,6 +34,7 @@ const AdminPaymentsPage = lazy(() => import('./pages/admin/AdminPaymentsPage.jsx
 const AdminBusinessPage = lazy(() => import('./pages/admin/AdminBusinessPage.jsx'))
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage.jsx'))
 const AdminBannersPage = lazy(() => import('./pages/admin/AdminBannersPage.jsx'))
+const AdminActivityLogPage = lazy(() => import('./pages/admin/AdminActivityLogPage.jsx'))
 
 // پنل گارسون: همین‌طور، مشتری/ادمین این چانک را دانلود نمی‌کنند
 const WaiterLayout = lazy(() => import('./components/waiter/WaiterLayout/WaiterLayout.jsx'))
@@ -102,6 +103,7 @@ function App() {
           <Route path="business" element={<AdminBusinessPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="banners" element={<AdminBannersPage />} />
+          <Route path="activity" element={<AdminActivityLogPage />} />
         </Route>
 
         {/* Waiter Routes */}

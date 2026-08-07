@@ -40,10 +40,12 @@ def generate_order_number() -> str:
 class Order(models.Model):
     class Status(models.TextChoices):
         WAITING_PAYMENT = 'waiting_payment', 'در انتظار پرداخت'
-        PAID = 'paid', 'پرداخت شده — در صف آماده‌سازی'
+        PENDING_CONFIRMATION = 'pending_confirmation', 'در انتظار تأیید کافه'
+        PAID = 'paid', 'تأیید شده — در صف آماده‌سازی'
         PREPARING = 'preparing', 'در حال آماده‌سازی'
         READY = 'ready', 'آماده تحویل'
         DELIVERED = 'delivered', 'تحویل داده شد'
+        REJECTED = 'rejected', 'رد شده توسط کافه'
         CANCELLED = 'cancelled', 'لغو شده'
 
     class DeliveryType(models.TextChoices):
@@ -82,6 +84,14 @@ class Order(models.Model):
         default=PaymentMethod.ONLINE, verbose_name='روش پرداخت'
     )
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده')
+    rejection_reason = models.CharField(max_length=255, blank=True, verbose_name='دلیل رد سفارش')
+    assigned_waiter = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_orders', verbose_name='گارسون مسئول',
+        help_text='با تأیید یا رد سفارش توسط یک گارسون تنظیم می‌شود؛ تا پایان سفارش فقط همان گارسون آن را می‌بیند',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تأیید')
+    delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تحویل')
     note = models.TextField(blank=True, verbose_name='توضیحات سفارش')
     total_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ کل')
     delivery_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه ارسال')

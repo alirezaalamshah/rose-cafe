@@ -2,134 +2,6 @@
   max-width: 1000px;
 }
 
-/* Tabs */
-.waiter-view-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  flex-wrap: wrap;
-}
-
-.waiter-view-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  font-family: var(--font-family);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.waiter-view-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-.waiter-view-btn--active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #1a1205;
-}
-
-/* ===== ARCHIVE DAY NAVIGATION ===== */
-.waiter-archive-nav {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  grid-template-areas: "prev strip next jump";
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.waiter-archive-skip--prev { grid-area: prev; }
-.waiter-archive-skip--next { grid-area: next; }
-
-@media (max-width: 640px) {
-  .waiter-archive-nav {
-    grid-template-columns: 1fr 1fr auto;
-    grid-template-areas:
-      "strip strip strip"
-      "prev next jump";
-  }
-  .waiter-archive-skip {
-    justify-content: center;
-  }
-}
-
-.waiter-archive-skip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: var(--font-family);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: var(--transition-fast);
-}
-
-.waiter-archive-skip:hover:not(:disabled) {
-  color: var(--primary);
-  border-color: var(--border-hover);
-}
-
-.waiter-archive-skip:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.waiter-day-strip {
-  grid-area: strip;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  min-width: 0;
-}
-
-.waiter-day-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.waiter-day-btn {
-  flex-shrink: 0;
-  padding: 7px 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: var(--font-family);
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: var(--transition-fast);
-}
-
-.waiter-day-btn:hover {
-  color: var(--primary);
-  border-color: var(--border-hover);
-}
-
-.waiter-day-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #1a1205;
-}
-
 .waiter-archive-jump-btn {
   grid-area: jump;
   display: flex;
@@ -248,10 +120,23 @@
 
 .waiter-order-card__item {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.waiter-order-card__item-row {
+  display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
   color: var(--text-primary);
+}
+
+.waiter-order-card__item-price {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  direction: ltr;
+  text-align: right;
 }
 
 .waiter-order-card__qty {

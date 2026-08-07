@@ -13,6 +13,26 @@ from .serializers import (
 )
 from apps.accounts.permissions import IsWaiter
 from apps.notifications.sms import send_reservation_confirmation_sms
+from apps.staff_activity.models import StaffActionLog, log_staff_action
+
+_RESERVATION_STATUS_ACTIONS = {
+    Reservation.Status.CONFIRMED: StaffActionLog.Action.RESERVATION_CONFIRMED,
+    Reservation.Status.COMPLETED: StaffActionLog.Action.RESERVATION_COMPLETED,
+    Reservation.Status.NO_SHOW: StaffActionLog.Action.RESERVATION_NO_SHOW,
+    Reservation.Status.CANCELLED: StaffActionLog.Action.RESERVATION_CANCELLED,
+}
+
+
+def _log_reservation_status_change(user, reservation):
+    """اگر وضعیت رزرو به یکی از حالت‌های قابل‌ثبت تغییر کرده، در StaffActionLog ثبت می‌کند."""
+    action = _RESERVATION_STATUS_ACTIONS.get(reservation.status)
+    if not action:
+        return
+    log_staff_action(
+        user, action,
+        f'وضعیت رزرو #{reservation.id} را به «{reservation.get_status_display()}» تغییر داد',
+        reservation=reservation,
+    )
 
 
 class TableScheduleView(APIView):
@@ -263,6 +283,11 @@ class AdminReservationDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):  # type: ignore[override]
         return Reservation.objects.all()
 
+    def perform_update(self, serializer):  # type: ignore[override]
+        reservation = serializer.save()
+        if 'status' in self.request.data:
+            _log_reservation_status_change(self.request.user, reservation)
+
 
 # ─── Waiter Views ────────────────────────────────────────────────────────────
 
@@ -308,7 +333,9 @@ class WaiterReservationUpdateView(APIView):
             return Response({'detail': 'وضعیت نامعتبر'}, status=status.HTTP_400_BAD_REQUEST)
         ser = AdminReservationSerializer(reservation, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
-        ser.save()
+        reservation = ser.save()
+        if 'status' in request.data:
+            _log_reservation_status_change(request.user, reservation)
         return Response(ser.data)
 
 

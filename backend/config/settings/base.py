@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.discounts.apps.DiscountsConfig',
     'apps.notifications.apps.NotificationsConfig',
     'apps.business.apps.BusinessConfig',
+    'apps.staff_activity.apps.StaffActivityConfig',
 ]
 
 MIDDLEWARE = [

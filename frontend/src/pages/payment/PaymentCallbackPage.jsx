@@ -74,7 +74,7 @@ export default function PaymentCallbackPage() {
             <MdCheckCircle size={64} color="var(--success)" />
           </div>
           <h1>پرداخت موفق!</h1>
-          <p>سفارش شما با موفقیت ثبت و پرداخت شد.</p>
+          <p>سفارش شما با موفقیت ثبت و پرداخت شد و در انتظار تأیید کافه است.</p>
           {refId && (
             <div className="payment-result__refid">
               <span>کد پیگیری:</span>

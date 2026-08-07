@@ -129,8 +129,10 @@ class PaymentVerifyView(APIView):
             payment.card_hash = result.get('card_hash', '')
             payment.save()
 
+            # پرداخت واقعاً موفق بوده (is_paid=True)، ولی پیش از صف آماده‌سازی
+            # باید گارسون/ادمین تأیید کند که کافه امکان آماده کردنش را دارد
             order = payment.order
-            order.status = Order.Status.PAID
+            order.status = Order.Status.PENDING_CONFIRMATION
             order.is_paid = True
             order.save(update_fields=['status', 'is_paid'])
 
@@ -188,7 +190,7 @@ class FreeOrderConfirmView(APIView):
             }
         )
 
-        order.status = Order.Status.PAID
+        order.status = Order.Status.PENDING_CONFIRMATION
         order.is_paid = True
         order.save(update_fields=['status', 'is_paid'])
 

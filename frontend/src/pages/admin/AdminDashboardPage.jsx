@@ -15,10 +15,12 @@ import './AdminDashboardPage.css'
 
 const STATUS_MAP = {
   waiting_payment: { label: 'در انتظار پرداخت', cls: 'status-pending' },
-  paid:      { label: 'پرداخت شده',      cls: 'status-confirmed' },
+  pending_confirmation: { label: 'در انتظار تأیید', cls: 'status-pending' },
+  paid:      { label: 'تأیید شده',       cls: 'status-confirmed' },
   preparing: { label: 'آماده‌سازی',      cls: 'status-preparing' },
   ready:     { label: 'آماده تحویل',     cls: 'status-ready'     },
   delivered: { label: 'تحویل شد',        cls: 'status-delivered' },
+  rejected:  { label: 'رد شده',          cls: 'status-cancelled' },
   cancelled: { label: 'لغو شده',         cls: 'status-cancelled' },
 }
 

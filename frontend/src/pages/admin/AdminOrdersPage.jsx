@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   MdRefresh, MdShoppingBag, MdPerson, MdAccessTime, MdTableRestaurant, MdHistory, MdBolt,
-  MdChevronRight, MdChevronLeft, MdCalendarToday,
+  MdChevronRight, MdChevronLeft, MdCalendarToday, MdCheckCircle, MdCancel, MdBadge,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { ordersAPI } from '../../api/orders.js'
-import { Select } from '../../components/common/Input/Input.jsx'
+import { staffActivityAPI } from '../../api/staffActivity.js'
+import { Select, Textarea } from '../../components/common/Input/Input.jsx'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
+import Button from '../../components/common/Button/Button.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
+import { confirm } from '../../store/confirmStore.js'
 import usePolling from '../../hooks/usePolling.js'
 import { formatPrice, formatDateTime, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
 import { formatJalali, isoToJalali, toPersianNum, MONTH_NAMES } from '../../utils/jalali.js'
@@ -39,10 +42,12 @@ const POLL_INTERVAL_MS = 10000
 const STATUSES = [
   { value: '', label: 'همه وضعیت‌ها' },
   { value: 'waiting_payment', label: 'در انتظار پرداخت' },
-  { value: 'paid', label: 'پرداخت شده' },
+  { value: 'pending_confirmation', label: 'در انتظار تأیید کافه' },
+  { value: 'paid', label: 'تأیید شده' },
   { value: 'preparing', label: 'در حال آماده‌سازی' },
   { value: 'ready', label: 'آماده تحویل' },
   { value: 'delivered', label: 'تحویل داده شد' },
+  { value: 'rejected', label: 'رد شده' },
   { value: 'cancelled', label: 'لغو شده' },
 ]
 
@@ -58,6 +63,16 @@ const DELIVERY_LABEL = {
   takeaway: '🥡 برون‌بر',
 }
 
+// نشان وضعیت واقعی پرداخت — تنها منبع درست این اطلاعات، فارغ از وضعیت کلی سفارش
+// (چون سفارش نقدی بلافاصله به‌خاطر آشپزخانه «تأیید شده» می‌شود، حتی قبل از وصول وجه)
+function paymentBadge(order) {
+  const paid = !!order.is_paid
+  if (order.payment_method === 'cash') {
+    return { icon: '💵', text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
+  }
+  return { icon: '💳', text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
+}
+
 const PAYMENT_FILTERS = [
   { value: '', label: 'همه روش‌های پرداخت' },
   { value: 'online', label: 'آنلاین' },
@@ -71,10 +86,17 @@ export default function AdminOrdersPage() {
   const [filterPayment, setFilterPayment] = useState('')
   const [updating, setUpdating] = useState(null)
   const [confirmingCash, setConfirmingCash] = useState(null)
+  const [approving, setApproving] = useState(null)
+  const [rejectModal, setRejectModal] = useState(null) // order being rejected
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejecting, setRejecting] = useState(false)
   const [view, setView] = useState('active') // 'active' | 'archive'
   const [archiveDate, setArchiveDate] = useState(todayIso())
   const [jumping, setJumping] = useState(null) // 'prev' | 'next' | null
   const [datePickerModal, setDatePickerModal] = useState(false)
+  const [historyOrder, setHistoryOrder] = useState(null)
+  const [historyLogs, setHistoryLogs] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const fetchOrders = useCallback((silent = false) => {
     if (!silent) setLoading(true)
@@ -131,6 +153,53 @@ export default function AdminOrdersPage() {
       toast.error(err.response?.data?.detail || 'خطا در تأیید دریافت وجه')
     } finally {
       setConfirmingCash(null)
+    }
+  }
+
+  async function handleApprove(order) {
+    if (!(await confirm('این سفارش را تأیید می‌کنید؟ سفارش به صف آماده‌سازی می‌رود.', {
+      title: 'تأیید سفارش', danger: false, confirmLabel: 'تأیید سفارش',
+    }))) return
+    setApproving(order.id)
+    try {
+      const updated = await ordersAPI.approveOrder(order.id)
+      setOrders((prev) => prev.map((o) => o.id === order.id ? updated : o))
+      toast.success(`سفارش #${order.order_number || order.id} تأیید شد`)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در تأیید سفارش')
+    } finally {
+      setApproving(null)
+    }
+  }
+
+  function openHistory(order) {
+    setHistoryOrder(order)
+    setHistoryLoading(true)
+    staffActivityAPI.getLog({ order: order.id })
+      .then((data) => setHistoryLogs(Array.isArray(data) ? data : (data.results || [])))
+      .finally(() => setHistoryLoading(false))
+  }
+
+  function openRejectModal(order) {
+    setRejectReason('')
+    setRejectModal(order)
+  }
+
+  async function handleReject() {
+    if (!rejectReason.trim()) {
+      toast.error('دلیل رد سفارش الزامی است')
+      return
+    }
+    setRejecting(true)
+    try {
+      const updated = await ordersAPI.rejectOrder(rejectModal.id, rejectReason.trim())
+      setOrders((prev) => prev.map((o) => o.id === rejectModal.id ? updated : o))
+      toast.success(`سفارش #${rejectModal.order_number || rejectModal.id} رد شد`)
+      setRejectModal(null)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در رد سفارش')
+    } finally {
+      setRejecting(false)
     }
   }
 
@@ -220,6 +289,55 @@ export default function AdminOrdersPage() {
         />
       </Modal>
 
+      <Modal
+        isOpen={!!rejectModal}
+        onClose={() => setRejectModal(null)}
+        title={`رد سفارش #${rejectModal?.order_number || rejectModal?.id || ''}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRejectModal(null)}>انصراف</Button>
+            <Button onClick={handleReject} loading={rejecting}>رد سفارش</Button>
+          </>
+        }
+      >
+        <Textarea
+          label="دلیل رد سفارش *"
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="مثلاً: تمام شدن یکی از مواد اولیه"
+          rows={3}
+        />
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-sm)' }}>
+          این دلیل به‌صورت پیامک به مشتری اطلاع داده می‌شود.
+        </p>
+      </Modal>
+
+      <Modal
+        isOpen={!!historyOrder}
+        onClose={() => setHistoryOrder(null)}
+        title={`تاریخچه‌ی سفارش #${historyOrder?.order_number || historyOrder?.id || ''}`}
+        size="sm"
+      >
+        {historyLoading ? <Loading /> : historyLogs.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>هنوز اکشنی روی این سفارش ثبت نشده.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {historyLogs.map((log) => (
+              <div key={log.id} style={{
+                padding: '8px 12px', borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>
+                  <span>{log.user_name}</span>
+                  <span>{formatDateTime(log.created_at)}</span>
+                </div>
+                <div style={{ fontSize: '0.85rem' }}>{log.detail}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
       <div className="admin-orders__filters">
         <Select
           value={filterStatus}
@@ -253,6 +371,7 @@ export default function AdminOrdersPage() {
         <div className="admin-order-list">
           {displayOrders.map((order) => {
             const nextStatus = NEXT_STATUS[order.status]
+            const badge = paymentBadge(order)
             return (
               <div key={order.id} className="admin-order-card neu-card">
                 {/* ردیف سرصفحه */}
@@ -279,28 +398,36 @@ export default function AdminOrdersPage() {
                     <span className={`status-badge ${getStatusClass(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </span>
-                    {order.payment_method === 'cash' ? (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '2px 8px', borderRadius: 'var(--radius-full)',
+                      fontSize: '0.75rem', fontWeight: 700,
+                      background: badge.paid ? 'var(--success-bg)' : 'rgba(251,191,36,0.15)',
+                      color: badge.paid ? 'var(--success)' : '#f59e0b',
+                      border: `1px solid ${badge.paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                    }}>
+                      {badge.icon} {badge.text}
+                    </span>
+                    {order.assigned_waiter_name && (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                        fontSize: '0.75rem', fontWeight: 700,
-                        background: order.is_paid ? 'var(--success-bg)' : 'rgba(251,191,36,0.15)',
-                        color: order.is_paid ? 'var(--success)' : '#f59e0b',
-                        border: `1px solid ${order.is_paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                        fontSize: '0.75rem', fontWeight: 600,
+                        background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
                       }}>
-                        💵 {order.is_paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار'}
-                      </span>
-                    ) : (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                        fontSize: '0.75rem', fontWeight: 700,
-                        background: 'rgba(99,179,237,0.1)', color: '#63b3ed',
-                        border: '1px solid rgba(99,179,237,0.3)',
-                      }}>
-                        💳 آنلاین
+                        <MdBadge size={13} /> {order.assigned_waiter_name}
                       </span>
                     )}
+                    <button
+                      className="admin-orders__archive-jump-btn"
+                      onClick={() => openHistory(order)}
+                      title="تاریخچه‌ی این سفارش"
+                      aria-label="تاریخچه‌ی این سفارش"
+                      style={{ width: 28, height: 28 }}
+                    >
+                      <MdHistory size={15} />
+                    </button>
                   </div>
                 </div>
 
@@ -355,7 +482,7 @@ export default function AdminOrdersPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {order.payment_method === 'cash' && !order.is_paid && (
+                    {order.payment_method === 'cash' && !order.is_paid && order.status !== 'rejected' && order.status !== 'cancelled' && (
                       <button
                         className="admin-action-btn"
                         style={{ background: 'var(--success-bg)', color: 'var(--success)', borderColor: 'rgba(74,222,128,0.4)' }}
@@ -364,6 +491,25 @@ export default function AdminOrdersPage() {
                       >
                         {confirmingCash === order.id ? '...' : '💵 تأیید وصول وجه'}
                       </button>
+                    )}
+                    {order.status === 'pending_confirmation' && (
+                      <>
+                        <button
+                          className="admin-action-btn"
+                          style={{ background: 'var(--success-bg)', color: 'var(--success)', borderColor: 'rgba(74,222,128,0.4)' }}
+                          disabled={approving === order.id}
+                          onClick={() => handleApprove(order)}
+                        >
+                          <MdCheckCircle size={15} /> {approving === order.id ? '...' : 'تأیید سفارش'}
+                        </button>
+                        <button
+                          className="admin-action-btn"
+                          style={{ background: 'rgba(171,77,53,0.1)', color: 'var(--accent)', borderColor: 'rgba(171,77,53,0.3)' }}
+                          onClick={() => openRejectModal(order)}
+                        >
+                          <MdCancel size={15} /> رد سفارش
+                        </button>
+                      </>
                     )}
                     {nextStatus && (
                       <button

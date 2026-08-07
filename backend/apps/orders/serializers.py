@@ -89,7 +89,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_type_display', 'payment_method', 'is_paid',
             'address', 'address_detail', 'table', 'table_detail',
             'note', 'total_price', 'delivery_cost', 'packaging_cost', 'discount_amount',
-            'final_price', 'discount_code', 'items', 'created_at',
+            'final_price', 'discount_code', 'items', 'created_at', 'rejection_reason',
         ]
 
 
@@ -99,10 +99,16 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_type_display = serializers.CharField(source='get_delivery_type_display', read_only=True)
     table_detail = TableSimpleSerializer(source='table', read_only=True)
+    assigned_waiter_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = '__all__'
+
+    def get_assigned_waiter_name(self, obj):
+        if not obj.assigned_waiter:
+            return None
+        return obj.assigned_waiter.full_name or str(obj.assigned_waiter.phone)
 
 
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):

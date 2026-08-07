@@ -186,10 +186,10 @@ class OrderCreationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Order.objects.count(), 0)
 
-    def test_cash_payment_marks_order_as_paid_immediately(self):
+    def test_cash_payment_awaits_cafe_confirmation(self):
         response = self._post_order(payment_method=Order.PaymentMethod.CASH)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
-        self.assertEqual(response.data['status'], Order.Status.PAID)
+        self.assertEqual(response.data['status'], Order.Status.PENDING_CONFIRMATION)
 
     def test_online_payment_stays_waiting_payment(self):
         response = self._post_order(payment_method=Order.PaymentMethod.ONLINE)
@@ -221,3 +221,244 @@ class OrderCreationTestCase(APITestCase):
         response = self._post_order()
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Order.objects.count(), 0)
+
+
+class OrderApprovalWorkflowTestCase(APITestCase):
+    """
+    سفارش نقدی/آنلاین قبل از رفتن به صف آماده‌سازی باید توسط گارسون یا ادمین
+    تأیید یا رد شود — و هر اکشن باید در StaffActionLog ثبت شود.
+    """
+    def setUp(self):
+        from apps.accounts.models import WaiterPermission
+        from apps.staff_activity.models import StaffActionLog
+
+        self.StaffActionLog = StaffActionLog
+
+        self.customer = User.objects.create_user(phone='+989120000002', full_name='مشتری')
+        self.order = Order.objects.create(
+            user=self.customer,
+            delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.Status.PENDING_CONFIRMATION,
+            final_price=100000,
+        )
+
+        self.waiter = User.objects.create_user(phone='+989120000003', full_name='گارسون تست')
+        self.waiter.role = User.Role.WAITER
+        self.waiter.save(update_fields=['role'])
+        WaiterPermission.objects.create(user=self.waiter, can_manage_orders=True)
+
+        self.admin = User.objects.create_user(phone='+989120000004', full_name='ادمین تست')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+
+    def test_waiter_can_approve_pending_order(self):
+        self.client.force_authenticate(user=self.waiter)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.PAID)
+        self.assertTrue(
+            self.StaffActionLog.objects.filter(
+                user=self.waiter, action=self.StaffActionLog.Action.ORDER_APPROVED, order=self.order,
+            ).exists()
+        )
+
+    def test_reject_requires_reason(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(f'/api/orders/{self.order.id}/reject/', {'reason': ''}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.PENDING_CONFIRMATION)
+
+    def test_admin_can_reject_with_reason(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            f'/api/orders/{self.order.id}/reject/', {'reason': 'تمام شد لاته'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.REJECTED)
+        self.assertEqual(self.order.rejection_reason, 'تمام شد لاته')
+        self.assertTrue(
+            self.StaffActionLog.objects.filter(
+                user=self.admin, action=self.StaffActionLog.Action.ORDER_REJECTED, order=self.order,
+            ).exists()
+        )
+
+    def test_cannot_approve_already_approved_order(self):
+        self.client.force_authenticate(user=self.waiter)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_waiter_without_order_permission_cannot_approve(self):
+        from apps.accounts.models import WaiterPermission
+        WaiterPermission.objects.filter(user=self.waiter).update(can_manage_orders=False)
+        # پس از create() در setUp، جنگو رابطه‌ی معکوس OneToOne را روی self.waiter کش کرده —
+        # باید مجدداً از دیتابیس خوانده شود تا مقدار به‌روزشده‌ی بالا را ببیند
+        self.waiter.refresh_from_db()
+        self.client.force_authenticate(user=self.waiter)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_customer_cannot_approve_order(self):
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class OrderAssignmentLockTestCase(APITestCase):
+    """
+    از لحظه‌ای که یک گارسون سفارشی را تأیید/رد می‌کند، آن سفارش تا پایان مسیرش فقط برای
+    همان گارسون قابل مشاهده/اکشن است — بقیه‌ی گارسون‌ها هیچ ردی از آن نمی‌بینند.
+    """
+    def setUp(self):
+        from apps.accounts.models import WaiterPermission
+
+        self.customer = User.objects.create_user(phone='+989120000010', full_name='مشتری')
+        self.order = Order.objects.create(
+            user=self.customer,
+            delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.Status.PENDING_CONFIRMATION,
+            final_price=100000,
+        )
+
+        self.waiter_a = User.objects.create_user(phone='+989120000011', full_name='گارسون الف')
+        self.waiter_a.role = User.Role.WAITER
+        self.waiter_a.save(update_fields=['role'])
+        WaiterPermission.objects.create(user=self.waiter_a, can_manage_orders=True)
+
+        self.waiter_b = User.objects.create_user(phone='+989120000012', full_name='گارسون ب')
+        self.waiter_b.role = User.Role.WAITER
+        self.waiter_b.save(update_fields=['role'])
+        WaiterPermission.objects.create(user=self.waiter_b, can_manage_orders=True)
+
+        self.admin = User.objects.create_user(phone='+989120000013', full_name='ادمین تست')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+
+    def test_approve_assigns_order_to_waiter(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.assigned_waiter_id, self.waiter_a.id)
+        self.assertIsNotNone(self.order.approved_at)
+
+    def test_second_waiter_approve_gets_conflict_message(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+
+        self.client.force_authenticate(user=self.waiter_b)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('گارسون الف', response.data['detail'])
+
+    def test_other_waiter_cannot_see_assigned_order(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+
+        self.client.force_authenticate(user=self.waiter_b)
+        response = self.client.get('/api/orders/waiter/')
+        results = response.data if isinstance(response.data, list) else response.data['results']
+        ids = [o['id'] for o in results]
+        self.assertNotIn(self.order.id, ids)
+
+    def test_owning_waiter_still_sees_assigned_order(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        response = self.client.get('/api/orders/waiter/')
+        results = response.data if isinstance(response.data, list) else response.data['results']
+        ids = [o['id'] for o in results]
+        self.assertIn(self.order.id, ids)
+
+    def test_other_waiter_cannot_change_status_of_assigned_order(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+
+        self.client.force_authenticate(user=self.waiter_b)
+        response = self.client.patch(
+            f'/api/orders/waiter/{self.order.id}/status/', {'status': 'preparing'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_other_waiter_cannot_confirm_cash_of_assigned_order(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+
+        self.client.force_authenticate(user=self.waiter_b)
+        response = self.client.post(f'/api/orders/{self.order.id}/confirm-cash/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_act_on_order_assigned_to_waiter(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(f'/api/orders/{self.order.id}/confirm-cash/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.is_paid)
+
+    def test_admin_approved_order_stays_unassigned_and_shared(self):
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.assigned_waiter_id)
+
+        self.client.force_authenticate(user=self.waiter_a)
+        response = self.client.get('/api/orders/waiter/')
+        results = response.data if isinstance(response.data, list) else response.data['results']
+        ids = [o['id'] for o in results]
+        self.assertIn(self.order.id, ids)
+
+    def test_delivered_at_set_on_delivery(self):
+        self.client.force_authenticate(user=self.waiter_a)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.client.patch(f'/api/orders/waiter/{self.order.id}/status/', {'status': 'preparing'}, format='json')
+        self.client.patch(f'/api/orders/waiter/{self.order.id}/status/', {'status': 'ready'}, format='json')
+        self.client.patch(f'/api/orders/waiter/{self.order.id}/status/', {'status': 'delivered'}, format='json')
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.delivered_at)
+
+
+class StaffPerformanceReportTestCase(APITestCase):
+    def setUp(self):
+        from apps.accounts.models import WaiterPermission
+
+        self.customer = User.objects.create_user(phone='+989120000020', full_name='مشتری')
+        self.waiter = User.objects.create_user(phone='+989120000021', full_name='گارسون گزارش')
+        self.waiter.role = User.Role.WAITER
+        self.waiter.save(update_fields=['role'])
+        WaiterPermission.objects.create(user=self.waiter, can_manage_orders=True)
+
+        self.admin = User.objects.create_user(phone='+989120000022', full_name='ادمین تست')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+
+        self.order = Order.objects.create(
+            user=self.customer,
+            delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.Status.PENDING_CONFIRMATION,
+            final_price=150000,
+        )
+        self.client.force_authenticate(user=self.waiter)
+        self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.client.post(f'/api/orders/{self.order.id}/confirm-cash/')
+
+    def test_report_counts_approved_order_and_cash_sum(self):
+        today = timezone.localdate().isoformat()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/staff-activity/report/', {'from': today, 'to': today})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        row = next(r for r in response.data if r['waiter_id'] == self.waiter.id)
+        self.assertEqual(row['approved_count'], 1)
+        self.assertEqual(row['cash_collected'], 150000)
+
+    def test_report_requires_admin(self):
+        self.client.force_authenticate(user=self.waiter)
+        today = timezone.localdate().isoformat()
+        response = self.client.get('/api/staff-activity/report/', {'from': today, 'to': today})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

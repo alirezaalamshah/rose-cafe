@@ -1,41 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import {
-  MdRefresh, MdBolt, MdHistory, MdChevronRight, MdChevronLeft, MdCalendarToday,
-} from 'react-icons/md'
+import { MdRefresh, MdCheckCircle, MdCancel } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import { ordersAPI } from '../../api/orders.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
-import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
+import Button from '../../components/common/Button/Button.jsx'
+import { Textarea } from '../../components/common/Input/Input.jsx'
+import { confirm } from '../../store/confirmStore.js'
 import usePolling from '../../hooks/usePolling.js'
 import { formatDateTime, formatPrice, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
-import { formatJalali, isoToJalali, toPersianNum, MONTH_NAMES } from '../../utils/jalali.js'
 import './WaiterOrdersPage.css'
-
-function todayIso() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function shiftIsoDate(isoDate, days) {
-  const d = new Date(isoDate + 'T12:00:00')
-  d.setDate(d.getDate() + days)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function formatJalaliShort(isoDate) {
-  const j = isoToJalali(isoDate)
-  if (!j) return '—'
-  return `${toPersianNum(j.jd)} ${MONTH_NAMES[j.jm - 1]}`
-}
 
 const POLL_INTERVAL_MS = 10000
 
 const STATUS_TABS = [
   { value: '', label: 'همه' },
-  { value: 'paid', label: 'پرداخت شده' },
+  { value: 'pending_confirmation', label: 'در انتظار تأیید' },
+  { value: 'paid', label: 'تأیید شده' },
   { value: 'preparing', label: 'در حال آماده‌سازی' },
   { value: 'ready', label: 'آماده تحویل' },
   { value: 'delivered', label: 'تحویل داده شد' },
@@ -47,16 +30,26 @@ const NEXT_STATUS = {
   ready: { value: 'delivered', label: 'تحویل داده شد', color: 'primary' },
 }
 
+// نشان وضعیت واقعی پرداخت — تنها منبع درست این اطلاعات، فارغ از وضعیت کلی سفارش
+// (چون سفارش نقدی بلافاصله به‌خاطر آشپزخانه «تأیید شده» می‌شود، حتی قبل از وصول وجه)
+function paymentBadge(order) {
+  const paid = !!order.is_paid
+  if (order.payment_method === 'cash') {
+    return { icon: '💵', text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
+  }
+  return { icon: '💳', text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
+}
+
 export default function WaiterOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [confirmingCash, setConfirmingCash] = useState(null)
-  const [view, setView] = useState('active') // 'active' | 'archive'
-  const [archiveDate, setArchiveDate] = useState(todayIso())
-  const [jumping, setJumping] = useState(null) // 'prev' | 'next' | null
-  const [datePickerModal, setDatePickerModal] = useState(false)
+  const [approving, setApproving] = useState(null)
+  const [rejectModal, setRejectModal] = useState(null) // order being rejected
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejecting, setRejecting] = useState(false)
 
   const activeTab = searchParams.get('status') || ''
 
@@ -65,7 +58,6 @@ export default function WaiterOrdersPage() {
     try {
       const params = {}
       if (activeTab) params.status = activeTab
-      if (view === 'archive') params.date = archiveDate
       const data = await waiterAPI.getOrders(params)
       setOrders(Array.isArray(data) ? data : (data?.results || []))
     } catch {
@@ -73,28 +65,12 @@ export default function WaiterOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab, view, archiveDate])
+  }, [activeTab])
 
   useEffect(() => { load() }, [load])
 
   // سفارشات جاری هر ۱۰ ثانیه بی‌صدا به‌روز می‌شوند تا سفارش تازه بدون فشردن دکمه دیده شود
-  usePolling(() => load(true), POLL_INTERVAL_MS, view === 'active')
-
-  async function jumpToNearestOrderDate(direction) {
-    setJumping(direction)
-    try {
-      const res = await waiterAPI.nearestOrderDate(archiveDate, direction)
-      if (res.date) {
-        setArchiveDate(res.date)
-      } else {
-        toast.error(direction === 'prev' ? 'سفارش قدیمی‌تری در بایگانی نیست' : 'سفارش جدیدتری در بایگانی نیست')
-      }
-    } catch {
-      toast.error('خطا در جستجوی روز قبل/بعد')
-    } finally {
-      setJumping(null)
-    }
-  }
+  usePolling(() => load(true), POLL_INTERVAL_MS)
 
   async function handleConfirmCash(order) {
     setConfirmingCash(order.id)
@@ -104,8 +80,52 @@ export default function WaiterOrdersPage() {
       toast.success(`وجه سفارش #${order.order_number || order.id} دریافت و تأیید شد`)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'خطا در تأیید دریافت وجه')
+      // سفارش شاید همین الان به گارسون دیگری اختصاص یافته باشد — لیست را برای هماهنگی رفرش کن
+      load(true)
     } finally {
       setConfirmingCash(null)
+    }
+  }
+
+  async function handleApprove(order) {
+    if (!(await confirm('این سفارش را تأیید می‌کنید؟ سفارش به صف آماده‌سازی می‌رود.', {
+      title: 'تأیید سفارش', danger: false, confirmLabel: 'تأیید سفارش',
+    }))) return
+    setApproving(order.id)
+    try {
+      const updated = await ordersAPI.approveOrder(order.id)
+      setOrders((prev) => prev.map((o) => o.id === order.id ? updated : o))
+      toast.success(`سفارش #${order.order_number || order.id} تأیید شد`)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در تأیید سفارش')
+      // احتمالاً گارسون دیگری زودتر این سفارش را تأیید/رد کرده — از لیست حذفش کن
+      load(true)
+    } finally {
+      setApproving(null)
+    }
+  }
+
+  function openRejectModal(order) {
+    setRejectReason('')
+    setRejectModal(order)
+  }
+
+  async function handleReject() {
+    if (!rejectReason.trim()) {
+      toast.error('دلیل رد سفارش الزامی است')
+      return
+    }
+    setRejecting(true)
+    try {
+      const updated = await ordersAPI.rejectOrder(rejectModal.id, rejectReason.trim())
+      setOrders((prev) => prev.map((o) => o.id === rejectModal.id ? updated : o))
+      toast.success(`سفارش #${rejectModal.order_number || rejectModal.id} رد شد`)
+      setRejectModal(null)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در رد سفارش')
+      load(true)
+    } finally {
+      setRejecting(false)
     }
   }
 
@@ -115,8 +135,9 @@ export default function WaiterOrdersPage() {
       const updated = await waiterAPI.updateOrderStatus(order.id, newStatus)
       setOrders((prev) => prev.map((o) => o.id === order.id ? updated : o))
       toast.success(`وضعیت سفارش #${order.order_number || order.id} به ${getStatusLabel(newStatus)} تغییر کرد`)
-    } catch {
-      toast.error('خطا در بروزرسانی وضعیت')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در بروزرسانی وضعیت')
+      load(true)
     } finally {
       setUpdating(null)
     }
@@ -132,70 +153,6 @@ export default function WaiterOrdersPage() {
           <MdRefresh size={18} className={loading ? 'spin' : ''} />
         </button>
       </div>
-
-      {/* جاری / بایگانی */}
-      <div className="waiter-view-toggle">
-        <button
-          className={`waiter-view-btn ${view === 'active' ? 'waiter-view-btn--active' : ''}`}
-          onClick={() => setView('active')}
-        >
-          <MdBolt size={15} /> جاری
-        </button>
-        <button
-          className={`waiter-view-btn ${view === 'archive' ? 'waiter-view-btn--active' : ''}`}
-          onClick={() => setView('archive')}
-        >
-          <MdHistory size={15} /> بایگانی
-        </button>
-      </div>
-
-      {view === 'archive' && (
-        <div className="waiter-archive-nav">
-          <div className="waiter-day-strip">
-            {[-3, -2, -1, 0, 1, 2, 3].map((offset) => {
-              const iso = shiftIsoDate(archiveDate, offset)
-              return (
-                <button
-                  key={iso}
-                  className={`waiter-day-btn ${offset === 0 ? 'active' : ''}`}
-                  onClick={() => setArchiveDate(iso)}
-                >
-                  {formatJalaliShort(iso)}
-                </button>
-              )
-            })}
-          </div>
-
-          <button
-            className="waiter-archive-skip waiter-archive-skip--prev"
-            onClick={() => jumpToNearestOrderDate('prev')}
-            disabled={jumping !== null}
-            title="نزدیک‌ترین روز قبلی که سفارش دارد"
-          >
-            <MdChevronRight size={18} />
-            {jumping === 'prev' ? '...' : 'روز قبل'}
-          </button>
-
-          <button
-            className="waiter-archive-skip waiter-archive-skip--next"
-            onClick={() => jumpToNearestOrderDate('next')}
-            disabled={jumping !== null}
-            title="نزدیک‌ترین روز بعدی که سفارش دارد"
-          >
-            {jumping === 'next' ? '...' : 'روز بعد'}
-            <MdChevronLeft size={18} />
-          </button>
-
-          <button
-            className="waiter-archive-jump-btn"
-            onClick={() => setDatePickerModal(true)}
-            title="پرش به تاریخ خاص"
-            aria-label="پرش به تاریخ خاص"
-          >
-            <MdCalendarToday size={18} />
-          </button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="waiter-tabs">
@@ -213,12 +170,13 @@ export default function WaiterOrdersPage() {
       {loading ? <Loading /> : displayOrders.length === 0 ? (
         <div className="empty-state">
           <div className="icon">📋</div>
-          <h3>{view === 'archive' ? `سفارشی برای ${formatJalali(archiveDate)} یافت نشد` : 'سفارشی یافت نشد'}</h3>
+          <h3>سفارشی یافت نشد</h3>
         </div>
       ) : (
         <div className="waiter-order-grid">
           {displayOrders.map((order) => {
             const next = NEXT_STATUS[order.status]
+            const badge = paymentBadge(order)
             return (
               <div key={order.id} className={`waiter-order-card neu-card-sm waiter-order-card--${order.status}`}>
                 <div className="waiter-order-card__top">
@@ -237,31 +195,34 @@ export default function WaiterOrdersPage() {
                   <span>{formatDateTime(order.created_at)}</span>
                 </div>
 
-                {order.payment_method === 'cash' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '3px 10px', borderRadius: 'var(--radius-full)',
-                      fontSize: '0.78rem', fontWeight: 700,
-                      background: order.is_paid ? 'var(--success-bg)' : 'rgba(251,191,36,0.15)',
-                      color: order.is_paid ? 'var(--success)' : '#f59e0b',
-                      border: `1px solid ${order.is_paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                    }}>
-                      💵 {order.is_paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول'}
-                    </span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem', fontWeight: 700,
+                    background: badge.paid ? 'var(--success-bg)' : 'rgba(251,191,36,0.15)',
+                    color: badge.paid ? 'var(--success)' : '#f59e0b',
+                    border: `1px solid ${badge.paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                  }}>
+                    {badge.icon} {badge.text}
+                  </span>
+                </div>
 
                 {order.items?.length > 0 && (
                   <div className="waiter-order-card__items">
                     {order.items.map((item, i) => (
                       <div key={i} className="waiter-order-card__item">
-                        <span className="waiter-order-card__qty">×{item.quantity}</span>
-                        <span>{item.menu_item_detail?.name || '—'}</span>
-                        {item.variant_name && <span className="waiter-order-card__variant">({item.variant_name})</span>}
-                        {item.addons?.length > 0 && (
-                          <span className="waiter-order-card__variant">+ {item.addons.map((a) => a.name).join('، ')}</span>
-                        )}
+                        <div className="waiter-order-card__item-row">
+                          <span className="waiter-order-card__qty">×{item.quantity}</span>
+                          <span>{item.menu_item_detail?.name || '—'}</span>
+                          {item.variant_name && <span className="waiter-order-card__variant">({item.variant_name})</span>}
+                          {item.addons?.length > 0 && (
+                            <span className="waiter-order-card__variant">+ {item.addons.map((a) => a.name).join('، ')}</span>
+                          )}
+                        </div>
+                        <div className="waiter-order-card__item-price">
+                          {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.subtotal)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -274,7 +235,7 @@ export default function WaiterOrdersPage() {
                 <div className="waiter-order-card__footer">
                   <span className="waiter-order-card__total">{formatPrice(order.final_price)}</span>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {order.payment_method === 'cash' && !order.is_paid && (
+                    {order.payment_method === 'cash' && !order.is_paid && order.status !== 'rejected' && order.status !== 'cancelled' && (
                       <button
                         className="waiter-action-btn waiter-action-btn--success"
                         disabled={confirmingCash === order.id}
@@ -282,6 +243,23 @@ export default function WaiterOrdersPage() {
                       >
                         {confirmingCash === order.id ? '...' : '💵 وصول وجه'}
                       </button>
+                    )}
+                    {order.status === 'pending_confirmation' && (
+                      <>
+                        <button
+                          className="waiter-action-btn waiter-action-btn--success"
+                          disabled={approving === order.id}
+                          onClick={() => handleApprove(order)}
+                        >
+                          <MdCheckCircle size={15} /> {approving === order.id ? '...' : 'تأیید سفارش'}
+                        </button>
+                        <button
+                          className="waiter-action-btn waiter-action-btn--accent"
+                          onClick={() => openRejectModal(order)}
+                        >
+                          <MdCancel size={15} /> رد سفارش
+                        </button>
+                      </>
                     )}
                     {next && (
                       <button
@@ -301,16 +279,26 @@ export default function WaiterOrdersPage() {
       )}
 
       <Modal
-        isOpen={datePickerModal}
-        onClose={() => setDatePickerModal(false)}
-        title="پرش به تاریخ خاص"
-        size="sm"
+        isOpen={!!rejectModal}
+        onClose={() => setRejectModal(null)}
+        title={`رد سفارش #${rejectModal?.order_number || rejectModal?.id || ''}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRejectModal(null)}>انصراف</Button>
+            <Button onClick={handleReject} loading={rejecting}>رد سفارش</Button>
+          </>
+        }
       >
-        <PersianDatePicker
-          inline
-          value={archiveDate}
-          onChange={(v) => { setArchiveDate(v); setDatePickerModal(false) }}
+        <Textarea
+          label="دلیل رد سفارش *"
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="مثلاً: تمام شدن یکی از مواد اولیه"
+          rows={3}
         />
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-sm)' }}>
+          این دلیل به‌صورت پیامک به مشتری اطلاع داده می‌شود.
+        </p>
       </Modal>
     </div>
   )

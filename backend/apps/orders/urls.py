@@ -4,7 +4,7 @@ from .views import (
     AdminOrderListView, AdminOrderDetailView, AdminOrderStatusUpdateView,
     NearestOrderDateView,
     WaiterOrderListView, WaiterOrderStatusUpdateView,
-    ConfirmCashPaymentView,
+    ConfirmCashPaymentView, OrderApproveView, OrderRejectView,
 )
 
 urlpatterns = [
@@ -12,6 +12,8 @@ urlpatterns = [
     path('<int:pk>/', OrderDetailView.as_view(), name='order-detail'),
     path('<int:pk>/cancel/', OrderCancelView.as_view(), name='order-cancel'),
     path('<int:pk>/confirm-cash/', ConfirmCashPaymentView.as_view(), name='order-confirm-cash'),
+    path('<int:pk>/approve/', OrderApproveView.as_view(), name='order-approve'),
+    path('<int:pk>/reject/', OrderRejectView.as_view(), name='order-reject'),
 
     # Admin
     path('admin/', AdminOrderListView.as_view(), name='admin-orders'),
@@ -21,6 +23,5 @@ urlpatterns = [
 
     # Waiter
     path('waiter/', WaiterOrderListView.as_view(), name='waiter-orders'),
-    path('waiter/nearest-date/', NearestOrderDateView.as_view(), name='waiter-orders-nearest-date'),
     path('waiter/<int:pk>/status/', WaiterOrderStatusUpdateView.as_view(), name='waiter-order-status'),
 ]

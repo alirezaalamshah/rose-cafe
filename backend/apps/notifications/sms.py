@@ -318,6 +318,15 @@ def send_order_status_sms(phone: str, order_number: str, status: str) -> bool:
     return send_sms(phone, message)
 
 
+def send_order_rejected_sms(phone: str, order_number: str, reason: str) -> bool:
+    message = (
+        f'متأسفانه سفارش #{order_number} شما توسط کافه رد شد.\n'
+        f'دلیل: {reason}\n'
+        'به زودی وجه شما عودت داده خواهد شد.'
+    )
+    return send_sms(phone, message)
+
+
 def send_reservation_confirmation_sms(phone: str, reservation_id: int, date: str, time: str) -> bool:
     message = f'رزرو #{reservation_id} برای {date} ساعت {time} تایید شد ✓'
     return send_sms(phone, message)

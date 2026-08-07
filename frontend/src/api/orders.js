@@ -6,6 +6,8 @@ export const ordersAPI = {
   createOrder: (data) => api.post('/orders/', data),
   cancelOrder: (id) => api.post(`/orders/${id}/cancel/`),
   confirmCashPayment: (id) => api.post(`/orders/${id}/confirm-cash/`),
+  approveOrder: (id) => api.post(`/orders/${id}/approve/`),
+  rejectOrder: (id, reason) => api.post(`/orders/${id}/reject/`, { reason }),
 
   // Admin
   adminGetOrders: (params) => api.get('/orders/admin/', { params }),

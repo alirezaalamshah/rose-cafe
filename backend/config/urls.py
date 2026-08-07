@@ -236,5 +236,6 @@ urlpatterns = [
     path('api/business/', include('apps.business.urls')),
     path('api/dashboard/', admin_dashboard, name='admin-dashboard'),
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/staff-activity/', include('apps.staff_activity.urls')),
     re_path(r'^api/media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
