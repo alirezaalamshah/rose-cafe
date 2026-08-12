@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 # ─── Console API (توکن‌محور — روش اصلی) ────────────────────────────────────
 CONSOLE_BASE = 'https://console.melipayamak.com/api/send'
 
-# bodyId الگوی OTP در پنل ملی‌پیامک (480231 = الگوی تایید شده)
-MELIPAYAMAK_OTP_BODY_ID = 480231
+# bodyId الگوی OTP در پنل ملی‌پیامک (513258 = الگوی تایید شده)
+MELIPAYAMAK_OTP_BODY_ID = 513258
 
 # ─── Legacy API (username/password — fallback) ───────────────────────────────
 LEGACY_BASE = 'https://rest.payamak-panel.com/api/SendSMS'
@@ -49,7 +49,7 @@ def _console_send_otp(phone: str, otp: str) -> bool:
     """
     Console API — ارسال OTP از طریق پترن shared
     POST https://console.melipayamak.com/api/send/shared/{token}
-    Body JSON: { "bodyId": 480231, "to": "09...", "args": ["123456"] }
+    Body JSON: { "bodyId": 513258, "to": "09...", "args": ["123456"] }
     """
     token = getattr(settings, 'MELIPAYAMAK_API_TOKEN', '')
     if not token:
