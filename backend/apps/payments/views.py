@@ -10,6 +10,7 @@ from .serializers import PaymentRequestSerializer, PaymentSerializer
 from .zarinpal import request_payment, verify_payment
 from apps.orders.models import Order
 from apps.common.pagination import StandardPagination
+from apps.notifications.sms import send_order_placed_sms
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,10 @@ class PaymentVerifyView(APIView):
             order.is_paid = True
             order.save(update_fields=['status', 'is_paid'])
 
+            # پیامک «ثبت سفارش» فقط برای ارسال با پیک — بقیه‌ی انواع تحویل نیازی ندارند
+            if order.delivery_type == Order.DeliveryType.DELIVERY:
+                send_order_placed_sms(str(order.user.phone), order.order_number, order.final_price)
+
             return Response({
                 'success': True,
                 'ref_id': result['ref_id'],
@@ -193,6 +198,9 @@ class FreeOrderConfirmView(APIView):
         order.status = Order.Status.PENDING_CONFIRMATION
         order.is_paid = True
         order.save(update_fields=['status', 'is_paid'])
+
+        if order.delivery_type == Order.DeliveryType.DELIVERY:
+            send_order_placed_sms(str(order.user.phone), order.order_number, order.final_price)
 
         return Response({'success': True, 'order_id': order.id})
 

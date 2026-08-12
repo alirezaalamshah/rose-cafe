@@ -12,7 +12,6 @@ from .serializers import (
     AdminReservationSerializer,
 )
 from apps.accounts.permissions import IsWaiter
-from apps.notifications.sms import send_reservation_confirmation_sms
 from apps.staff_activity.models import StaffActionLog, log_staff_action
 
 _RESERVATION_STATUS_ACTIONS = {
@@ -172,14 +171,6 @@ class ReservationListCreateView(APIView):
             reservation = serializer.save(user=request.user)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        phone = str(request.user.phone)
-        send_reservation_confirmation_sms(
-            phone=phone,
-            reservation_id=reservation.id,
-            date=str(reservation.date),
-            time=str(reservation.start_time),
-        )
 
         return Response(
             ReservationSerializer(reservation).data,

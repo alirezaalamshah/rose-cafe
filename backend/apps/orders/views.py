@@ -14,7 +14,7 @@ from .serializers import (
 from apps.accounts.models import Address
 from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
-from apps.notifications.sms import send_order_status_sms, send_order_rejected_sms
+from apps.notifications.sms import send_order_ready_for_courier_sms
 from apps.common.utils import local_day_range
 from apps.staff_activity.models import StaffActionLog, log_staff_action
 
@@ -32,6 +32,15 @@ def _already_actioned_response(order):
     verb = 'رد شد' if order.status == Order.Status.REJECTED else 'تأیید شد'
     detail = f'این سفارش قبلاً {("توسط " + who + " ") if who else ""}{verb}'
     return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _send_status_change_sms(order):
+    """
+    تنها پیامک مرتبط با تغییر وضعیت سفارش: وقتی سفارش ارسال با پیک آماده و تحویل پیک
+    می‌شود. برای بقیه‌ی تغییرات وضعیت (و انواع تحویل دیگر) پیامکی ارسال نمی‌شود.
+    """
+    if order.status == Order.Status.READY and order.delivery_type == Order.DeliveryType.DELIVERY:
+        send_order_ready_for_courier_sms(str(order.user.phone), order.order_number)
 
 
 def _assigned_waiter_suffix(order, actor):
@@ -351,8 +360,7 @@ class AdminOrderStatusUpdateView(APIView):
         )
 
         # ارسال SMS
-        phone = str(order.user.phone)
-        send_order_status_sms(phone, order.order_number, order.status)
+        _send_status_change_sms(order)
 
         return Response(OrderSerializer(order).data)
 
@@ -446,9 +454,6 @@ class OrderRejectView(APIView):
             f'سفارش #{order.order_number} را رد کرد — دلیل: {reason}', order=order,
         )
 
-        # پیامک به مشتری — مثل بقیه‌ی پیامک‌های اطلاع‌رسانی، فقط اگر SMS_NOTIFICATIONS_ENABLED فعال باشد
-        send_order_rejected_sms(str(order.user.phone), order.order_number, reason)
-
         return Response(AdminOrderSerializer(order).data)
 
 
@@ -537,8 +542,7 @@ class WaiterOrderStatusUpdateView(APIView):
             order=order,
         )
 
-        phone = str(order.user.phone)
-        send_order_status_sms(phone, order.order_number, order.status)
+        _send_status_change_sms(order)
 
         return Response(AdminOrderSerializer(order).data)
 

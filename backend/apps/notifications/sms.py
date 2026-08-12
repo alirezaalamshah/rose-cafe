@@ -10,6 +10,14 @@ CONSOLE_BASE = 'https://console.melipayamak.com/api/send'
 # bodyId الگوی OTP در پنل ملی‌پیامک (513258 = الگوی تایید شده)
 MELIPAYAMAK_OTP_BODY_ID = 513258
 
+# bodyId الگوهای اطلاع‌رسانی سفارش (فقط سفارش‌های ارسال با پیک) — متن دقیق همان چیزی است
+# که در پنل ملی‌پیامک برای این الگوها تأیید شده؛ همین‌جا هم برای لاگ و هم fallback لِگسی لازم است
+MELIPAYAMAK_ORDER_PLACED_BODY_ID = 516405
+ORDER_PLACED_TEXT = 'سفارش شما با موفقیت ثبت شد. شماره سفارش: {0} مبلغ سفارش: {1} تومان از خرید شما سپاسگزاریم. رزکافه'
+
+MELIPAYAMAK_ORDER_READY_COURIER_BODY_ID = 516408
+ORDER_READY_COURIER_TEXT = 'سفارش شما آماده شده و به پیک تحویل داده شد. 🛵 شماره سفارش: {0} لطفاً برای دریافت سفارش آماده باشید. با تشکر از اعتماد شما 🌹 رزکافه'
+
 # ─── Legacy API (username/password — fallback) ───────────────────────────────
 LEGACY_BASE = 'https://rest.payamak-panel.com/api/SendSMS'
 
@@ -45,11 +53,11 @@ def _normalize_phone(phone: str) -> str:
 #  Console API  (روش اصلی — توکن در URL)
 # ═══════════════════════════════════════════════════════════════════
 
-def _console_send_otp(phone: str, otp: str) -> bool:
+def _console_send_template(phone: str, body_id: int, args: list, label: str) -> bool:
     """
-    Console API — ارسال OTP از طریق پترن shared
+    Console API — ارسال پیامک بر اساس یک الگوی از پیش تأییدشده در پنل ملی‌پیامک
     POST https://console.melipayamak.com/api/send/shared/{token}
-    Body JSON: { "bodyId": 513258, "to": "09...", "args": ["123456"] }
+    Body JSON: { "bodyId": <id>, "to": "09...", "args": [...] }
     """
     token = getattr(settings, 'MELIPAYAMAK_API_TOKEN', '')
     if not token:
@@ -59,21 +67,25 @@ def _console_send_otp(phone: str, otp: str) -> bool:
         response = requests.post(
             f'{CONSOLE_BASE}/shared/{token}',
             json={
-                'bodyId': MELIPAYAMAK_OTP_BODY_ID,
+                'bodyId': body_id,
                 'to': phone,
-                'args': [str(otp)],
+                'args': [str(a) for a in args],
             },
             headers={'Content-Type': 'application/json'},
             timeout=10,
         )
         response.raise_for_status()
-        return _parse_console_response(response, 'OTP')
+        return _parse_console_response(response, label)
     except requests.exceptions.Timeout:
-        logger.error('Console API OTP timeout')
+        logger.error(f'Console API {label} timeout')
         return False
     except Exception as e:
-        logger.error(f'Console API OTP error: {e}')
+        logger.error(f'Console API {label} error: {e}')
         return False
+
+
+def _console_send_otp(phone: str, otp: str) -> bool:
+    return _console_send_template(phone, MELIPAYAMAK_OTP_BODY_ID, [otp], 'OTP')
 
 
 def _console_send_simple(phone: str, message: str) -> bool:
@@ -305,31 +317,48 @@ def send_sms(phone: str, message: str) -> bool:
     return success
 
 
-def send_order_status_sms(phone: str, order_number: str, status: str) -> bool:
-    status_map = {
-        'confirmed': 'تایید شد ✓',
-        'preparing': 'در حال آماده‌سازی است',
-        'ready':     'آماده تحویل است ✓',
-        'delivered': 'تحویل داده شد',
-        'cancelled': 'لغو شد',
-    }
-    label = status_map.get(status, status)
-    message = f'سفارش #{order_number} شما {label}.'
-    return send_sms(phone, message)
+def _send_template_notification(phone: str, body_id: int, args: list, fallback_text: str, label: str) -> bool:
+    """
+    مثل send_sms، همان قوانین (SMS_NOTIFICATIONS_ENABLED، لاگ) را دارد؛ فقط به‌جای متن آزاد
+    از الگوی تأییدشده در پنل (bodyId) استفاده می‌کند و اگر Console API شکست خورد، به همان
+    متن ثابت (fallback_text) روی مسیر Legacy برمی‌گردد.
+    """
+    phone = _normalize_phone(phone)
+
+    if not getattr(settings, 'SMS_NOTIFICATIONS_ENABLED', False):
+        logger.info(f'[SMS DISABLED] {phone}: {fallback_text}')
+        _save_log(phone, fallback_text, success=False, skipped=True)
+        return False
+
+    if settings.DEBUG and not getattr(settings, 'MELIPAYAMAK_API_TOKEN', ''):
+        logger.info(f'[DEV SMS] {phone}: {fallback_text}')
+        _save_log(phone, fallback_text, True)
+        return True
+
+    success = _console_send_template(phone, body_id, args, label)
+
+    if not success:
+        logger.warning(f'Console template {label} failed — sending as plain SMS')
+        success = _legacy_send_sms(phone, fallback_text)
+
+    _save_log(phone, fallback_text, success)
+    return success
 
 
-def send_order_rejected_sms(phone: str, order_number: str, reason: str) -> bool:
-    message = (
-        f'متأسفانه سفارش #{order_number} شما توسط کافه رد شد.\n'
-        f'دلیل: {reason}\n'
-        'به زودی وجه شما عودت داده خواهد شد.'
+def send_order_placed_sms(phone: str, order_number: str, amount) -> bool:
+    """فقط سفارش‌های ارسال با پیک — بلافاصله بعد از پرداخت آنلاین موفق."""
+    text = ORDER_PLACED_TEXT.format(order_number, f'{int(amount):,}')
+    return _send_template_notification(
+        phone, MELIPAYAMAK_ORDER_PLACED_BODY_ID, [order_number, f'{int(amount):,}'], text, 'OrderPlaced',
     )
-    return send_sms(phone, message)
 
 
-def send_reservation_confirmation_sms(phone: str, reservation_id: int, date: str, time: str) -> bool:
-    message = f'رزرو #{reservation_id} برای {date} ساعت {time} تایید شد ✓'
-    return send_sms(phone, message)
+def send_order_ready_for_courier_sms(phone: str, order_number: str) -> bool:
+    """فقط سفارش‌های ارسال با پیک — وقتی سفارش آماده و به پیک تحویل داده می‌شود."""
+    text = ORDER_READY_COURIER_TEXT.format(order_number)
+    return _send_template_notification(
+        phone, MELIPAYAMAK_ORDER_READY_COURIER_BODY_ID, [order_number], text, 'OrderReadyForCourier',
+    )
 
 
 def _save_log(phone: str, message: str, success: bool, skipped: bool = False) -> None:
