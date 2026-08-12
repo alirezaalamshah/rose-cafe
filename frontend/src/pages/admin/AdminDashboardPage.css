@@ -502,7 +502,7 @@
 
 .dash-action-btn__badge {
   background: var(--warning);
-  color: #1a1a0a;
+  color: var(--text-on-primary);
   font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 7px;
@@ -617,23 +617,9 @@
   line-height: 1;
 }
 
-/* ══════════════════════════════
-   وضعیت آماده‌سازی (اضافه)
-══════════════════════════════ */
-.status-preparing {
-  background: rgba(99, 179, 237, 0.1);
-  color: #63b3ed;
-}
-
-.status-ready {
-  background: rgba(72, 187, 120, 0.15);
-  color: #68d391;
-}
-
-.status-delivered {
-  background: rgba(160, 174, 192, 0.1);
-  color: var(--text-muted);
-}
+/* status-preparing / status-ready / status-delivered از global.css استفاده می‌کنند —
+   قبلاً این‌جا با رنگ‌های خام و متفاوت override می‌شدند که باعث می‌شد همان وضعیت
+   در داشبورد رنگی متفاوت از صفحه‌ی سفارشات نشان بدهد */
 
 /* ══════════════════════════════
    MOBILE

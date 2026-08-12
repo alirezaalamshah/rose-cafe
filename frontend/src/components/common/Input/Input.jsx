@@ -1,12 +1,16 @@
+import { useId } from 'react'
 import './Input.css'
 
-export function Input({ label, error, iconRight, iconLeft, className = '', ...props }) {
+export function Input({ label, error, iconRight, iconLeft, id, className = '', ...props }) {
+  const generatedId = useId()
+  const inputId = id || generatedId
   return (
     <div className="input-group">
-      {label && <label className="input-label">{label}</label>}
+      {label && <label className="input-label" htmlFor={inputId}>{label}</label>}
       <div className="input-wrapper">
         {iconLeft && <span className="input-icon input-icon--left">{iconLeft}</span>}
         <input
+          id={inputId}
           className={`input-field ${error ? 'error' : ''} ${iconRight ? 'has-icon-right' : ''} ${iconLeft ? 'has-icon-left' : ''} ${className}`}
           {...props}
         />
@@ -17,11 +21,14 @@ export function Input({ label, error, iconRight, iconLeft, className = '', ...pr
   )
 }
 
-export function Textarea({ label, error, className = '', ...props }) {
+export function Textarea({ label, error, id, className = '', ...props }) {
+  const generatedId = useId()
+  const inputId = id || generatedId
   return (
     <div className="input-group">
-      {label && <label className="input-label">{label}</label>}
+      {label && <label className="input-label" htmlFor={inputId}>{label}</label>}
       <textarea
+        id={inputId}
         className={`input-field textarea-field ${error ? 'error' : ''} ${className}`}
         {...props}
       />
@@ -30,12 +37,15 @@ export function Textarea({ label, error, className = '', ...props }) {
   )
 }
 
-export function Select({ label, error, children, className = '', ...props }) {
+export function Select({ label, error, children, id, className = '', ...props }) {
+  const generatedId = useId()
+  const inputId = id || generatedId
   return (
     <div className="input-group">
-      {label && <label className="input-label">{label}</label>}
+      {label && <label className="input-label" htmlFor={inputId}>{label}</label>}
       <div className="input-wrapper">
         <select
+          id={inputId}
           className={`input-field select-field ${error ? 'error' : ''} ${className}`}
           {...props}
         >

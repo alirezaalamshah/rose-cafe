@@ -140,17 +140,17 @@
 
 .menu-card__badge--featured {
   background: rgba(251, 191, 36, 0.9);
-  color: #1a1205;
+  color: var(--text-on-primary);
 }
 
 .menu-card__badge--vegetarian {
   background: rgba(74, 222, 128, 0.9);
-  color: #0a1a0a;
+  color: var(--text-on-success);
 }
 
 .menu-card__badge--unavailable {
   background: rgba(248, 113, 113, 0.9);
-  color: #fff;
+  color: var(--text-on-error);
 }
 
 .menu-card__body {
@@ -286,7 +286,7 @@
 
 .menu-card__add-btn:hover {
   background: var(--primary);
-  color: #1a1205;
+  color: var(--text-on-primary);
   border-color: var(--primary);
 }
 
@@ -307,8 +307,8 @@
 }
 
 .menu-card__qty-btn {
-  width: 32px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,7 +340,7 @@
   top: 8px;
   left: 8px;
   background: rgba(240, 214, 132, 0.92);
-  color: #1a1205;
+  color: var(--text-on-primary);
   font-size: 0.65rem;
   font-weight: 800;
   padding: 3px 8px;

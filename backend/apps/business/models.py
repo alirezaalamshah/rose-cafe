@@ -113,7 +113,7 @@ class DeliverySettings(CachedSingletonModel):
 
 
 class CafeInfo(CachedSingletonModel):
-    name = models.CharField(max_length=100, default='است', verbose_name='نام کافه')
+    name = models.CharField(max_length=100, default='رز کافه', verbose_name='نام کافه')
     tagline = models.CharField(max_length=200, blank=True, verbose_name='شعار کافه')
     phone = models.CharField(max_length=20, blank=True, verbose_name='شماره تماس')
     address = models.TextField(blank=True, verbose_name='آدرس')

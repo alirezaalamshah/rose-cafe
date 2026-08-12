@@ -29,7 +29,7 @@ export default function CartDrawer({ isOpen, onClose }) {
               <span className="cart-drawer__count">{items.length} آیتم</span>
             )}
           </div>
-          <button className="cart-drawer__close" onClick={onClose}>
+          <button className="cart-drawer__close" onClick={onClose} aria-label="بستن سبد خرید">
             <MdClose size={18} />
           </button>
         </div>
@@ -77,15 +77,18 @@ export default function CartDrawer({ isOpen, onClose }) {
                       <button
                         className="cart-item__qty-btn"
                         onClick={() => updateQuantity(key, item.quantity + 1)}
+                        aria-label="افزایش تعداد"
                       >+</button>
                       <span className="cart-item__qty">{item.quantity}</span>
                       <button
                         className="cart-item__qty-btn"
                         onClick={() => updateQuantity(key, item.quantity - 1)}
+                        aria-label="کاهش تعداد"
                       >−</button>
                       <button
                         className="cart-item__delete"
                         onClick={() => removeItem(key)}
+                        aria-label="حذف از سبد خرید"
                       >
                         <MdDelete size={16} />
                       </button>

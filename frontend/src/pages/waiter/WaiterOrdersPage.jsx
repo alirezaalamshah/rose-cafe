@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MdRefresh, MdCheckCircle, MdCancel } from 'react-icons/md'
+import {
+  MdRefresh, MdCheckCircle, MdCancel, MdRestaurant, MdTakeoutDining,
+  MdDeliveryDining, MdAttachMoney, MdCreditCard,
+} from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import { ordersAPI } from '../../api/orders.js'
@@ -30,14 +33,20 @@ const NEXT_STATUS = {
   ready: { value: 'delivered', label: 'تحویل داده شد', color: 'primary' },
 }
 
+const DELIVERY_TYPE_META = {
+  dine_in: { Icon: MdRestaurant, label: (order) => `میز ${order.table_detail?.number ?? '—'}` },
+  takeaway: { Icon: MdTakeoutDining, label: () => 'برون‌بر' },
+  delivery: { Icon: MdDeliveryDining, label: () => 'ارسال' },
+}
+
 // نشان وضعیت واقعی پرداخت — تنها منبع درست این اطلاعات، فارغ از وضعیت کلی سفارش
 // (چون سفارش نقدی بلافاصله به‌خاطر آشپزخانه «تأیید شده» می‌شود، حتی قبل از وصول وجه)
 function paymentBadge(order) {
   const paid = !!order.is_paid
   if (order.payment_method === 'cash') {
-    return { icon: '💵', text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
+    return { Icon: MdAttachMoney, text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
   }
-  return { icon: '💳', text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
+  return { Icon: MdCreditCard, text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
 }
 
 export default function WaiterOrdersPage() {
@@ -149,7 +158,7 @@ export default function WaiterOrdersPage() {
     <div className="waiter-orders">
       <div className="waiter-page-header">
         <h1>سفارشات</h1>
-        <button className="waiter-refresh-btn" onClick={() => load()} disabled={loading}>
+        <button className="waiter-refresh-btn" onClick={() => load()} disabled={loading} aria-label="بروزرسانی لیست سفارشات">
           <MdRefresh size={18} className={loading ? 'spin' : ''} />
         </button>
       </div>
@@ -177,6 +186,7 @@ export default function WaiterOrdersPage() {
           {displayOrders.map((order) => {
             const next = NEXT_STATUS[order.status]
             const badge = paymentBadge(order)
+            const deliveryMeta = DELIVERY_TYPE_META[order.delivery_type] || DELIVERY_TYPE_META.delivery
             return (
               <div key={order.id} className={`waiter-order-card neu-card-sm waiter-order-card--${order.status}`}>
                 <div className="waiter-order-card__top">
@@ -187,10 +197,8 @@ export default function WaiterOrdersPage() {
                 </div>
 
                 <div className="waiter-order-card__meta">
-                  <span>
-                    {order.delivery_type === 'dine_in'
-                      ? `🍽️ میز ${order.table_detail?.number ?? '—'}`
-                      : order.delivery_type === 'takeaway' ? '🥡 برون‌بر' : '🚚 ارسال'}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <deliveryMeta.Icon size={14} /> {deliveryMeta.label(order)}
                   </span>
                   <span>{formatDateTime(order.created_at)}</span>
                 </div>
@@ -204,7 +212,7 @@ export default function WaiterOrdersPage() {
                     color: badge.paid ? 'var(--success)' : '#f59e0b',
                     border: `1px solid ${badge.paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
                   }}>
-                    {badge.icon} {badge.text}
+                    <badge.Icon size={13} /> {badge.text}
                   </span>
                 </div>
 
@@ -241,7 +249,7 @@ export default function WaiterOrdersPage() {
                         disabled={confirmingCash === order.id}
                         onClick={() => handleConfirmCash(order)}
                       >
-                        {confirmingCash === order.id ? '...' : '💵 وصول وجه'}
+                        {confirmingCash === order.id ? '...' : <><MdAttachMoney size={15} /> وصول وجه</>}
                       </button>
                     )}
                     {order.status === 'pending_confirmation' && (

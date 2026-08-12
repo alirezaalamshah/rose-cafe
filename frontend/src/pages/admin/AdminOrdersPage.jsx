@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   MdRefresh, MdShoppingBag, MdPerson, MdAccessTime, MdTableRestaurant, MdHistory, MdBolt,
   MdChevronRight, MdChevronLeft, MdCalendarToday, MdCheckCircle, MdCancel, MdBadge,
+  MdRestaurant, MdTakeoutDining, MdDeliveryDining, MdAttachMoney, MdCreditCard,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { ordersAPI } from '../../api/orders.js'
@@ -57,10 +58,10 @@ const NEXT_STATUS = {
   ready: 'delivered',
 }
 
-const DELIVERY_LABEL = {
-  delivery: '🛵 پیک',
-  dine_in: '🍽️ سرو در کافه',
-  takeaway: '🥡 برون‌بر',
+const DELIVERY_TYPE_META = {
+  delivery: { Icon: MdDeliveryDining, label: 'پیک' },
+  dine_in: { Icon: MdRestaurant, label: 'سرو در کافه' },
+  takeaway: { Icon: MdTakeoutDining, label: 'برون‌بر' },
 }
 
 // نشان وضعیت واقعی پرداخت — تنها منبع درست این اطلاعات، فارغ از وضعیت کلی سفارش
@@ -68,9 +69,9 @@ const DELIVERY_LABEL = {
 function paymentBadge(order) {
   const paid = !!order.is_paid
   if (order.payment_method === 'cash') {
-    return { icon: '💵', text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
+    return { Icon: MdAttachMoney, text: paid ? 'نقدی — وصول شد' : 'نقدی — در انتظار وصول', paid }
   }
-  return { icon: '💳', text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
+  return { Icon: MdCreditCard, text: paid ? 'آنلاین — پرداخت موفق' : 'آنلاین — در انتظار پرداخت', paid }
 }
 
 const PAYMENT_FILTERS = [
@@ -372,6 +373,7 @@ export default function AdminOrdersPage() {
           {displayOrders.map((order) => {
             const nextStatus = NEXT_STATUS[order.status]
             const badge = paymentBadge(order)
+            const deliveryMeta = DELIVERY_TYPE_META[order.delivery_type]
             return (
               <div key={order.id} className="admin-order-card neu-card">
                 {/* ردیف سرصفحه */}
@@ -389,8 +391,9 @@ export default function AdminOrdersPage() {
                       <MdAccessTime size={13} />
                       {formatDateTime(order.created_at)}
                     </span>
-                    <span className="admin-order-card__delivery">
-                      {DELIVERY_LABEL[order.delivery_type] || order.delivery_type}
+                    <span className="admin-order-card__delivery" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {deliveryMeta && <deliveryMeta.Icon size={13} />}
+                      {deliveryMeta?.label || order.delivery_type}
                       {order.delivery_type === 'dine_in' && order.table_detail?.number
                         ? ` — میز ${order.table_detail.number}`
                         : ''}
@@ -406,7 +409,7 @@ export default function AdminOrdersPage() {
                       color: badge.paid ? 'var(--success)' : '#f59e0b',
                       border: `1px solid ${badge.paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
                     }}>
-                      {badge.icon} {badge.text}
+                      <badge.Icon size={13} /> {badge.text}
                     </span>
                     {order.assigned_waiter_name && (
                       <span style={{
@@ -489,7 +492,7 @@ export default function AdminOrdersPage() {
                         disabled={confirmingCash === order.id}
                         onClick={() => handleConfirmCash(order.id)}
                       >
-                        {confirmingCash === order.id ? '...' : '💵 تأیید وصول وجه'}
+                        {confirmingCash === order.id ? '...' : <><MdAttachMoney size={15} /> تأیید وصول وجه</>}
                       </button>
                     )}
                     {order.status === 'pending_confirmation' && (

@@ -18,7 +18,7 @@ export default function WaiterLayout() {
       {/* Top Bar */}
       <header className="waiter-header">
         <div className="waiter-header__brand">
-          <img src="/ECUC9864.JPEG" alt="است" className="waiter-header__logo" />
+          <img src="/ECUC9864.JPEG" alt="لوگوی کافه" className="waiter-header__logo" />
           <span className="waiter-header__title">پنل گارسون</span>
         </div>
         <div className="waiter-header__user">

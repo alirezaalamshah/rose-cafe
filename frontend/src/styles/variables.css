@@ -29,8 +29,13 @@
   /* Text */
   --text-primary: #f2ede6;
   --text-secondary: #c2a090;
-  --text-muted: #875a4e;
+  --text-muted: #a07569;
   --text-inverse: #0e0101;
+
+  /* متن روی زمینه‌های رنگی (بج/دکمه) — هرکدام هم‌راستا با رنگ زمینه‌ی خودشان */
+  --text-on-primary: #1a1205;
+  --text-on-success: #0a1a0a;
+  --text-on-error: #ffffff;
 
   /* Status Colors */
   --success: #4ade80;

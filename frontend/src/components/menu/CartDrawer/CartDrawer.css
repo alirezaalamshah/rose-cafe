@@ -165,13 +165,13 @@
 .cart-item__controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 6px;
 }
 
 .cart-item__qty-btn {
-  width: 26px;
-  height: 26px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,7 +203,7 @@
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
   transition: var(--transition-fast);
   display: flex;
   border-radius: var(--radius-sm);
