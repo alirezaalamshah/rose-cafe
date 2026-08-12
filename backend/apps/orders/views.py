@@ -36,10 +36,11 @@ def _already_actioned_response(order):
 
 def _send_status_change_sms(order):
     """
-    تنها پیامک مرتبط با تغییر وضعیت سفارش: وقتی سفارش ارسال با پیک آماده و تحویل پیک
-    می‌شود. برای بقیه‌ی تغییرات وضعیت (و انواع تحویل دیگر) پیامکی ارسال نمی‌شود.
+    تنها پیامک مرتبط با تغییر وضعیت سفارش: وقتی سفارش ارسال با پیک «تحویل داده شد» می‌شود
+    (یعنی از کافه خارج و دست پیک سپرده شده). برای بقیه‌ی تغییرات وضعیت (و انواع تحویل دیگر)
+    پیامکی ارسال نمی‌شود.
     """
-    if order.status == Order.Status.READY and order.delivery_type == Order.DeliveryType.DELIVERY:
+    if order.status == Order.Status.DELIVERED and order.delivery_type == Order.DeliveryType.DELIVERY:
         send_order_ready_for_courier_sms(str(order.user.phone), order.order_number)
 
 
