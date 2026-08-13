@@ -67,12 +67,32 @@ SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 SESSION_COOKIE_SECURE = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 CSRF_COOKIE_SECURE = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 
+# لاگ‌های خود اپ (apps.*) — قبلاً هیچ‌جا ذخیره نمی‌شدند چون root/django روی سطح ERROR
+# بودند و پیام‌های logger.info() (مثل پاسخ زرین‌پال یا وضعیت پیامک) کلاً حذف می‌شدند.
+# این فایل توسط .htaccess (بلاک کردن پسوند .log) از دسترسی عمومی محفوظ است.
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'app_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'app.log'),
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
         },
     },
     'root': {
@@ -83,6 +103,11 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console', 'app_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
