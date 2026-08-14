@@ -143,14 +143,18 @@ MELIPAYAMAK_FROM = config('MELIPAYAMAK_FROM', default='')
 MELIPAYAMAK_USERNAME = config('MELIPAYAMAK_USERNAME', default='')
 MELIPAYAMAK_PASSWORD = config('MELIPAYAMAK_PASSWORD', default='')
 
-# پیامک‌های غیر-OTP (تغییر وضعیت سفارش، تایید رزرو و ...) موقتاً خاموش هستند
-# تا نقشه‌ی درست محتوا/زمان ارسالشان طراحی شود. OTP از این فلگ تأثیر نمی‌گیرد.
+# پیامک‌های غیر-OTP (ثبت سفارش، تحویل به پیک — فقط سفارش‌های ارسال با پیک). OTP از این فلگ تأثیر نمی‌گیرد.
 SMS_NOTIFICATIONS_ENABLED = config('SMS_NOTIFICATIONS_ENABLED', default=False, cast=bool)
 
 # Zarinpal
 ZARINPAL_MERCHANT = config('ZARINPAL_MERCHANT', default='')
 ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 ZARINPAL_CALLBACK_URL = config('ZARINPAL_CALLBACK_URL', default='http://localhost:5173/payment/callback')
+
+# Push Notification (Web Push / VAPID) — کلید عمومی از طریق API به فرانت‌اند هم داده می‌شود
+VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_ADMIN_EMAIL = config('VAPID_ADMIN_EMAIL', default='mailto:admin@example.com')
 
 # بک‌آپ خودکار دیتابیس (django-dbbackup) — فایل‌سیستم محلی به‌عنوان مقصد پیش‌فرض
 # (روی هاست اشتراکی هدف هم دیسک معمولی است، نه سرویس خارجی). با pg_dump/mysqldump کار می‌کند

@@ -11,6 +11,7 @@ from .zarinpal import request_payment, verify_payment
 from apps.orders.models import Order
 from apps.common.pagination import StandardPagination
 from apps.notifications.sms import send_order_placed_sms
+from apps.notifications.push import notify_new_order
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,7 @@ class PaymentVerifyView(APIView):
             # پیامک «ثبت سفارش» فقط برای ارسال با پیک — بقیه‌ی انواع تحویل نیازی ندارند
             if order.delivery_type == Order.DeliveryType.DELIVERY:
                 send_order_placed_sms(str(order.user.phone), order.order_number, order.final_price)
+            notify_new_order(order)
 
             return Response({
                 'success': True,
@@ -201,6 +203,7 @@ class FreeOrderConfirmView(APIView):
 
         if order.delivery_type == Order.DeliveryType.DELIVERY:
             send_order_placed_sms(str(order.user.phone), order.order_number, order.final_price)
+        notify_new_order(order)
 
         return Response({'success': True, 'order_id': order.id})
 

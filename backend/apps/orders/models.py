@@ -92,6 +92,10 @@ class Order(models.Model):
     )
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تأیید')
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تحویل')
+    cash_reminder_sent_at = models.DateTimeField(
+        null=True, blank=True, verbose_name='زمان ارسال یادآوری نقدی',
+        help_text='تا این فیلد خالی نشود، دوباره برای همین سفارش یادآوری نقدی ارسال نمی‌شود',
+    )
     note = models.TextField(blank=True, verbose_name='توضیحات سفارش')
     total_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ کل')
     delivery_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه ارسال')

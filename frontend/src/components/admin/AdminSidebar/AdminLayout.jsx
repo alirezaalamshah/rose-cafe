@@ -9,6 +9,8 @@ import {
   MdHistory,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
+import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
+import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
 import './AdminSidebar.css'
 
 const NAV_GROUPS = [
@@ -180,6 +182,16 @@ export default function AdminLayout() {
         </nav>
 
         <div className="admin-sidebar__footer">
+          <NotificationToggleButton
+            className="admin-sidebar__link"
+            showLabel={!collapsed}
+            title={collapsed ? 'فعال‌سازی اعلان‌ها' : undefined}
+          />
+          <InstallAppButton
+            className="admin-sidebar__link"
+            showLabel={!collapsed}
+            title={collapsed ? 'نصب اپلیکیشن' : undefined}
+          />
           <NavLink to="/" className="admin-sidebar__link" title={collapsed ? 'بازگشت به سایت' : undefined}>
             <MdArrowForward size={20} />
             {!collapsed && <span>بازگشت به سایت</span>}

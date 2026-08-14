@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { MdRestaurantMenu, MdTableBar, MdEventNote, MdLogout, MdDashboard, MdArrowForward } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
+import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
+import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
 import './WaiterLayout.css'
 
 export default function WaiterLayout() {
@@ -56,6 +58,8 @@ export default function WaiterLayout() {
           )}
 
           <div className="waiter-nav__footer">
+            <NotificationToggleButton className="waiter-nav__item" iconSize={22} />
+            <InstallAppButton className="waiter-nav__item" iconSize={22} />
             <NavLink to="/" className="waiter-nav__item">
               <MdArrowForward size={22} />
               <span>بازگشت به سایت</span>

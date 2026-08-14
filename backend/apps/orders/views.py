@@ -15,6 +15,7 @@ from apps.accounts.models import Address
 from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
 from apps.notifications.sms import send_order_ready_for_courier_sms
+from apps.notifications.push import notify_new_order
 from apps.common.utils import local_day_range
 from apps.staff_activity.models import StaffActionLog, log_staff_action
 
@@ -217,6 +218,9 @@ class OrderListCreateView(APIView):
             order.status = Order.Status.PENDING_CONFIRMATION
 
         order.save()
+
+        if order.status == Order.Status.PENDING_CONFIRMATION:
+            notify_new_order(order)
 
         # ثبت استفاده از تخفیف
         if applied_discount_result:

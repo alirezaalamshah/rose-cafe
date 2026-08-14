@@ -94,7 +94,8 @@
   .modal,
   .modal--sm,
   .modal--lg,
-  .modal--xl {
+  .modal--xl,
+  .modal--full {
     max-width: 100%;
     width: 100%;
     max-height: 92dvh;
@@ -115,6 +116,17 @@
     background: var(--border);
     margin: 10px auto 0;
     flex-shrink: 0;
+  }
+
+  /* size="full" — تقریباً کل صفحه رو می‌گیره، نه فقط یک بخش پایینی مثل بقیه‌ی مودال‌ها */
+  .modal--full {
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .modal--full::before {
+    display: none;
   }
 
   .modal__header {
