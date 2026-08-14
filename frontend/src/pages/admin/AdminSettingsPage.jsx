@@ -88,7 +88,7 @@ function CafeInfoSection() {
           label="نام کافه *"
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
-          placeholder="مثلاً: کافه آرام"
+          placeholder="مثلاً: رز کافه"
         />
         <Input
           label="شعار کافه"

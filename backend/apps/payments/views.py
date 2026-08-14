@@ -45,7 +45,7 @@ class PaymentRequestView(APIView):
             )
 
         phone = str(request.user.phone).replace('+98', '0')
-        description = f'پرداخت سفارش #{order.id} - کافه آرام'
+        description = f'پرداخت سفارش #{order.order_number} - رز کافه'
 
         # ایجاد رکورد Payment با وضعیت INIT قبل از تماس با درگاه
         payment, _ = Payment.objects.update_or_create(
