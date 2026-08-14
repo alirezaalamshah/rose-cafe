@@ -49,7 +49,7 @@ class Order(models.Model):
         CANCELLED = 'cancelled', 'لغو شده'
 
     class DeliveryType(models.TextChoices):
-        TAKEAWAY = 'takeaway', 'تحویل در محل (برون‌بر)'
+        TAKEAWAY = 'takeaway', 'تحویل در محل (بیرون‌بر)'
         DELIVERY = 'delivery', 'ارسال با پیک'
         DINE_IN = 'dine_in', 'سرو در کافه'
 

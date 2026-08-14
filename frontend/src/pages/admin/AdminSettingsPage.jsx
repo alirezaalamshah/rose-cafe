@@ -346,7 +346,7 @@ function DeliverySection() {
           dir="ltr"
         />
         <Input
-          label="هزینه بسته‌بندی سفارش برون‌بر (تومان)"
+          label="هزینه بسته‌بندی سفارش بیرون‌بر (تومان)"
           type="number"
           min="0"
           value={form.takeaway_packaging_cost}

@@ -67,7 +67,7 @@ def admin_dashboard(request):
     # تفکیک سفارشات امروز (فقط سفارش‌های واقعاً پرداخت‌شده — نه لغوشده، نه در انتظار پرداخت آنلاین)
     real_today_orders = today_orders.exclude(status__in=['cancelled', 'waiting_payment'])
 
-    DELIVERY_LABELS = {'dine_in': 'سرو در کافه', 'takeaway': 'برون‌بر', 'delivery': 'ارسال با پیک'}
+    DELIVERY_LABELS = {'dine_in': 'سرو در کافه', 'takeaway': 'بیرون‌بر', 'delivery': 'ارسال با پیک'}
     delivery_rows = {
         row['delivery_type']: row
         for row in real_today_orders.values('delivery_type').annotate(

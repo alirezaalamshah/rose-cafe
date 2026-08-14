@@ -155,7 +155,7 @@ export default function OrdersPage() {
                       ? '🛵 ارسال با پیک'
                       : order.delivery_type === 'dine_in'
                         ? `🍽️ سرو در کافه — میز ${order.table_detail?.number ?? ''}`
-                        : '🏪 برون‌بر'}
+                        : '🏪 بیرون‌بر'}
                   </span>
                 </div>
                 <div className="order-card__total">

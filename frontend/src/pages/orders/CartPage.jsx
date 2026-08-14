@@ -376,7 +376,7 @@ export default function CartPage() {
                 onClick={() => setDeliveryType('takeaway')}
               >
                 <MdStorefront size={24} />
-                <span>برون‌بر</span>
+                <span>بیرون‌بر</span>
                 <small>
                   {deliverySettings
                     ? (deliverySettings.takeaway_packaging_cost > 0

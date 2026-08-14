@@ -35,7 +35,7 @@ const NEXT_STATUS = {
 
 const DELIVERY_TYPE_META = {
   dine_in: { Icon: MdRestaurant, label: (order) => `میز ${order.table_detail?.number ?? '—'}` },
-  takeaway: { Icon: MdTakeoutDining, label: () => 'برون‌بر' },
+  takeaway: { Icon: MdTakeoutDining, label: () => 'بیرون‌بر' },
   delivery: { Icon: MdDeliveryDining, label: () => 'ارسال' },
 }
 

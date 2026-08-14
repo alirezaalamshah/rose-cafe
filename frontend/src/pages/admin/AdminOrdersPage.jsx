@@ -61,7 +61,7 @@ const NEXT_STATUS = {
 const DELIVERY_TYPE_META = {
   delivery: { Icon: MdDeliveryDining, label: 'پیک' },
   dine_in: { Icon: MdRestaurant, label: 'سرو در کافه' },
-  takeaway: { Icon: MdTakeoutDining, label: 'برون‌بر' },
+  takeaway: { Icon: MdTakeoutDining, label: 'بیرون‌بر' },
 }
 
 // نشان وضعیت واقعی پرداخت — تنها منبع درست این اطلاعات، فارغ از وضعیت کلی سفارش
