@@ -8,6 +8,7 @@ import useAuthStore from '../../../store/authStore.js'
 import useCartStore from '../../../store/cartStore.js'
 import useBusinessInfoStore from '../../../store/businessInfoStore.js'
 import { businessAPI } from '../../../api/business.js'
+import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
 import './Header.css'
 
 export default function Header() {
@@ -71,6 +72,8 @@ export default function Header() {
           <MdRateReview size={17} /> نظرات
         </NavLink>
       </nav>
+
+      <InstallAppButton className="header__cart-btn" iconSize={19} showLabel={false} title="نصب اپلیکیشن" />
 
       <Link to="/cart" className="header__cart-btn">
         <MdShoppingCart size={19} />

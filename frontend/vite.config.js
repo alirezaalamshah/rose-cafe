@@ -17,6 +17,12 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
+      // پیش‌فرض vite-plugin-pwa: در `npm run dev` هیچ manifest/SW ای فعال نمی‌شود —
+      // برای اینکه بشود همون‌جا نصب‌پذیری/Push رو تست کرد، صریحاً فعالش می‌کنیم
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      },
       injectManifest: {
         // مسیرهای API/مدیا هیچ‌وقت نباید پیش‌کش شوند
         globIgnores: ['**/api/**', '**/media/**'],
@@ -24,6 +30,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/favicon-32.png', 'icons/apple-touch-icon.png'],
       manifest: {
+        id: '/',
         name: 'رز کافه',
         short_name: 'رز کافه',
         description: 'سفارش آنلاین، رزرو میز و مدیریت کافه',

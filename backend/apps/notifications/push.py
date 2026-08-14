@@ -33,18 +33,20 @@ def _send_to_subscription(subscription, payload: dict) -> bool:
         return False
 
 
-def send_push_to_user(user, title: str, body: str, url: str = '/') -> None:
+def send_push_to_user(user, title: str, body: str, url: str = '/', notif_type: str = '') -> None:
     if not settings.VAPID_PRIVATE_KEY:
         logger.info(f'[PUSH DISABLED — VAPID not configured] {user}: {title}')
         return
-    payload = {'title': title, 'body': body, 'url': url}
+    # type برای این است که وقتی اپ باز است، service worker بداند کدام صدای اختصاصی
+    # (سفارش جدید/رزرو جدید/یادآوری نقدی) را به تب‌های باز پخش کند
+    payload = {'title': title, 'body': body, 'url': url, 'type': notif_type}
     for subscription in list(user.push_subscriptions.all()):
         _send_to_subscription(subscription, payload)
 
 
-def send_push_to_users(users, title: str, body: str, url: str = '/') -> None:
+def send_push_to_users(users, title: str, body: str, url: str = '/', notif_type: str = '') -> None:
     for user in users:
-        send_push_to_user(user, title, body, url)
+        send_push_to_user(user, title, body, url, notif_type)
 
 
 def get_notification_recipients(permission_field: str):
@@ -67,10 +69,12 @@ def notify_new_order(order) -> None:
     title = 'سفارش جدید'
     body = f'سفارش #{order.order_number} در انتظار تأیید است'
     recipients = list(get_notification_recipients('can_manage_orders'))
-    send_push_to_users([u for u in recipients if u.is_staff], title, body, url='/admin/orders')
+    send_push_to_users(
+        [u for u in recipients if u.is_staff], title, body, url='/admin/orders', notif_type='new_order',
+    )
     send_push_to_users(
         [u for u in recipients if not u.is_staff], title, body,
-        url='/waiter/orders?status=pending_confirmation',
+        url='/waiter/orders?status=pending_confirmation', notif_type='new_order',
     )
 
 
@@ -87,10 +91,10 @@ def notify_unpaid_cash(order) -> None:
     else:
         recipients = list(get_notification_recipients('can_manage_orders'))
     send_push_to_users(
-        [u for u in recipients if u.is_staff], title, body, url='/admin/orders',
+        [u for u in recipients if u.is_staff], title, body, url='/admin/orders', notif_type='cash_reminder',
     )
     send_push_to_users(
-        [u for u in recipients if not u.is_staff], title, body, url='/waiter/orders',
+        [u for u in recipients if not u.is_staff], title, body, url='/waiter/orders', notif_type='cash_reminder',
     )
 
 
@@ -101,5 +105,11 @@ def notify_new_reservation(reservation) -> None:
     time_str = str(reservation.start_time)[:5]
     body = f'رزرو جدید برای {date_str} ساعت {time_str}'
     recipients = list(get_notification_recipients('can_manage_reservations'))
-    send_push_to_users([u for u in recipients if u.is_staff], title, body, url='/admin/reservations')
-    send_push_to_users([u for u in recipients if not u.is_staff], title, body, url='/waiter/reservations')
+    send_push_to_users(
+        [u for u in recipients if u.is_staff], title, body,
+        url='/admin/reservations', notif_type='new_reservation',
+    )
+    send_push_to_users(
+        [u for u in recipients if not u.is_staff], title, body,
+        url='/waiter/reservations', notif_type='new_reservation',
+    )

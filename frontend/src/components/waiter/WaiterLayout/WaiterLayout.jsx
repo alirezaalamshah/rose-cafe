@@ -3,12 +3,14 @@ import { MdRestaurantMenu, MdTableBar, MdEventNote, MdLogout, MdDashboard, MdArr
 import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
 import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
+import useNotificationSound from '../../../hooks/useNotificationSound.js'
 import './WaiterLayout.css'
 
 export default function WaiterLayout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const perms = user?.waiter_permissions || {}
+  useNotificationSound()
 
   function handleLogout() {
     logout()
