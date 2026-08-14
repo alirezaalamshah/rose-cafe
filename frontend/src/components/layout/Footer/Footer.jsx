@@ -113,7 +113,17 @@ export default function Footer() {
         <div className="footer__bottom-text">
           <span>© {year} {info?.name || 'کافه'}</span>
           <span className="footer__dot">·</span>
-          <span>تمامی حقوق محفوظ است، این برنامه توسط علیرضا عالمشاه طراحی و توسعه یافته</span>
+          <span>
+            طراحی و توسعه:{' '}
+            <a
+              href="https://alirezaalamshah.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer__credit-link"
+            >
+              علیرضا عالمشاه
+            </a>
+          </span>
         </div>
       </div>
     </footer>
