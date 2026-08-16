@@ -48,7 +48,7 @@ const NAV_GROUPS = [
   {
     title: 'کارکنان',
     items: [
-      { to: '/admin/activity', icon: MdHistory, label: 'عملکرد گارسون‌ها' },
+      { to: '/admin/activity', icon: MdHistory, label: 'عملکرد سرپرست‌های سالن' },
     ],
   },
   {

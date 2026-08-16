@@ -1,7 +1,8 @@
 .waiter-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
   direction: rtl;
 }
@@ -65,11 +66,19 @@
   flex-shrink: 0;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
-  padding: var(--space-lg) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.waiter-nav__links {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-lg) var(--space-sm) var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow-y: auto;
 }
 
 .waiter-nav__item {
@@ -93,8 +102,8 @@
 
 /* footer آیتم‌ها هم <a> (NavLink) و هم <button> (خروج) هستند — استایل مشترک با ریست دیفالت‌های دکمه */
 .waiter-nav__footer {
-  margin-top: auto;
-  padding-top: var(--space-sm);
+  flex-shrink: 0;
+  padding: var(--space-sm);
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;

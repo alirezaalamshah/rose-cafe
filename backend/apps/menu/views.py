@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, filters
+from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
@@ -14,6 +14,7 @@ from .serializers import (
     MenuItemAddonSerializer,
 )
 from .filters import MenuItemFilter
+from apps.accounts.permissions import IsWaiter
 
 
 def _with_rating_annotations(queryset):
@@ -322,6 +323,99 @@ class AdminMenuBulkDeleteView(APIView):
                 status=400,
             )
         return Response({'deleted': deleted})
+
+
+# ─── Waiter Views ────────────────────────────────────────────────────────────
+# فقط تغییر موجودی — نه ویرایش کامل (قیمت/نام/تصویر و...) که مختص ادمین می‌ماند
+
+def _check_menu_permission(request):
+    perm = getattr(request.user, 'waiter_permissions', None)
+    if not perm or not perm.can_manage_menu_availability:
+        return Response({'detail': 'دسترسی به مدیریت موجودی منو ندارید'}, status=status.HTTP_403_FORBIDDEN)
+    return None
+
+
+class WaiterMenuItemListView(generics.ListAPIView):
+    """فهرست کامل آیتم‌های منو (نه فقط موجودها) تا سرپرست سالن بتواند وضعیت هرکدام را ببیند/تغییر دهد."""
+    permission_classes = [IsWaiter]
+    serializer_class = MenuItemAdminSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        return MenuItem.objects.all().select_related('category').prefetch_related('variants', 'addons')
+
+    def list(self, request, *args, **kwargs):
+        denied = _check_menu_permission(request)
+        if denied:
+            return denied
+        return super().list(request, *args, **kwargs)
+
+
+class WaiterMenuItemAvailabilityView(APIView):
+    permission_classes = [IsWaiter]
+
+    def patch(self, request, pk):
+        denied = _check_menu_permission(request)
+        if denied:
+            return denied
+
+        new_status = request.data.get('status')
+        allowed = {MenuItem.Status.AVAILABLE, MenuItem.Status.UNAVAILABLE}
+        if new_status not in allowed:
+            return Response(
+                {'detail': f'وضعیت باید یکی از {", ".join(allowed)} باشد'}, status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            item = MenuItem.objects.get(pk=pk)
+        except MenuItem.DoesNotExist:
+            return Response({'detail': 'آیتم یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        item.status = new_status
+        item.save(update_fields=['status'])
+        return Response(MenuItemAdminSerializer(item).data)
+
+
+class WaiterMenuItemVariantAvailabilityView(APIView):
+    permission_classes = [IsWaiter]
+
+    def patch(self, request, pk):
+        denied = _check_menu_permission(request)
+        if denied:
+            return denied
+
+        if 'is_available' not in request.data:
+            return Response({'detail': 'is_available الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            variant = MenuItemVariant.objects.get(pk=pk)
+        except MenuItemVariant.DoesNotExist:
+            return Response({'detail': 'نوع آیتم یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        variant.is_available = bool(request.data.get('is_available'))
+        variant.save(update_fields=['is_available'])
+        _sync_item_price(variant.item_id)
+        return Response(MenuItemVariantSerializer(variant).data)
+
+
+class WaiterMenuItemAddonAvailabilityView(APIView):
+    permission_classes = [IsWaiter]
+
+    def patch(self, request, pk):
+        denied = _check_menu_permission(request)
+        if denied:
+            return denied
+
+        if 'is_available' not in request.data:
+            return Response({'detail': 'is_available الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            addon = MenuItemAddon.objects.get(pk=pk)
+        except MenuItemAddon.DoesNotExist:
+            return Response({'detail': 'افزودنی یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        addon.is_available = bool(request.data.get('is_available'))
+        addon.save(update_fields=['is_available'])
+        return Response(MenuItemAddonSerializer(addon).data)
 
 
 class AdminCategoryBulkToggleView(APIView):

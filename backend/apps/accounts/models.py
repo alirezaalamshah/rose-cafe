@@ -27,7 +27,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     class Role(models.TextChoices):
         CUSTOMER = 'customer', 'مشتری'
-        WAITER = 'waiter', 'گارسون'
+        WAITER = 'waiter', 'سرپرست سالن'
         ADMIN = 'admin', 'مدیر'
 
     class Gender(models.TextChoices):
@@ -95,10 +95,13 @@ class WaiterPermission(models.Model):
     can_manage_orders = models.BooleanField(default=True, verbose_name='مدیریت سفارشات')
     can_manage_reservations = models.BooleanField(default=False, verbose_name='مدیریت رزروها')
     can_manage_tables = models.BooleanField(default=False, verbose_name='مدیریت میزها')
+    can_manage_menu_availability = models.BooleanField(default=False, verbose_name='مدیریت موجودی منو')
+    can_force_close_cafe = models.BooleanField(default=False, verbose_name='بستن فوری کافه')
+    can_view_own_performance = models.BooleanField(default=False, verbose_name='مشاهده عملکرد خود')
 
     class Meta:
-        verbose_name = 'دسترسی گارسون'
-        verbose_name_plural = 'دسترسی‌های گارسون'
+        verbose_name = 'دسترسی سرپرست سالن'
+        verbose_name_plural = 'دسترسی‌های سرپرست سالن'
 
     def __str__(self):
         return f'دسترسی‌های {self.user}'

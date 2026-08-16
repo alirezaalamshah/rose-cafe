@@ -112,7 +112,7 @@ export default function Header() {
               )}
               {user?.role === 'waiter' && (
                 <Link to="/waiter" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
-                  <MdRestaurantMenu size={17} /> پنل گارسون
+                  <MdRestaurantMenu size={17} /> پنل سرپرست سالن
                 </Link>
               )}
               <button className="header__dropdown-item danger" onClick={handleLogout}>

@@ -527,12 +527,12 @@ class WaiterOrderStatusUpdateView(APIView):
 
         # سفارشی که به گارسون دیگری قفل شده، برای این گارسون اصلاً قابل مشاهده/اکشن نیست
         if order.assigned_waiter_id and order.assigned_waiter_id != request.user.id:
-            return Response({'detail': 'این سفارش به گارسون دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'این سفارش به سرپرست سالن دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
 
         new_status = request.data.get('status')
         if new_status not in [s.value for s in WAITER_ALLOWED_STATUSES]:
             return Response(
-                {'detail': f'گارسون تنها می‌تواند وضعیت را به {", ".join(s.value for s in WAITER_ALLOWED_STATUSES)} تغییر دهد'},
+                {'detail': f'سرپرست سالن تنها می‌تواند وضعیت را به {", ".join(s.value for s in WAITER_ALLOWED_STATUSES)} تغییر دهد'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -569,7 +569,7 @@ class ConfirmCashPaymentView(APIView):
 
         if (not request.user.is_staff and order.assigned_waiter_id
                 and order.assigned_waiter_id != request.user.id):
-            return Response({'detail': 'این سفارش به گارسون دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'این سفارش به سرپرست سالن دیگری اختصاص دارد'}, status=status.HTTP_403_FORBIDDEN)
 
         if order.payment_method != Order.PaymentMethod.CASH:
             return Response(

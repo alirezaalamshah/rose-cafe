@@ -10,6 +10,8 @@ from .serializers import (
     BannerSerializer, BannerAdminSerializer, SocialLinkSerializer,
 )
 from .utils import get_cafe_status
+from apps.accounts.permissions import IsWaiter
+from apps.staff_activity.models import StaffActionLog, log_staff_action
 
 
 class AdminForceCloseTodayView(APIView):
@@ -18,25 +20,52 @@ class AdminForceCloseTodayView(APIView):
     از همان رکورد SpecialDay امروز استفاده می‌کند که get_cafe_status پیش از
     ساعات هفتگی بررسی می‌کند؛ چون کلید آن تاریخ «امروز» است، فردا خودکار و
     بدون نیاز به هیچ job زمان‌بندی‌شده‌ای به برنامه‌ی عادی هفتگی برمی‌گردد.
+    ادمین همیشه دسترسی دارد؛ سرپرست سالن فقط اگر can_force_close_cafe فعال باشد.
     """
-    permission_classes = [permissions.IsAdminUser]
+    def get_permissions(self):
+        if self.request.user and self.request.user.is_staff:
+            return [permissions.IsAdminUser()]
+        return [IsWaiter()]
+
+    def _check_waiter_permission(self, request):
+        if request.user.is_staff:
+            return None
+        perm = getattr(request.user, 'waiter_permissions', None)
+        if not perm or not perm.can_force_close_cafe:
+            return Response({'detail': 'دسترسی به بستن فوری کافه ندارید'}, status=status.HTTP_403_FORBIDDEN)
+        return None
 
     def post(self, request):
+        denied = self._check_waiter_permission(request)
+        if denied:
+            return denied
+
         today = timezone.localdate()
+        actor_name = request.user.full_name or str(request.user.phone)
         SpecialDay.objects.update_or_create(
             date=today,
             defaults={
                 'is_closed': True,
                 'open_time': None,
                 'close_time': None,
-                'note': 'بسته شده دستی توسط ادمین',
+                'note': f'بسته شده دستی توسط {actor_name}',
             },
+        )
+        log_staff_action(
+            request.user, StaffActionLog.Action.CAFE_FORCE_CLOSED, 'کافه را برای امروز فوری بست',
         )
         return Response(get_cafe_status())
 
     def delete(self, request):
+        denied = self._check_waiter_permission(request)
+        if denied:
+            return denied
+
         today = timezone.localdate()
         SpecialDay.objects.filter(date=today).delete()
+        log_staff_action(
+            request.user, StaffActionLog.Action.CAFE_REOPENED, 'کافه را دوباره باز کرد',
+        )
         return Response(get_cafe_status())
 
 

@@ -114,3 +114,33 @@
   border-color: rgba(240,214,132,0.3);
   color: var(--primary);
 }
+
+/* Force-close cafe card */
+.waiter-cafe-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-2xl);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.waiter-cafe-status--closed {
+  border-color: rgba(248,113,113,0.35);
+}
+
+.waiter-cafe-status__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.waiter-cafe-status__note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}

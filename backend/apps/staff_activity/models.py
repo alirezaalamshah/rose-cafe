@@ -16,6 +16,8 @@ class StaffActionLog(models.Model):
         RESERVATION_COMPLETED = 'reservation_completed', 'اتمام رزرو'
         RESERVATION_NO_SHOW = 'reservation_no_show', 'عدم حضور مشتری'
         RESERVATION_CANCELLED = 'reservation_cancelled', 'لغو رزرو'
+        CAFE_FORCE_CLOSED = 'cafe_force_closed', 'بستن فوری کافه'
+        CAFE_REOPENED = 'cafe_reopened', 'بازکردن مجدد کافه'
 
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,

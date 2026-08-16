@@ -1,0 +1,19 @@
+.waiter-performance__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.waiter-performance__cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .waiter-performance__cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

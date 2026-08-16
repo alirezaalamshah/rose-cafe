@@ -42,6 +42,8 @@ const WaiterDashboardPage = lazy(() => import('./pages/waiter/WaiterDashboardPag
 const WaiterOrdersPage = lazy(() => import('./pages/waiter/WaiterOrdersPage.jsx'))
 const WaiterReservationsPage = lazy(() => import('./pages/waiter/WaiterReservationsPage.jsx'))
 const WaiterTablesPage = lazy(() => import('./pages/waiter/WaiterTablesPage.jsx'))
+const WaiterMenuPage = lazy(() => import('./pages/waiter/WaiterMenuPage.jsx'))
+const WaiterPerformancePage = lazy(() => import('./pages/waiter/WaiterPerformancePage.jsx'))
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore()
@@ -112,6 +114,8 @@ function App() {
           <Route path="orders" element={<WaiterOrdersPage />} />
           <Route path="reservations" element={<WaiterReservationsPage />} />
           <Route path="tables" element={<WaiterTablesPage />} />
+          <Route path="menu" element={<WaiterMenuPage />} />
+          <Route path="performance" element={<WaiterPerformancePage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

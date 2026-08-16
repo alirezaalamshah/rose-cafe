@@ -17,14 +17,14 @@ import './AdminUsersPage.css'
 
 const ROLES = [
   { value: 'customer', label: 'مشتری', icon: <MdPerson size={12} />, cls: '' },
-  { value: 'waiter', label: 'گارسون', icon: <MdRestaurantMenu size={12} />, cls: 'status-pending' },
+  { value: 'waiter', label: 'سرپرست سالن', icon: <MdRestaurantMenu size={12} />, cls: 'status-pending' },
   { value: 'admin', label: 'مدیر', icon: <MdAdminPanelSettings size={12} />, cls: 'status-confirmed' },
 ]
 
 const ROLE_FILTER = [
   { value: '', label: 'همه نقش‌ها' },
   { value: 'customer', label: 'مشتری' },
-  { value: 'waiter', label: 'گارسون' },
+  { value: 'waiter', label: 'سرپرست سالن' },
   { value: 'admin', label: 'مدیر' },
 ]
 
@@ -128,7 +128,7 @@ export default function AdminUsersPage() {
       setPerms(updated)
       // Update user in list
       setUsers((prev) => prev.map((u) => u.id === permUser.id ? { ...u, waiter_permissions: updated } : u))
-      toast.success('دسترسی‌های گارسون ذخیره شد')
+      toast.success('دسترسی‌های سرپرست سالن ذخیره شد')
       setPermUser(null)
     } catch {
       toast.error('خطا در ذخیره دسترسی‌ها')
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
                           <button
                             className="admin-action-btn"
                             style={{ background: 'var(--primary-bg)', borderColor: 'rgba(240,214,132,.25)', color: 'var(--primary)' }}
-                            title="تنظیم دسترسی‌های گارسون"
+                            title="تنظیم دسترسی‌های سرپرست سالن"
                             onClick={() => openPermissions(user)}
                           >
                             <MdTune size={14} /> دسترسی
@@ -338,7 +338,7 @@ export default function AdminUsersPage() {
       <Modal
         isOpen={!!permUser}
         onClose={() => setPermUser(null)}
-        title={`دسترسی‌های گارسون — ${permUser?.full_name || permUser?.phone}`}
+        title={`دسترسی‌های سرپرست سالن — ${permUser?.full_name || permUser?.phone}`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setPermUser(null)}>انصراف</Button>
@@ -348,12 +348,15 @@ export default function AdminUsersPage() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            مشخص کنید این گارسون به کدام بخش‌ها دسترسی داشته باشد:
+            مشخص کنید این سرپرست سالن به کدام بخش‌ها دسترسی داشته باشد:
           </p>
           {[
             { key: 'can_manage_orders', label: 'مدیریت سفارشات', desc: 'مشاهده و بروزرسانی وضعیت سفارشات' },
             { key: 'can_manage_reservations', label: 'مدیریت رزروها', desc: 'مشاهده و تأیید رزروهای میز' },
             { key: 'can_manage_tables', label: 'مدیریت میزها', desc: 'فعال/غیرفعال کردن میزها' },
+            { key: 'can_manage_menu_availability', label: 'مدیریت موجودی منو', desc: 'موجود/ناموجود کردن آیتم‌ها، تنوع‌ها و افزودنی‌ها' },
+            { key: 'can_force_close_cafe', label: 'بستن فوری کافه', desc: 'بستن/بازکردن اضطراری کافه برای امروز' },
+            { key: 'can_view_own_performance', label: 'مشاهده عملکرد خود', desc: 'گزارش شخصی از سفارش‌های تأیید/رد‌شده و وجوه وصول‌شده' },
           ].map(({ key, label, desc }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input

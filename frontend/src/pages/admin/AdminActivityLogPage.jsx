@@ -52,8 +52,8 @@ export default function AdminActivityLogPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>عملکرد گارسون‌ها</h1>
-        <p>گزارش تجمیعی تأیید/رد سفارش، وجوه وصول‌شده و سرعت تحویل — به تفکیک گارسون</p>
+        <h1>عملکرد سرپرست‌های سالن</h1>
+        <p>گزارش تجمیعی تأیید/رد سفارش، وجوه وصول‌شده و سرعت تحویل — به تفکیک سرپرست سالن</p>
       </div>
 
       <div className="admin-orders__filters">
@@ -99,12 +99,12 @@ export default function AdminActivityLogPage() {
       {loading ? <Loading /> : (
         <div className="admin-orders__table-wrap">
           {rows.length === 0 ? (
-            <div className="empty-state"><div className="icon">📋</div><h3>گارسونی یافت نشد</h3></div>
+            <div className="empty-state"><div className="icon">📋</div><h3>سرپرست سالنی یافت نشد</h3></div>
           ) : (
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>گارسون</th>
+                  <th>سرپرست سالن</th>
                   <th>تأیید شده</th>
                   <th>رد شده</th>
                   <th>نقدی وصول‌شده</th>
@@ -116,7 +116,7 @@ export default function AdminActivityLogPage() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.waiter_id}>
-                    <td data-label="گارسون">{row.waiter_name}</td>
+                    <td data-label="سرپرست سالن">{row.waiter_name}</td>
                     <td data-label="تأیید شده">{row.approved_count}</td>
                     <td data-label="رد شده">{row.rejected_count}</td>
                     <td data-label="نقدی وصول‌شده">{formatPrice(row.cash_collected)}</td>

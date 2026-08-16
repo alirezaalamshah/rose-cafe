@@ -105,7 +105,10 @@ class ChangePasswordSerializer(serializers.Serializer):
 class WaiterPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WaiterPermission
-        fields = ['can_manage_orders', 'can_manage_reservations', 'can_manage_tables']
+        fields = [
+            'can_manage_orders', 'can_manage_reservations', 'can_manage_tables',
+            'can_manage_menu_availability', 'can_force_close_cafe', 'can_view_own_performance',
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):

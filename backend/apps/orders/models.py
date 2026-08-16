@@ -87,8 +87,8 @@ class Order(models.Model):
     rejection_reason = models.CharField(max_length=255, blank=True, verbose_name='دلیل رد سفارش')
     assigned_waiter = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='assigned_orders', verbose_name='گارسون مسئول',
-        help_text='با تأیید یا رد سفارش توسط یک گارسون تنظیم می‌شود؛ تا پایان سفارش فقط همان گارسون آن را می‌بیند',
+        related_name='assigned_orders', verbose_name='سرپرست سالن مسئول',
+        help_text='با تأیید یا رد سفارش توسط یک سرپرست سالن تنظیم می‌شود؛ تا پایان سفارش فقط همان سرپرست آن را می‌بیند',
     )
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تأیید')
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان تحویل')

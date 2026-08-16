@@ -10,6 +10,8 @@ from .views import (
     AdminMenuBulkPriceUpdateView, AdminMenuBulkStatusUpdateView,
     AdminMenuBulkCategoryMoveView, AdminMenuBulkDeleteView,
     AdminCategoryBulkToggleView,
+    WaiterMenuItemListView, WaiterMenuItemAvailabilityView,
+    WaiterMenuItemVariantAvailabilityView, WaiterMenuItemAddonAvailabilityView,
 )
 
 register_converter(UnicodeSlugConverter, 'uslug')
@@ -41,4 +43,10 @@ urlpatterns = [
     # Admin categories
     path('admin/categories/', AdminCategoryListCreateView.as_view(), name='admin-categories'),
     path('admin/categories/<int:pk>/', AdminCategoryDetailView.as_view(), name='admin-category-detail'),
+
+    # Waiter — فقط موجودی
+    path('waiter/items/', WaiterMenuItemListView.as_view(), name='waiter-items'),
+    path('waiter/items/<int:pk>/availability/', WaiterMenuItemAvailabilityView.as_view(), name='waiter-item-availability'),
+    path('waiter/variants/<int:pk>/availability/', WaiterMenuItemVariantAvailabilityView.as_view(), name='waiter-variant-availability'),
+    path('waiter/addons/<int:pk>/availability/', WaiterMenuItemAddonAvailabilityView.as_view(), name='waiter-addon-availability'),
 ]
