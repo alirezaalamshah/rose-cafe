@@ -56,6 +56,7 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         ONLINE = 'online', 'پرداخت آنلاین'
         CASH = 'cash', 'پرداخت در محل'
+        WALLET = 'wallet', 'کیف پول'
 
     user = models.ForeignKey(
         User, on_delete=models.PROTECT,

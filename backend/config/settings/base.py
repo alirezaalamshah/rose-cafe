@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.notifications.apps.NotificationsConfig',
     'apps.business.apps.BusinessConfig',
     'apps.staff_activity.apps.StaffActivityConfig',
+    'apps.wallet.apps.WalletConfig',
 ]
 
 MIDDLEWARE = [
@@ -150,6 +151,7 @@ SMS_NOTIFICATIONS_ENABLED = config('SMS_NOTIFICATIONS_ENABLED', default=False, c
 ZARINPAL_MERCHANT = config('ZARINPAL_MERCHANT', default='')
 ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 ZARINPAL_CALLBACK_URL = config('ZARINPAL_CALLBACK_URL', default='http://localhost:5173/payment/callback')
+WALLET_TOPUP_CALLBACK_URL = config('WALLET_TOPUP_CALLBACK_URL', default='http://localhost:3000/wallet/callback')
 
 # Push Notification (Web Push / VAPID) — کلید عمومی از طریق API به فرانت‌اند هم داده می‌شود
 VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')

@@ -13,7 +13,7 @@ from apps.menu.models import Category, MenuItem, MenuItemVariant, MenuItemAddon
 from apps.business.models import BusinessHours, DeliverySettings
 from apps.discounts.models import Discount
 from apps.reservations.models import Table
-from .models import Order
+from .models import Order, OrderItem, OrderItemAddon
 
 
 class OrderCreationTestCase(APITestCase):
@@ -462,3 +462,87 @@ class StaffPerformanceReportTestCase(APITestCase):
         today = timezone.localdate().isoformat()
         response = self.client.get('/api/staff-activity/report/', {'from': today, 'to': today})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class AdminCategorySalesReportTestCase(APITestCase):
+    """گزارش فروش دسته‌بندی — برای تسویه با تأمین‌کنندگان بیرونی (مثلاً صبحانه)"""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(phone='+989120000031', full_name='ادمین تست')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+        self.customer = User.objects.create_user(phone='+989120000032', full_name='مشتری تست')
+
+        self.breakfast = Category.objects.create(name='صبحانه', slug='breakfast-report-test')
+        self.drinks = Category.objects.create(name='نوشیدنی', slug='drinks-report-test')
+        self.omelette = MenuItem.objects.create(
+            category=self.breakfast, name='املت', slug='omelette-report-test',
+            price=80000, status=MenuItem.Status.AVAILABLE,
+        )
+        self.latte = MenuItem.objects.create(
+            category=self.drinks, name='لاته', slug='latte-report-test',
+            price=100000, status=MenuItem.Status.AVAILABLE,
+        )
+        self.addon = MenuItemAddon.objects.create(item=self.omelette, name='پنیر اضافه', price=20000)
+
+        self.today = timezone.localdate()
+
+    def _create_paid_order(self, status_value, is_paid, created_at):
+        order = Order.objects.create(
+            user=self.customer, delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH, status=status_value, is_paid=is_paid,
+            final_price=180000,
+        )
+        Order.objects.filter(pk=order.pk).update(created_at=created_at)
+        omelette_item = OrderItem.objects.create(
+            order=order, menu_item=self.omelette, quantity=2, unit_price=80000,
+        )
+        OrderItemAddon.objects.create(order_item=omelette_item, addon=self.addon, name=self.addon.name, price=20000)
+        OrderItem.objects.create(order=order, menu_item=self.latte, quantity=1, unit_price=100000)
+        return order
+
+    def test_counts_paid_order_within_range_grouped_by_category(self):
+        self._create_paid_order(Order.Status.DELIVERED, True, timezone.now())
+
+        self.client.force_authenticate(user=self.admin)
+        today_iso = self.today.isoformat()
+        response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        breakfast_row = next(c for c in response.data if c['category_id'] == self.breakfast.id)
+        # ۲ عدد املت × (۸۰,۰۰۰ + افزودنی ۲۰,۰۰۰) = ۲۰۰,۰۰۰ (شامل افزودنی، هم‌راستا با OrderItem.subtotal)
+        self.assertEqual(breakfast_row['total_quantity'], 2)
+        self.assertEqual(breakfast_row['total_amount'], 200000)
+        self.assertEqual(breakfast_row['items'][0]['item_name'], 'املت')
+
+        drinks_row = next(c for c in response.data if c['category_id'] == self.drinks.id)
+        self.assertEqual(drinks_row['total_amount'], 100000)
+
+    def test_excludes_unpaid_and_cancelled_orders(self):
+        self._create_paid_order(Order.Status.CANCELLED, True, timezone.now())
+        self._create_paid_order(Order.Status.WAITING_PAYMENT, False, timezone.now())
+
+        self.client.force_authenticate(user=self.admin)
+        today_iso = self.today.isoformat()
+        response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data, [])
+
+    def test_excludes_orders_outside_date_range(self):
+        self._create_paid_order(Order.Status.DELIVERED, True, timezone.now() - timedelta(days=10))
+
+        self.client.force_authenticate(user=self.admin)
+        today_iso = self.today.isoformat()
+        response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data, [])
+
+    def test_requires_admin(self):
+        today_iso = self.today.isoformat()
+        response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_requires_date_params(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/orders/admin/category-sales-report/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

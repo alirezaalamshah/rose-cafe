@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   MdDelete, MdShoppingCart, MdLocalOffer,
   MdHome, MdStorefront, MdTableRestaurant, MdPeople,
@@ -14,6 +14,7 @@ import { authAPI } from '../../api/auth.js'
 import { businessAPI } from '../../api/business.js'
 import { discountsAPI } from '../../api/discounts.js'
 import { paymentsAPI } from '../../api/payments.js'
+import { walletAPI } from '../../api/wallet.js'
 import Button from '../../components/common/Button/Button.jsx'
 import { Input, Textarea } from '../../components/common/Input/Input.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
@@ -33,7 +34,8 @@ export default function CartPage() {
   const navigate = useNavigate()
 
   const [note, setNote] = useState('')
-  const [submitting, setSubmitting] = useState(false) // false | 'online' | 'cash'
+  const [submitting, setSubmitting] = useState(false) // false | 'online' | 'cash' | 'wallet'
+  const [walletBalance, setWalletBalance] = useState(null)
 
   // Quick name completion (required for delivery orders)
   const [nameModalOpen, setNameModalOpen] = useState(false)
@@ -83,11 +85,22 @@ export default function CartPage() {
 
   const discountAmount = discountInfo?.amount || 0
   const total = subtotal + deliveryCost + packagingCost - discountAmount
+  // پرداخت کیف‌پول فقط به‌صورت کامل پشتیبانی می‌شود — دکمه همیشه نمایش داده می‌شود (حتی با موجودی ناکافی)
+  // تا مشتری را به شارژ کیف‌پول ترغیب کند، ولی فقط با موجودی کافی فعال/قابل‌کلیک است
+  const showWalletOption = walletBalance != null && total > 0
+  const hasWalletBalance = showWalletOption && walletBalance >= total
 
   // Fetch delivery settings once
   useEffect(() => {
     businessAPI.getDeliverySettings()
       .then((data) => setDeliverySettings(data))
+      .catch(() => {})
+  }, [])
+
+  // Fetch wallet balance once (برای فعال/غیرفعال کردن دکمه‌ی پرداخت با کیف‌پول)
+  useEffect(() => {
+    walletAPI.getMyWallet()
+      .then((data) => setWalletBalance(data.balance))
       .catch(() => {})
   }, [])
 
@@ -244,6 +257,14 @@ export default function CartPage() {
       if (paymentMethod === 'cash') {
         clearCart()
         toast.success('سفارش شما ثبت شد! پرداخت هنگام دریافت سفارش انجام می‌شود.')
+        navigate('/orders')
+        return
+      }
+
+      if (paymentMethod === 'wallet') {
+        // پرداخت کیف‌پول همین حالا (هنگام ساخت سفارش) روی بک‌اند به‌صورت اتمیک انجام شده
+        clearCart()
+        toast.success('سفارش با موفقیت از کیف‌پول پرداخت شد!')
         navigate('/orders')
         return
       }
@@ -613,17 +634,38 @@ export default function CartPage() {
             </div>
 
             {deliveryType === 'delivery' ? (
-              <Button
-                fullWidth
-                size="lg"
-                onClick={() => handleSubmitOrder('online')}
-                loading={!!submitting}
-                style={{ marginTop: 'var(--space-lg)' }}
-                disabled={!selectedAddressId}
-              >
-                <MdShoppingCart size={18} />
-                ثبت سفارش و پرداخت آنلاین
-              </Button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' }}>
+                <Button
+                  fullWidth
+                  size="lg"
+                  onClick={() => handleSubmitOrder('online')}
+                  loading={submitting === 'online'}
+                  disabled={!!submitting || !selectedAddressId}
+                >
+                  <MdShoppingCart size={18} />
+                  ثبت سفارش و پرداخت آنلاین
+                </Button>
+                {showWalletOption && (
+                  <div>
+                    <Button
+                      fullWidth
+                      size="lg"
+                      variant="secondary"
+                      onClick={() => handleSubmitOrder('wallet')}
+                      loading={submitting === 'wallet'}
+                      disabled={!!submitting || !selectedAddressId || !hasWalletBalance}
+                    >
+                      👛 {hasWalletBalance ? `پرداخت ${formatPrice(total)} از کیف‌پول` : 'موجودی کیف‌پول کافی نیست'}
+                    </Button>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
+                      موجودی کیف‌پول شما: {formatPrice(walletBalance)}
+                      {!hasWalletBalance && (
+                        <> — <Link to="/wallet" style={{ color: 'var(--primary)', fontWeight: 600 }}>شارژ کیف‌پول</Link></>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' }}>
                 <Button
@@ -638,6 +680,30 @@ export default function CartPage() {
                 >
                   💳 پرداخت آنلاین
                 </Button>
+                {showWalletOption && (
+                  <div>
+                    <Button
+                      fullWidth
+                      size="lg"
+                      variant="secondary"
+                      onClick={() => handleSubmitOrder('wallet')}
+                      loading={submitting === 'wallet'}
+                      disabled={
+                        !!submitting ||
+                        (deliveryType === 'dine_in' && !tableId) ||
+                        !hasWalletBalance
+                      }
+                    >
+                      👛 {hasWalletBalance ? `پرداخت ${formatPrice(total)} از کیف‌پول` : 'موجودی کیف‌پول کافی نیست'}
+                    </Button>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
+                      موجودی کیف‌پول شما: {formatPrice(walletBalance)}
+                      {!hasWalletBalance && (
+                        <> — <Link to="/wallet" style={{ color: 'var(--primary)', fontWeight: 600 }}>شارژ کیف‌پول</Link></>
+                      )}
+                    </p>
+                  </div>
+                )}
                 <Button
                   fullWidth
                   size="lg"

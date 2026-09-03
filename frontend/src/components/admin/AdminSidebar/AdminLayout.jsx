@@ -6,7 +6,7 @@ import {
   MdTableBar, MdRateReview, MdLogout, MdArrowForward,
   MdPeople, MdLocalOffer, MdPayments, MdCategory, MdMenu,
   MdChevronLeft, MdAccessTime, MdSettings, MdClose, MdViewCarousel,
-  MdHistory,
+  MdHistory, MdBarChart,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
@@ -21,6 +21,7 @@ const NAV_GROUPS = [
       { to: '/admin', icon: MdDashboard, label: 'داشبورد', end: true },
       { to: '/admin/orders', icon: MdShoppingBag, label: 'سفارشات' },
       { to: '/admin/payments', icon: MdPayments, label: 'تراکنش‌ها' },
+      { to: '/admin/category-sales', icon: MdBarChart, label: 'فروش دسته‌بندی‌ها' },
     ],
   },
   {

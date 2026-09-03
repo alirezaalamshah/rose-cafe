@@ -95,11 +95,11 @@ function BirthdaySection({ user, birthdayValue, setBirthdayValue, savingBirthday
                 <div className="birthday-offer-banner__value">
                   {offer.discount_type === 'percentage'
                     ? `${toPersianNum(offer.value)}٪ تخفیف ویژه تولد!`
-                    : `${formatPrice(offer.value)} تومان تخفیف تولد!`}
+                    : `${formatPrice(offer.value)} تخفیف تولد!`}
                 </div>
                 <p className="birthday-offer-banner__desc">
                   هر سال در بازه روز تولدت از این تخفیف استثنایی بهره‌مند می‌شوی
-                  {offer.min_order_amount > 0 ? ` • حداقل سفارش ${formatPrice(offer.min_order_amount)} تومان` : ''}
+                  {offer.min_order_amount > 0 ? ` • حداقل سفارش ${formatPrice(offer.min_order_amount)}` : ''}
                 </p>
               </div>
             </div>

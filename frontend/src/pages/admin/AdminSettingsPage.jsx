@@ -3,9 +3,11 @@ import {
   MdLocalShipping, MdSave, MdStore,
   MdPhone, MdLocationOn, MdTableBar,
   MdShare, MdAdd, MdEdit, MdDelete, MdCheck, MdClose,
+  MdAccountBalanceWallet,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { businessAPI } from '../../api/business.js'
+import { walletAPI } from '../../api/wallet.js'
 import { confirm } from '../../store/confirmStore.js'
 import Button from '../../components/common/Button/Button.jsx'
 import { Input, Textarea, Select } from '../../components/common/Input/Input.jsx'
@@ -447,6 +449,97 @@ function ReservationSection() {
   )
 }
 
+function LoyaltySection() {
+  const [form, setForm] = useState({ is_enabled: false, cashback_percentage: '', min_order_amount: '' })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    walletAPI.adminGetLoyaltySettings()
+      .then((data) => setForm({
+        is_enabled: data.is_enabled,
+        cashback_percentage: data.cashback_percentage ?? 0,
+        min_order_amount: data.min_order_amount ?? 0,
+      }))
+      .catch(() => toast.error('خطا در بارگذاری تنظیمات باشگاه مشتریان'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSave() {
+    const percentage = Number(form.cashback_percentage)
+    if (percentage < 0 || percentage > 100) {
+      toast.error('درصد بازگشت وجه باید بین ۰ تا ۱۰۰ باشد')
+      return
+    }
+    setSaving(true)
+    try {
+      await walletAPI.adminUpdateLoyaltySettings({
+        is_enabled: form.is_enabled,
+        cashback_percentage: percentage,
+        min_order_amount: Number(form.min_order_amount) || 0,
+      })
+      toast.success('تنظیمات باشگاه مشتریان ذخیره شد')
+    } catch {
+      toast.error('خطا در ذخیره تنظیمات')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="settings-section__loading"><Loading /></div>
+
+  return (
+    <SettingsSection
+      icon={MdAccountBalanceWallet}
+      title="باشگاه مشتریان — بازگشت وجه به کیف‌پول"
+      hint="بعد از تحویل هر سفارش، درصدی از مبلغ نهایی به کیف‌پول مشتری برمی‌گردد"
+    >
+      <label className="social-link-toggle" style={{ marginBottom: 'var(--space-md)' }}>
+        <input
+          type="checkbox"
+          checked={form.is_enabled}
+          onChange={(e) => setForm((p) => ({ ...p, is_enabled: e.target.checked }))}
+        />
+        <span style={{ fontWeight: 600, color: form.is_enabled ? 'var(--success)' : 'var(--text-secondary)' }}>
+          {form.is_enabled ? 'بازگشت وجه فعال است' : 'بازگشت وجه غیرفعال است'}
+        </span>
+      </label>
+
+      <div className="settings-grid settings-grid--2">
+        <Input
+          label="درصد بازگشت وجه *"
+          type="number"
+          min="0"
+          max="100"
+          value={form.cashback_percentage}
+          onChange={(e) => setForm((p) => ({ ...p, cashback_percentage: e.target.value }))}
+          placeholder="مثلاً: 5"
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="حداقل مبلغ سفارش برای بازگشت وجه (تومان)"
+          type="number"
+          min="0"
+          value={form.min_order_amount}
+          onChange={(e) => setForm((p) => ({ ...p, min_order_amount: e.target.value }))}
+          placeholder="خالی = بدون حداقل"
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+      </div>
+      <p className="settings-section__info">
+        بازگشت وجه فقط بعد از «تحویل داده شد» شدن سفارش واریز می‌شود، نه در لحظه‌ی ثبت سفارش.
+      </p>
+      <div className="settings-section__actions">
+        <Button size="sm" loading={saving} onClick={handleSave}>
+          <MdSave size={14} /> ذخیره تنظیمات باشگاه مشتریان
+        </Button>
+      </div>
+    </SettingsSection>
+  )
+}
+
 export default function AdminSettingsPage() {
   return (
     <div>
@@ -462,6 +555,7 @@ export default function AdminSettingsPage() {
         <SocialLinksSection />
         <DeliverySection />
         <ReservationSection />
+        <LoyaltySection />
       </div>
     </div>
   )

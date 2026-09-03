@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   MdShoppingCart, MdPerson, MdLogout,
-  MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview, MdRestaurantMenu
+  MdAdminPanelSettings, MdHistory, MdTableBar, MdRateReview, MdRestaurantMenu, MdAccountBalanceWallet
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import useCartStore from '../../../store/cartStore.js'
@@ -98,6 +98,9 @@ export default function Header() {
             <div className="header__dropdown">
               <Link to="/profile" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
                 <MdPerson size={17} /> پروفایل
+              </Link>
+              <Link to="/wallet" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <MdAccountBalanceWallet size={17} /> کیف پول
               </Link>
               <Link to="/orders" className="header__dropdown-item" onClick={() => setDropdownOpen(false)}>
                 <MdHistory size={17} /> سفارشات

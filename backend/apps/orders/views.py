@@ -212,12 +212,29 @@ class OrderListCreateView(APIView):
 
         order.final_price = total + delivery_cost + packaging_cost - discount_amount
 
-        # سفارش نقدی بلافاصله در انتظار تأیید کافه قرار می‌گیرد — پیش از آماده‌سازی
+        # سفارش نقدی/کیف‌پول بلافاصله در انتظار تأیید کافه قرار می‌گیرد — پیش از آماده‌سازی
         # باید گارسون/ادمین تأیید کند (ممکن است کافه امکان آماده کردنش را نداشته باشد)
-        if payment_method == Order.PaymentMethod.CASH:
+        if payment_method in (Order.PaymentMethod.CASH, Order.PaymentMethod.WALLET):
             order.status = Order.Status.PENDING_CONFIRMATION
 
         order.save()
+
+        if payment_method == Order.PaymentMethod.WALLET:
+            if order.final_price > 0:
+                from apps.wallet.services import debit, InsufficientBalanceError
+                from apps.wallet.models import WalletTransaction
+                try:
+                    debit(
+                        request.user, order.final_price, WalletTransaction.Type.ORDER_PAYMENT,
+                        order=order, description=f'پرداخت سفارش #{order.order_number}',
+                    )
+                except InsufficientBalanceError:
+                    # rollback کامل (سفارش/آیتم‌ها) بدون commit شدن — الگوی رسمی جنگو برای
+                    # لغو دستی یک atomic block از داخل و بازگرداندن پاسخ خطای دلخواه
+                    transaction.set_rollback(True)
+                    return Response({'detail': 'موجودی کیف‌پول کافی نیست'}, status=status.HTTP_400_BAD_REQUEST)
+            order.is_paid = True
+            order.save(update_fields=['is_paid'])
 
         if order.status == Order.Status.PENDING_CONFIRMATION:
             notify_new_order(order)
@@ -356,6 +373,8 @@ class AdminOrderStatusUpdateView(APIView):
         if order.status == Order.Status.DELIVERED and not order.delivered_at:
             order.delivered_at = timezone.now()
             order.save(update_fields=['delivered_at'])
+            from apps.wallet.services import credit_order_cashback
+            credit_order_cashback(order)
 
         log_staff_action(
             request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,
@@ -368,6 +387,60 @@ class AdminOrderStatusUpdateView(APIView):
         _send_status_change_sms(order)
 
         return Response(OrderSerializer(order).data)
+
+
+class AdminCategorySalesReportView(APIView):
+    """
+    فروش هر دسته‌بندی منو در یک بازه‌ی تاریخی — برای تسویه‌ی مالی با تأمین‌کننده‌های
+    بیرونی (مثلاً یک فروشگاه که همه‌ی آیتم‌های «صبحانه» را تأمین می‌کند و باید بر اساس
+    فروش واقعی با آن حساب شود).
+    فقط سفارش‌های واقعاً پرداخت‌شده و لغونشده حساب می‌شوند (هم‌راستا با admin_dashboard).
+    مبلغ هر آیتم شامل افزودنی‌هایش هم می‌شود — همان تعریف OrderItem.subtotal که در
+    محاسبه‌ی مبلغ نهایی سفارش هم استفاده می‌شود.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+        if not date_from or not date_to:
+            return Response({'detail': 'پارامترهای from و to الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        start = local_day_range(date_from)[0]
+        end = local_day_range(date_to)[1]
+
+        order_items = OrderItem.objects.filter(
+            order__created_at__gte=start, order__created_at__lt=end,
+            order__is_paid=True,
+        ).exclude(
+            order__status__in=[Order.Status.CANCELLED, Order.Status.REJECTED],
+        ).select_related('menu_item', 'menu_item__category').prefetch_related('addons')
+
+        categories = {}  # category_id -> {name, items: {item_id: {...}}}
+        for oi in order_items:
+            cat = oi.menu_item.category
+            cat_bucket = categories.setdefault(cat.id, {
+                'category_id': cat.id, 'category_name': cat.name,
+                'total_quantity': 0, 'total_amount': 0, 'items': {},
+            })
+            item_bucket = cat_bucket['items'].setdefault(oi.menu_item_id, {
+                'item_id': oi.menu_item_id, 'item_name': oi.menu_item.name,
+                'quantity': 0, 'amount': 0,
+            })
+            item_bucket['quantity'] += oi.quantity
+            item_bucket['amount'] += oi.subtotal
+            cat_bucket['total_quantity'] += oi.quantity
+            cat_bucket['total_amount'] += oi.subtotal
+
+        results = []
+        for cat_bucket in categories.values():
+            cat_bucket['items'] = sorted(
+                cat_bucket['items'].values(), key=lambda i: i['amount'], reverse=True
+            )
+            results.append(cat_bucket)
+        results.sort(key=lambda c: c['total_amount'], reverse=True)
+
+        return Response(results)
 
 
 class OrderApproveView(APIView):
@@ -537,9 +610,14 @@ class WaiterOrderStatusUpdateView(APIView):
             )
 
         order.status = new_status
-        if new_status == Order.Status.DELIVERED and not order.delivered_at:
+        newly_delivered = new_status == Order.Status.DELIVERED and not order.delivered_at
+        if newly_delivered:
             order.delivered_at = timezone.now()
         order.save()
+
+        if newly_delivered:
+            from apps.wallet.services import credit_order_cashback
+            credit_order_cashback(order)
 
         log_staff_action(
             request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,

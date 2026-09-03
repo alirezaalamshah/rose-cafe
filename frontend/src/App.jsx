@@ -16,6 +16,8 @@ const OrdersPage = lazy(() => import('./pages/orders/OrdersPage.jsx'))
 const ReservationPage = lazy(() => import('./pages/reservations/ReservationPage.jsx'))
 const PaymentPage = lazy(() => import('./pages/payment/PaymentPage.jsx'))
 const PaymentCallbackPage = lazy(() => import('./pages/payment/PaymentCallbackPage.jsx'))
+const WalletPage = lazy(() => import('./pages/wallet/WalletPage.jsx'))
+const WalletTopupCallbackPage = lazy(() => import('./pages/wallet/WalletTopupCallbackPage.jsx'))
 const ReviewsPage = lazy(() => import('./pages/reviews/ReviewsPage.jsx'))
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage.jsx'))
 
@@ -35,6 +37,7 @@ const AdminBusinessPage = lazy(() => import('./pages/admin/AdminBusinessPage.jsx
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage.jsx'))
 const AdminBannersPage = lazy(() => import('./pages/admin/AdminBannersPage.jsx'))
 const AdminActivityLogPage = lazy(() => import('./pages/admin/AdminActivityLogPage.jsx'))
+const AdminCategorySalesPage = lazy(() => import('./pages/admin/AdminCategorySalesPage.jsx'))
 
 // پنل گارسون: همین‌طور، مشتری/ادمین این چانک را دانلود نمی‌کنند
 const WaiterLayout = lazy(() => import('./components/waiter/WaiterLayout/WaiterLayout.jsx'))
@@ -77,6 +80,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/payment/callback" element={<PaymentCallbackPage />} />
+        <Route path="/wallet/callback" element={<ProtectedRoute><WalletTopupCallbackPage /></ProtectedRoute>} />
 
         {/* Customer Routes */}
         <Route path="/" element={<Layout />}>
@@ -88,6 +92,7 @@ function App() {
           <Route path="payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
         </Route>
 
         {/* Admin Routes */}
@@ -95,6 +100,7 @@ function App() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
+          <Route path="category-sales" element={<AdminCategorySalesPage />} />
           <Route path="menu" element={<AdminMenuPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="tables" element={<AdminTablesPage />} />
