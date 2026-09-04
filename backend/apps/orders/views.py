@@ -397,10 +397,16 @@ class AdminCategorySalesReportView(APIView):
     فقط سفارش‌های واقعاً پرداخت‌شده و لغونشده حساب می‌شوند (هم‌راستا با admin_dashboard).
     مبلغ هر آیتم شامل افزودنی‌هایش هم می‌شود — همان تعریف OrderItem.subtotal که در
     محاسبه‌ی مبلغ نهایی سفارش هم استفاده می‌شود.
+
+    همه‌ی آیتم‌های منو نمایش داده می‌شوند، حتی آن‌هایی که در این بازه هیچ فروشی
+    نداشته‌اند (quantity/amount صفر) — تا ادمین بتواند آیتم‌های بدون فروش را هم ببیند،
+    نه فقط پرفروش‌ترین‌ها.
     """
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
+        from apps.menu.models import MenuItem, Category
+
         date_from = request.query_params.get('from')
         date_to = request.query_params.get('to')
         if not date_from or not date_to:
@@ -409,6 +415,21 @@ class AdminCategorySalesReportView(APIView):
         start = local_day_range(date_from)[0]
         end = local_day_range(date_to)[1]
 
+        # اسکلت اولیه: همه‌ی دسته‌بندی‌ها و همه‌ی آیتم‌های منو، با صفر — بعد فروش واقعی رویش جمع می‌شود
+        categories = {}
+        for cat in Category.objects.all().order_by('order', 'name'):
+            categories[cat.id] = {
+                'category_id': cat.id, 'category_name': cat.name,
+                'total_quantity': 0, 'total_amount': 0, 'items': {},
+            }
+        for item in MenuItem.objects.select_related('category').all():
+            cat_bucket = categories.get(item.category_id)
+            if cat_bucket is None:
+                continue
+            cat_bucket['items'][item.id] = {
+                'item_id': item.id, 'item_name': item.name, 'quantity': 0, 'amount': 0,
+            }
+
         order_items = OrderItem.objects.filter(
             order__created_at__gte=start, order__created_at__lt=end,
             order__is_paid=True,
@@ -416,17 +437,16 @@ class AdminCategorySalesReportView(APIView):
             order__status__in=[Order.Status.CANCELLED, Order.Status.REJECTED],
         ).select_related('menu_item', 'menu_item__category').prefetch_related('addons')
 
-        categories = {}  # category_id -> {name, items: {item_id: {...}}}
         for oi in order_items:
-            cat = oi.menu_item.category
-            cat_bucket = categories.setdefault(cat.id, {
-                'category_id': cat.id, 'category_name': cat.name,
-                'total_quantity': 0, 'total_amount': 0, 'items': {},
-            })
-            item_bucket = cat_bucket['items'].setdefault(oi.menu_item_id, {
-                'item_id': oi.menu_item_id, 'item_name': oi.menu_item.name,
-                'quantity': 0, 'amount': 0,
-            })
+            cat_bucket = categories.get(oi.menu_item.category_id)
+            if cat_bucket is None:
+                continue
+            item_bucket = cat_bucket['items'].get(oi.menu_item_id)
+            if item_bucket is None:
+                # احتیاط: اگر آیتمی بین ثبت سفارش و همین لحظه حذف/جابه‌جا شده باشد
+                item_bucket = cat_bucket['items'].setdefault(oi.menu_item_id, {
+                    'item_id': oi.menu_item_id, 'item_name': oi.menu_item.name, 'quantity': 0, 'amount': 0,
+                })
             item_bucket['quantity'] += oi.quantity
             item_bucket['amount'] += oi.subtotal
             cat_bucket['total_quantity'] += oi.quantity
@@ -434,8 +454,10 @@ class AdminCategorySalesReportView(APIView):
 
         results = []
         for cat_bucket in categories.values():
+            if not cat_bucket['items']:
+                continue  # دسته‌بندی بدون هیچ آیتمی نمایش داده نشود
             cat_bucket['items'] = sorted(
-                cat_bucket['items'].values(), key=lambda i: i['amount'], reverse=True
+                cat_bucket['items'].values(), key=lambda i: (-i['amount'], i['item_name'])
             )
             results.append(cat_bucket)
         results.sort(key=lambda c: c['total_amount'], reverse=True)

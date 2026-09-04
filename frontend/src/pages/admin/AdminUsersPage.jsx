@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   MdSearch, MdAdminPanelSettings, MdBlock, MdCheckCircle,
-  MdPerson, MdRestaurantMenu, MdTune, MdCake,
+  MdPerson, MdRestaurantMenu, MdTune, MdCake, MdVisibility,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { usersAPI } from '../../api/users.js'
@@ -10,7 +11,7 @@ import Modal from '../../components/common/Modal/Modal.jsx'
 import Button from '../../components/common/Button/Button.jsx'
 import { Select } from '../../components/common/Input/Input.jsx'
 import BirthdayPicker from '../../components/common/BirthdayPicker/BirthdayPicker.jsx'
-import { formatDate } from '../../utils/helpers.js'
+import { formatDate, formatPrice, getTierMeta } from '../../utils/helpers.js'
 import { formatJalali } from '../../utils/jalali.js'
 import './AdminOrdersPage.css'
 import './AdminUsersPage.css'
@@ -38,7 +39,14 @@ function RoleBadge({ role, isStaff }) {
   )
 }
 
+function TierBadge({ user }) {
+  if (user.role !== 'customer' || user.is_staff || !user.tier) return '—'
+  const tier = getTierMeta(user.tier)
+  return <span className={`tier-badge ${tier.cls}`}>{tier.label}</span>
+}
+
 export default function AdminUsersPage() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -74,19 +82,6 @@ export default function AdminUsersPage() {
     const role = e.target.value
     setRoleFilter(role)
     fetchUsers(search, role)
-  }
-
-  async function handleToggleActive(user) {
-    setSaving(user.id)
-    try {
-      const updated = await usersAPI.adminUpdateUser(user.id, { is_active: !user.is_active })
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, ...updated } : u))
-      toast.success(updated.is_active ? 'کاربر فعال شد' : 'کاربر مسدود شد')
-    } catch {
-      toast.error('خطا در بروزرسانی')
-    } finally {
-      setSaving(null)
-    }
   }
 
   async function handleSaveEdit() {
@@ -171,7 +166,8 @@ export default function AdminUsersPage() {
                   <th>نام</th>
                   <th>تاریخ عضویت</th>
                   <th>نقش</th>
-                  <th>رمز عبور</th>
+                  <th>سطح</th>
+                  <th>کیف‌پول</th>
                   <th>وضعیت</th>
                   <th>عملیات</th>
                 </tr>
@@ -184,11 +180,9 @@ export default function AdminUsersPage() {
                     <td data-label="نام" style={{ color: 'var(--text-primary)' }}>{user.full_name || '—'}</td>
                     <td data-label="تاریخ عضویت">{formatDate(user.date_joined)}</td>
                     <td data-label="نقش"><RoleBadge role={user.role} isStaff={user.is_staff} /></td>
-                    <td data-label="رمز عبور">
-                      {user.has_password
-                        ? <span className="status-badge status-confirmed">دارد</span>
-                        : <span className="status-badge status-cancelled">ندارد</span>
-                      }
+                    <td data-label="سطح"><TierBadge user={user} /></td>
+                    <td data-label="کیف‌پول" style={{ color: user.wallet_balance > 0 ? 'var(--primary)' : 'var(--text-muted)', fontWeight: user.wallet_balance > 0 ? 700 : 400 }}>
+                      {user.wallet_balance != null ? formatPrice(user.wallet_balance) : '—'}
                     </td>
                     <td data-label="وضعیت">
                       {user.is_active
@@ -198,29 +192,15 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="td-actions">
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        <button
+                          className="admin-action-btn admin-action-btn--info"
+                          title="مشاهده جزئیات مشتری"
+                          onClick={() => navigate(`/admin/users/${user.id}`)}
+                        >
+                          <MdVisibility size={14} /> جزئیات
+                        </button>
                         <button className="admin-action-btn" onClick={() => setEditUser({ ...user })}>
                           ویرایش
-                        </button>
-                        {(user.role === 'waiter') && (
-                          <button
-                            className="admin-action-btn"
-                            style={{ background: 'var(--primary-bg)', borderColor: 'rgba(240,214,132,.25)', color: 'var(--primary)' }}
-                            title="تنظیم دسترسی‌های سرپرست سالن"
-                            onClick={() => openPermissions(user)}
-                          >
-                            <MdTune size={14} /> دسترسی
-                          </button>
-                        )}
-                        <button
-                          className="admin-action-btn"
-                          style={user.is_active
-                            ? { background: 'var(--error-bg)', borderColor: 'rgba(248,113,113,.2)', color: 'var(--error)' }
-                            : { background: 'var(--success-bg)', borderColor: 'rgba(74,222,128,.2)', color: 'var(--success)' }}
-                          disabled={saving === user.id}
-                          onClick={() => handleToggleActive(user)}
-                          title={user.is_active ? 'مسدود کردن' : 'فعال کردن'}
-                        >
-                          {user.is_active ? <MdBlock size={14} /> : <MdCheckCircle size={14} />}
                         </button>
                       </div>
                     </td>
@@ -295,16 +275,60 @@ export default function AdminUsersPage() {
                   </button>
                 ))}
               </div>
+              {editUser.role === 'waiter' && (
+                <button
+                  type="button"
+                  onClick={() => openPermissions(editUser)}
+                  style={{
+                    width: '100%',
+                    marginTop: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--primary-bg)',
+                    border: '1px solid rgba(240,214,132,.25)',
+                    color: 'var(--primary)',
+                    fontFamily: 'var(--font-family)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <MdTune size={15} /> تنظیم دسترسی‌های سرپرست سالن
+                </button>
+              )}
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              <input
-                type="checkbox"
-                checked={editUser.is_active}
-                onChange={(e) => setEditUser((p) => ({ ...p, is_active: e.target.checked }))}
-              />
-              حساب فعال
-            </label>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>وضعیت حساب</label>
+              <button
+                type="button"
+                onClick={() => setEditUser((p) => ({ ...p, is_active: !p.is_active }))}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  fontFamily: 'var(--font-family)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  ...(editUser.is_active
+                    ? { background: 'var(--success-bg)', border: '1px solid rgba(74,222,128,.25)', color: 'var(--success)' }
+                    : { background: 'var(--error-bg)', border: '1px solid rgba(248,113,113,.25)', color: 'var(--error)' }),
+                }}
+              >
+                {editUser.is_active ? <MdCheckCircle size={16} /> : <MdBlock size={16} />}
+                {editUser.is_active ? 'فعال — برای مسدود کردن کلیک کنید' : 'مسدود — برای فعال کردن کلیک کنید'}
+              </button>
+            </div>
 
             <div>
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>

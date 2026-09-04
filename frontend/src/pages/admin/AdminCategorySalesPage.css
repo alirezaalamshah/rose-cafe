@@ -27,6 +27,42 @@
   font-size: 1.05rem;
 }
 
+.admin-category-sales__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-md);
+  user-select: none;
+}
+
+.admin-category-sales__toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* ردیف آیتم بدون فروش — کم‌رنگ‌تر تا در نگاه اول از آیتم‌های واقعاً فروخته‌شده جدا باشد */
+.admin-category-sales__row--zero td {
+  color: var(--text-muted) !important;
+  opacity: 0.75;
+}
+
+.admin-category-sales__zero-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
 @media (max-width: 768px) {
   /* روی موبایل، هدر دسته‌بندی هم مثل بقیه‌ی ردیف‌ها یک کارت مستقل می‌شود
      (رفتار پیش‌فرض .admin-table td حفظ می‌شود) — فقط پس‌زمینه‌اش را متمایز می‌کنیم */

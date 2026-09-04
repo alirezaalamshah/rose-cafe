@@ -156,15 +156,43 @@ class AdminUserSerializer(serializers.ModelSerializer):
     phone = serializers.SerializerMethodField()
     waiter_permissions = WaiterPermissionSerializer(read_only=True)
     has_password = serializers.SerializerMethodField()
+    # این سه فیلد فقط وقتی queryset با annotate_customer_stats() ساخته شده باشد پر
+    # می‌شوند (مثلاً لیست کاربران)؛ در غیر این صورت None برمی‌گردند نه خطا
+    orders_count = serializers.SerializerMethodField()
+    total_spent = serializers.SerializerMethodField()
+    last_order_at = serializers.SerializerMethodField()
+    wallet_balance = serializers.SerializerMethodField()
+    tier = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'phone', 'full_name', 'email', 'role', 'is_staff', 'is_active', 'date_joined',
             'waiter_permissions', 'birthday', 'birthday_set_at', 'gender', 'marital_status', 'food_interests',
-            'has_password',
+            'has_password', 'admin_note', 'orders_count', 'total_spent', 'last_order_at', 'wallet_balance', 'tier',
         ]
         read_only_fields = ['id', 'phone', 'date_joined', 'has_password']
+
+    def get_orders_count(self, obj):
+        return getattr(obj, 'orders_count', None)
+
+    def get_total_spent(self, obj):
+        return getattr(obj, 'total_spent', None)
+
+    def get_last_order_at(self, obj):
+        value = getattr(obj, 'last_order_at', None)
+        return value.isoformat() if value else None
+
+    def get_wallet_balance(self, obj):
+        # None یعنی «این queryset اصلاً annotate نشده» (مثلاً retrieve تکی)، نه اینکه موجودی صفر است
+        value = getattr(obj, 'wallet_balance', None)
+        return None if not hasattr(obj, 'wallet_balance') else (value or 0)
+
+    def get_tier(self, obj):
+        if not hasattr(obj, 'orders_count'):
+            return None
+        from .customer_insights import tier_for
+        return tier_for(obj.orders_count, obj.total_spent)
 
     def get_phone(self, obj):
         return str(obj.phone)

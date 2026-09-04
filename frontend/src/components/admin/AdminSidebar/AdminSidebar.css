@@ -40,6 +40,103 @@
   flex-shrink: 0;
 }
 
+/* ── جست‌وجوی سراسری مشتری ───────────────────────────────────────────── */
+.admin-global-search {
+  position: relative;
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-global-search__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-global-search__icon {
+  position: absolute;
+  right: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.admin-global-search__input-wrap input {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.admin-global-search__input-wrap input:focus {
+  border-color: var(--primary);
+}
+
+.admin-global-search__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: var(--space-md);
+  left: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--neu-shadow);
+  z-index: 20;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.admin-global-search__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px var(--space-md);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: right;
+  transition: var(--transition-fast);
+}
+
+.admin-global-search__item:last-child {
+  border-bottom: none;
+}
+
+.admin-global-search__item:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.admin-global-search__item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-global-search__item-phone {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.admin-global-search__empty {
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .admin-sidebar__logo {
   display: flex;
   align-items: center;
@@ -74,10 +171,11 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-sm) 0;
-  scrollbar-width: none;
+  /* اسکرول‌بار مخفی نمی‌شود — قبلاً این‌جا با display:none مخفی می‌شد و در دسکتاپ
+     کاربر هیچ نشانه‌ی بصری نداشت که این ناحیه قابل‌اسکرول است (فقط با چرخ موس
+     می‌فهمید)؛ الان از همان اسکرول‌بار نازک هم‌رنگ تم استفاده می‌کند که در
+     global.css تعریف شده — دقیقاً هم‌راستا با نوبار پنل سرپرست سالن */
 }
-
-.admin-sidebar__nav::-webkit-scrollbar { display: none; }
 
 .admin-sidebar__group {
   margin-bottom: var(--space-xs);

@@ -31,6 +31,8 @@ const AdminReservationsPage = lazy(() => import('./pages/admin/AdminReservations
 const AdminTablesPage = lazy(() => import('./pages/admin/AdminTablesPage.jsx'))
 const AdminReviewsPage = lazy(() => import('./pages/admin/AdminReviewsPage.jsx'))
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage.jsx'))
+const AdminUserDetailPage = lazy(() => import('./pages/admin/AdminUserDetailPage.jsx'))
+const AdminChurnedCustomersPage = lazy(() => import('./pages/admin/AdminChurnedCustomersPage.jsx'))
 const AdminDiscountsPage = lazy(() => import('./pages/admin/AdminDiscountsPage.jsx'))
 const AdminPaymentsPage = lazy(() => import('./pages/admin/AdminPaymentsPage.jsx'))
 const AdminBusinessPage = lazy(() => import('./pages/admin/AdminBusinessPage.jsx'))
@@ -107,6 +109,8 @@ function App() {
           <Route path="reservations" element={<AdminReservationsPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="users/:id" element={<AdminUserDetailPage />} />
+          <Route path="customers/churned" element={<AdminChurnedCustomersPage />} />
           <Route path="discounts" element={<AdminDiscountsPage />} />
           <Route path="business" element={<AdminBusinessPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />

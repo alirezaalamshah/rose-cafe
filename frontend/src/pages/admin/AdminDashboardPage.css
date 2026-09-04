@@ -98,17 +98,19 @@
 ══════════════════════════════ */
 .dash-kpi-grid {
   display: grid;
-  /* minmax(0, 1fr): جلوگیری از باز شدن ستون توسط متن nowrap داخل کارت */
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* سه ستون ثابت — عرض هر کارت با auto-fill/auto-fit به‌ازای برچسب‌های بلندتر
+     نامنظم می‌شد (یا خیلی تنگ، یا کش‌آمده)؛ سه ستون همیشه فضای یکسان و کافی به هر
+     کارت می‌دهد و همه‌ی ردیف‌ها هم‌ارتفاع می‌مانند */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
-}
-
-@media (max-width: 1300px) {
-  .dash-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 768px) {
   .dash-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .dash-kpi-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ══════════════════════════════
@@ -183,6 +185,21 @@
   font-size: 0.85rem;
 }
 
+/* برای لیست‌هایی که رتبه ندارند (مثل تنوع/افزودنی) — بدون ستون ۲۸px رتبه، وگرنه
+   grid همین سه‌ستونه اعمال می‌شد و نام آیتم داخل همان ستون باریک رتبه فشرده می‌شد */
+.dash-bestseller-row--no-rank {
+  grid-template-columns: 1fr auto;
+}
+
+.dash-bestseller-row--clickable {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dash-bestseller-row--clickable:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .dash-bestseller-row__rank {
   width: 24px;
   height: 24px;
@@ -250,9 +267,10 @@
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-bottom: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* عمداً nowrap/ellipsis نیست — برچسب‌های بلندتر (مثل «بازگشت وجه») به‌جای بریده
+     شدن به خط دوم می‌روند؛ این‌طوری صرف‌نظر از عرض واقعی کارت روی هر صفحه‌ای،
+     متن همیشه کامل قابل‌خواندن است، نه فقط با یک عرض کارت خاص که فرض کرده بودیم */
+  overflow-wrap: break-word;
 }
 
 .dash-kpi__value {
@@ -265,6 +283,22 @@
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 4px;
+}
+
+.dash-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.dash-delta--up {
+  color: var(--success);
+}
+
+.dash-delta--down {
+  color: var(--error);
 }
 
 .dash-kpi__arrow {
@@ -284,7 +318,12 @@
   align-items: start;
 }
 
-@media (max-width: 900px) {
+/* قبلاً breakpoint این بخش ۹۰۰px (عرض viewport) بود، ولی ستون سمت‌راست ۳۴۰px‌ی
+   ثابت + سایدبار ۲۴۰px یعنی ستون چپ (آخرین سفارشات و بقیه) در بازه‌ی تقریباً
+   ۹۰۰ تا ۱۱۵۰px viewport به کمتر از عرض لازمِ ردیف سفارش (~۵۱۰px) می‌رسید و
+   محتوا از قاب کارت بیرون می‌زد. با محاسبه‌ی واقعی فضای در دسترس (نه فقط عرض
+   viewport)، breakpoint به ۱۱۵۰px منتقل شد */
+@media (max-width: 1150px) {
   .dash-mid { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -345,7 +384,9 @@
 
 .dash-order-row {
   display: grid;
-  grid-template-columns: 50px 1fr 80px 100px 100px;
+  /* minmax(0, ...) روی همه‌ی ستون‌ها — نه فقط ستون تلفن — تا هیچ ستونی نتواند
+     عرض کارت را به‌زور باز کند؛ قبلاً فقط ستون تلفن این محافظت را داشت */
+  grid-template-columns: minmax(0, 50px) minmax(0, 1fr) minmax(0, 80px) minmax(0, 100px) minmax(0, 100px);
   align-items: center;
   gap: var(--space-sm);
   padding: 8px var(--space-sm);
@@ -378,6 +419,9 @@
   gap: 4px;
   font-size: 0.75rem;
   color: var(--text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .dash-order-row__price {
@@ -385,6 +429,17 @@
   font-weight: 600;
   color: var(--success);
   text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* .status-badge کلاس مشترک کل پروژه است و shrink-to-fit طراحی شده — این‌جا داخل
+   ستون باریک ردیف سفارش، محدودش می‌کنیم تا از قاب کارت بیرون نزند */
+.dash-order-row .status-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ══════════════════════════════
@@ -521,7 +576,7 @@
 
 .dash-res-row {
   display: grid;
-  grid-template-columns: 100px 110px 1fr 70px 60px 90px;
+  grid-template-columns: minmax(0, 100px) minmax(0, 110px) minmax(0, 1fr) minmax(0, 70px) minmax(0, 60px) minmax(0, 90px);
   align-items: center;
   gap: var(--space-sm);
   padding: 8px var(--space-sm);
@@ -529,6 +584,12 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   font-size: 0.82rem;
+}
+
+.dash-res-row .status-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dash-res-row:hover {
@@ -692,5 +753,160 @@
     grid-template-columns: 22px 1fr auto;
     font-size: 0.8rem;
     padding: 8px 4px;
+  }
+}
+
+/* ══════════════════════════════
+   امتیاز / نرخ رد (بخش کیفیت)
+══════════════════════════════ */
+.dash-rating {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.dash-rating__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.dash-rating__stars {
+  color: var(--warning);
+  font-size: 1.3rem;
+}
+
+.dash-rating__count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dash-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.dash-reasons__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.dash-reasons__count {
+  font-weight: 700;
+  color: var(--error);
+  background: var(--error-bg);
+  border-radius: var(--radius-full);
+  padding: 1px 9px;
+  font-size: 0.75rem;
+}
+
+/* ══════════════════════════════
+   برچسب منطقه (امروز / بازه‌ای / آمار کلی)
+   — تمایز بصری صریح که کدام بخش به فیلتر بازه واکنش نشان می‌دهد
+══════════════════════════════ */
+.dash-zone-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.dash-zone-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+}
+
+.dash-zone-badge--fixed {
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.dash-zone-badge--range {
+  color: var(--primary);
+  background: var(--primary-bg);
+  border-color: rgba(200, 169, 110, 0.3);
+}
+
+.dash-zone-badge--total {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.dash-subsection-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: var(--space-sm) 0 0;
+}
+
+/* ══════════════════════════════
+   منطقه‌ی بازه‌ای — یک قاب واحد دورِ همه‌ی زیربخش‌هایی که به فیلتر بالا
+   واکنش نشان می‌دهند، تا هنگام اسکرول همچنان واضح باشد «همه‌ی این‌ها یک بازه‌اند»
+══════════════════════════════ */
+.dash-range-zone {
+  border: 1px solid rgba(200, 169, 110, 0.25);
+  border-radius: var(--radius-lg);
+  background: rgba(200, 169, 110, 0.03);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.dash-range-zone__filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-primary);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) 0;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid rgba(200, 169, 110, 0.25);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dash-range-zone__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  transition: opacity var(--transition-fast);
+}
+
+.dash-range-zone__body--loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .dash-range-zone {
+    padding: var(--space-md);
+  }
+  .dash-range-zone__filter-bar {
+    margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
+    padding: var(--space-sm) var(--space-md);
   }
 }

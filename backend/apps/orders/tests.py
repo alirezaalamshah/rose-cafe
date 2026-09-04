@@ -526,7 +526,10 @@ class AdminCategorySalesReportTestCase(APITestCase):
         today_iso = self.today.isoformat()
         response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertEqual(response.data, [])
+        # هیچ سفارش واجدشرایطی نبود، ولی آیتم‌های منو باید با صفر نمایش داده شوند (نه لیست خالی)
+        breakfast_row = next(c for c in response.data if c['category_id'] == self.breakfast.id)
+        self.assertEqual(breakfast_row['total_amount'], 0)
+        self.assertEqual(breakfast_row['items'][0]['quantity'], 0)
 
     def test_excludes_orders_outside_date_range(self):
         self._create_paid_order(Order.Status.DELIVERED, True, timezone.now() - timedelta(days=10))
@@ -535,7 +538,27 @@ class AdminCategorySalesReportTestCase(APITestCase):
         today_iso = self.today.isoformat()
         response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertEqual(response.data, [])
+        breakfast_row = next(c for c in response.data if c['category_id'] == self.breakfast.id)
+        self.assertEqual(breakfast_row['total_amount'], 0)
+
+    def test_zero_sale_items_included_alongside_sold_items(self):
+        unsold_item = MenuItem.objects.create(
+            category=self.breakfast, name='کروسان', slug='croissant-report-test',
+            price=60000, status=MenuItem.Status.AVAILABLE,
+        )
+        self._create_paid_order(Order.Status.DELIVERED, True, timezone.now())
+
+        self.client.force_authenticate(user=self.admin)
+        today_iso = self.today.isoformat()
+        response = self.client.get('/api/orders/admin/category-sales-report/', {'from': today_iso, 'to': today_iso})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        breakfast_row = next(c for c in response.data if c['category_id'] == self.breakfast.id)
+        item_names = {i['item_name']: i for i in breakfast_row['items']}
+        self.assertIn('کروسان', item_names)
+        self.assertEqual(item_names['کروسان']['quantity'], 0)
+        self.assertEqual(item_names['کروسان']['amount'], 0)
+        self.assertEqual(item_names['املت']['quantity'], 2)
 
     def test_requires_admin(self):
         today_iso = self.today.isoformat()

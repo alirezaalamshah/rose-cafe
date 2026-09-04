@@ -99,6 +99,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_type_display = serializers.CharField(source='get_delivery_type_display', read_only=True)
     table_detail = TableSimpleSerializer(source='table', read_only=True)
+    address_detail = AddressSerializer(source='address', read_only=True)
     assigned_waiter_name = serializers.SerializerMethodField()
 
     class Meta:
