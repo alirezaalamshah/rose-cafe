@@ -6,11 +6,12 @@ import {
   MdTableBar, MdRateReview, MdLogout, MdArrowForward,
   MdPeople, MdLocalOffer, MdPayments, MdCategory, MdMenu,
   MdChevronLeft, MdAccessTime, MdSettings, MdClose, MdViewCarousel,
-  MdHistory, MdBarChart,
+  MdHistory, MdBarChart, MdEventBusy,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
 import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
+import AdminGlobalSearch from './AdminGlobalSearch.jsx'
 import useNotificationSound from '../../../hooks/useNotificationSound.js'
 import './AdminSidebar.css'
 
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
     title: 'کاربران و تخفیف',
     items: [
       { to: '/admin/users', icon: MdPeople, label: 'کاربران' },
+      { to: '/admin/customers/churned', icon: MdEventBusy, label: 'در معرض ریزش' },
       { to: '/admin/discounts', icon: MdLocalOffer, label: 'کدهای تخفیف' },
     ],
   },
@@ -163,6 +165,8 @@ export default function AdminLayout() {
             <MdClose size={22} />
           </button>
         </div>
+
+        <AdminGlobalSearch collapsed={collapsed} />
 
         <nav className="admin-sidebar__nav">
           {NAV_GROUPS.map((group) => (

@@ -22,6 +22,17 @@ export function formatTime(timeStr) {
   return timeStr.slice(0, 5)
 }
 
+/** سطح مشتری — باید با apps.accounts.customer_insights.TIER_LABELS بک‌اند هم‌راستا بماند */
+export const TIER_META = {
+  vip: { label: 'ویژه (VIP)', cls: 'tier-badge--vip' },
+  regular: { label: 'عادی', cls: 'tier-badge--regular' },
+  new: { label: 'جدید', cls: 'tier-badge--new' },
+}
+
+export function getTierMeta(tier) {
+  return TIER_META[tier] || TIER_META.new
+}
+
 export function getStatusLabel(status) {
   const map = {
     waiting_payment: 'در انتظار پرداخت',

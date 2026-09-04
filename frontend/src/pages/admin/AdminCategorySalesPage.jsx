@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, Fragment } from 'react'
-import { MdRefresh, MdCalendarToday, MdCategory } from 'react-icons/md'
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
+import { MdRefresh, MdCalendarToday, MdCategory, MdDownload } from 'react-icons/md'
 import { ordersAPI } from '../../api/orders.js'
 import Modal from '../../components/common/Modal/Modal.jsx'
 import PersianDatePicker from '../../components/common/PersianDatePicker/PersianDatePicker.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import { formatPrice } from '../../utils/helpers.js'
 import { formatJalali } from '../../utils/jalali.js'
+import { downloadCSV } from '../../utils/csv.js'
 import './AdminOrdersPage.css'
 import './AdminCategorySalesPage.css'
 
@@ -32,6 +33,7 @@ export default function AdminCategorySalesPage() {
   const [pickerModal, setPickerModal] = useState(null) // 'from' | 'to' | null
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showZeroSales, setShowZeroSales] = useState(true)
 
   const fetchReport = useCallback(() => {
     setLoading(true)
@@ -42,13 +44,40 @@ export default function AdminCategorySalesPage() {
 
   useEffect(() => { fetchReport() }, [fetchReport])
 
+  const visibleCategories = useMemo(() => {
+    if (showZeroSales) return categories
+    return categories
+      .map((cat) => ({ ...cat, items: cat.items.filter((i) => i.quantity > 0) }))
+      .filter((cat) => cat.items.length > 0)
+  }, [categories, showZeroSales])
+
+  const zeroSaleCount = useMemo(
+    () => categories.reduce((s, c) => s + c.items.filter((i) => i.quantity === 0).length, 0),
+    [categories]
+  )
+
   const grandTotal = categories.reduce((s, c) => s + c.total_amount, 0)
+
+  function handleExportCsv() {
+    const rows = []
+    visibleCategories.forEach((cat) => {
+      rows.push([cat.category_name, '', cat.total_quantity, cat.total_amount])
+      cat.items.forEach((item) => {
+        rows.push(['', item.item_name, item.quantity, item.amount])
+      })
+    })
+    downloadCSV(
+      `فروش-دسته‌بندی‌ها-${dateFrom}-تا-${dateTo}`,
+      ['دسته‌بندی', 'آیتم', 'تعداد', 'مبلغ (تومان)'],
+      rows,
+    )
+  }
 
   return (
     <div>
       <div className="page-header">
-        <h1>فروش دسته‌بندی‌ها</h1>
-        <p>جمع فروش هر دسته‌بندی به تفکیک آیتم — مناسب برای تسویه با تأمین‌کنندگان بیرونی</p>
+        <h1>فروش دسته‌بندی‌ها و آیتم‌ها</h1>
+        <p>فروش هر آیتم منو به تفکیک دسته‌بندی — شامل آیتم‌هایی که هیچ فروشی نداشته‌اند — مناسب برای تسویه با تأمین‌کنندگان بیرونی</p>
       </div>
 
       <div className="admin-orders__filters">
@@ -72,7 +101,19 @@ export default function AdminCategorySalesPage() {
         <button className="admin-orders__refresh" onClick={fetchReport}>
           <MdRefresh size={18} /> بروزرسانی
         </button>
+        <button className="admin-orders__refresh" onClick={handleExportCsv} disabled={visibleCategories.length === 0}>
+          <MdDownload size={18} /> دانلود CSV
+        </button>
       </div>
+
+      <label className="admin-category-sales__toggle">
+        <input
+          type="checkbox"
+          checked={showZeroSales}
+          onChange={(e) => setShowZeroSales(e.target.checked)}
+        />
+        <span>نمایش آیتم‌های بدون فروش {zeroSaleCount > 0 ? `(${zeroSaleCount} مورد)` : ''}</span>
+      </label>
 
       <Modal
         isOpen={!!pickerModal}
@@ -93,8 +134,8 @@ export default function AdminCategorySalesPage() {
 
       {loading ? <Loading /> : (
         <div className="admin-orders__table-wrap">
-          {categories.length === 0 ? (
-            <div className="empty-state"><div className="icon">📊</div><h3>فروشی در این بازه ثبت نشده</h3></div>
+          {visibleCategories.length === 0 ? (
+            <div className="empty-state"><div className="icon">📊</div><h3>آیتمی برای نمایش نیست</h3></div>
           ) : (
             <>
               <table className="admin-table">
@@ -106,7 +147,7 @@ export default function AdminCategorySalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {categories.map((cat) => (
+                  {visibleCategories.map((cat) => (
                     <Fragment key={cat.category_id}>
                       <tr className="admin-table__group-header">
                         <td>
@@ -119,15 +160,19 @@ export default function AdminCategorySalesPage() {
                           {formatPrice(cat.total_amount)}
                         </td>
                       </tr>
-                      {cat.items.map((item) => (
-                        <tr key={item.item_id}>
-                          <td data-label="آیتم" style={{ paddingRight: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
-                            {item.item_name}
-                          </td>
-                          <td data-label="تعداد">{item.quantity}</td>
-                          <td data-label="مبلغ کل">{formatPrice(item.amount)}</td>
-                        </tr>
-                      ))}
+                      {cat.items.map((item) => {
+                        const noSales = item.quantity === 0
+                        return (
+                          <tr key={item.item_id} className={noSales ? 'admin-category-sales__row--zero' : ''}>
+                            <td data-label="آیتم" style={{ paddingRight: 'var(--space-lg)' }}>
+                              {item.item_name}
+                              {noSales && <span className="admin-category-sales__zero-tag">بدون فروش</span>}
+                            </td>
+                            <td data-label="تعداد">{item.quantity}</td>
+                            <td data-label="مبلغ کل">{formatPrice(item.amount)}</td>
+                          </tr>
+                        )
+                      })}
                     </Fragment>
                   ))}
                 </tbody>

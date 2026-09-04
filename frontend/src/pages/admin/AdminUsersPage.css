@@ -30,3 +30,16 @@
 .admin-users__search input:focus {
   border-color: var(--primary);
 }
+
+/* دکمه‌ی «جزئیات» — رنگ اختصاصی با استایل کلاس، نه inline، وگرنه :hover کلاس پایه
+   (که background را عوض می‌کند) هیچ‌وقت روی style مستقیم اِلمان اثر نمی‌کند */
+.admin-action-btn--info {
+  background: var(--info-bg);
+  border-color: rgba(96, 165, 250, 0.25);
+  color: var(--info);
+}
+
+.admin-action-btn--info:hover:not(:disabled) {
+  background: var(--info);
+  color: #fff;
+}

@@ -55,6 +55,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     birthday = models.DateField(null=True, blank=True, verbose_name='تاریخ تولد')
     birthday_set_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان ثبت تاریخ تولد')
+    admin_note = models.TextField(
+        blank=True, verbose_name='یادداشت داخلی ادمین',
+        help_text='فقط برای ادمین/کارکنان قابل مشاهده است، به خود کاربر نشان داده نمی‌شود',
+    )
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ عضویت')
     updated_at = models.DateTimeField(auto_now=True)
 
