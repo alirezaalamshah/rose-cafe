@@ -3,15 +3,17 @@ import {
   MdLocalShipping, MdSave, MdStore,
   MdPhone, MdLocationOn, MdTableBar,
   MdShare, MdAdd, MdEdit, MdDelete, MdCheck, MdClose,
-  MdAccountBalanceWallet,
+  MdAccountBalanceWallet, MdDeliveryDining,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { businessAPI } from '../../api/business.js'
 import { walletAPI } from '../../api/wallet.js'
+import { snappAPI } from '../../api/snapp.js'
 import { confirm } from '../../store/confirmStore.js'
 import Button from '../../components/common/Button/Button.jsx'
 import { Input, Textarea, Select } from '../../components/common/Input/Input.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
+import MapLocationPicker from '../../components/common/MapLocationPicker/MapLocationPicker.jsx'
 import './AdminSettingsPage.css'
 
 const PLATFORM_OPTIONS = [
@@ -540,6 +542,244 @@ function LoyaltySection() {
   )
 }
 
+const DISPATCH_MODE_OPTIONS = [
+  { value: 'manual', label: 'دستی — فقط با دکمه‌ی صریح' },
+  { value: 'auto_on_confirm', label: 'خودکار — بلافاصله پس از تأیید سفارش' },
+  { value: 'auto_on_ready', label: 'خودکار — پس از آماده شدن سفارش' },
+]
+
+function SnappSection() {
+  const [form, setForm] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [categories, setCategories] = useState(null)
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [resettingBreaker, setResettingBreaker] = useState(false)
+
+  useEffect(() => {
+    snappAPI.adminGetSettings()
+      .then((data) => setForm(data))
+      .catch(() => toast.error('خطا در بارگذاری تنظیمات اسنپ‌باکس'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const updated = await snappAPI.adminUpdateSettings(form)
+      setForm(updated)
+      toast.success('تنظیمات اسنپ‌باکس ذخیره شد')
+    } catch {
+      toast.error('خطا در ذخیره تنظیمات')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleLoadCategories() {
+    setLoadingCategories(true)
+    try {
+      const res = await snappAPI.adminGetDeliveryCategories()
+      setCategories(res.categories || [])
+      if (!res.categories?.length) toast.error('هیچ دسته‌بندی فعالی برای این موقعیت یافت نشد')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در دریافت لیست دسته‌بندی‌ها — ابتدا موقعیت مبدا را روی نقشه مشخص کنید')
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
+  async function handleResetBreaker() {
+    setResettingBreaker(true)
+    try {
+      const updated = await snappAPI.adminResetCircuitBreaker()
+      setForm(updated)
+      toast.success('یکپارچه‌سازی اسنپ‌باکس دوباره فعال شد')
+    } catch {
+      toast.error('خطا در فعال‌سازی مجدد')
+    } finally {
+      setResettingBreaker(false)
+    }
+  }
+
+  if (loading || !form) return <div className="settings-section__loading"><Loading /></div>
+
+  return (
+    <SettingsSection
+      icon={MdDeliveryDining}
+      title="ارسال با پیک اسنپ‌باکس"
+      hint="اتصال خودکار به اسنپ‌باکس برای ثبت و ردیابی سفارش‌های پیک"
+    >
+      {form.circuit_breaker_tripped && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          padding: '10px 14px', marginBottom: 'var(--space-md)',
+          background: 'var(--error-bg)', border: '1px solid rgba(248,113,113,.3)',
+          borderRadius: 'var(--radius-md)',
+        }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--error)', fontWeight: 600 }}>
+            ⚠️ یکپارچه‌سازی به‌خاطر چند خطای پیاپی موقتاً خودکار غیرفعال شده است
+          </span>
+          <Button size="sm" variant="danger" loading={resettingBreaker} onClick={handleResetBreaker}>
+            فعال‌سازی مجدد
+          </Button>
+        </div>
+      )}
+
+      <label className="social-link-toggle" style={{ marginBottom: 'var(--space-md)' }}>
+        <input
+          type="checkbox"
+          checked={form.is_enabled}
+          onChange={(e) => setForm((p) => ({ ...p, is_enabled: e.target.checked }))}
+        />
+        <span style={{ fontWeight: 600, color: form.is_enabled ? 'var(--success)' : 'var(--text-secondary)' }}>
+          {form.is_enabled ? 'یکپارچه‌سازی با اسنپ‌باکس فعال است' : 'یکپارچه‌سازی با اسنپ‌باکس غیرفعال است'}
+        </span>
+      </label>
+
+      <div style={{ marginBottom: 'var(--space-md)' }}>
+        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+          نحوه‌ی ارسال به پیک
+        </label>
+        <Select
+          value={form.dispatch_mode}
+          onChange={(e) => setForm((p) => ({ ...p, dispatch_mode: e.target.value }))}
+          disabled={!form.is_enabled}
+        >
+          {DISPATCH_MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </Select>
+      </div>
+
+      <div className="settings-grid settings-grid--2">
+        <Input
+          label="آدرس مبدا (کافه)"
+          value={form.store_address}
+          onChange={(e) => setForm((p) => ({ ...p, store_address: e.target.value }))}
+          placeholder="دزفول، میدان فرهنگ"
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="شهر (نام لاتین، طبق مستندات اسنپ‌باکس)"
+          value={form.store_city}
+          onChange={(e) => setForm((p) => ({ ...p, store_city: e.target.value }))}
+          placeholder="dezful"
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="نام تحویل‌دهنده در مبدا"
+          value={form.store_contact_name}
+          onChange={(e) => setForm((p) => ({ ...p, store_contact_name: e.target.value }))}
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="شماره تماس مبدا"
+          value={form.store_contact_phone}
+          onChange={(e) => setForm((p) => ({ ...p, store_contact_phone: e.target.value }))}
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="حداکثر شعاع مجاز ثبت آدرس (کیلومتر)"
+          type="number"
+          min="1"
+          value={form.max_delivery_radius_km}
+          onChange={(e) => setForm((p) => ({ ...p, max_delivery_radius_km: e.target.value }))}
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+      </div>
+      <p className="settings-section__info">
+        آدرس‌های مشتریان با فاصله‌ی بیشتر از این مقدار (خط مستقیم از مبدا) قابل ثبت نیستند.
+      </p>
+
+      <div style={{ marginBottom: 'var(--space-md)' }}>
+        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+          دسته‌بندی ارسال پیش‌فرض
+        </label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          {categories?.length ? (
+            <Select
+              value={form.default_delivery_category}
+              onChange={(e) => setForm((p) => ({ ...p, default_delivery_category: e.target.value }))}
+              disabled={!form.is_enabled}
+              style={{ flex: 1 }}
+            >
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          ) : (
+            <Input
+              value={form.default_delivery_category}
+              onChange={(e) => setForm((p) => ({ ...p, default_delivery_category: e.target.value }))}
+              placeholder="bike-without-box"
+              dir="ltr"
+              disabled={!form.is_enabled}
+              style={{ flex: 1 }}
+            />
+          )}
+          <Button
+            size="sm" variant="secondary" loading={loadingCategories}
+            onClick={handleLoadCategories} disabled={!form.is_enabled}
+          >
+            دریافت لیست واقعی
+          </Button>
+        </div>
+        <p className="settings-section__info" style={{ marginTop: 6 }}>
+          برای دریافت لیست واقعی، ابتدا موقعیت مبدا را روی نقشه مشخص و ذخیره کنید.
+        </p>
+      </div>
+
+      {form.is_enabled && (
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+            موقعیت مبدا (کافه) روی نقشه
+          </label>
+          <MapLocationPicker
+            latitude={form.store_latitude}
+            longitude={form.store_longitude}
+            onChange={(lat, lng) => setForm((p) => ({ ...p, store_latitude: lat, store_longitude: lng }))}
+            showDeliveryZoneWarning={false}
+            radiusKm={Number(form.max_delivery_radius_km) || 0}
+          />
+          <p className="settings-section__info" style={{ marginTop: 6 }}>
+            دایره‌ی روی نقشه، محدوده‌ی شعاع مجاز فعلی ({form.max_delivery_radius_km} کیلومتر) را نشان می‌دهد.
+          </p>
+        </div>
+      )}
+
+      <div className="settings-grid settings-grid--2" style={{ marginBottom: 'var(--space-md)' }}>
+        <Input
+          label="حداکثر خطای پیاپی مجاز"
+          type="number"
+          min="1"
+          value={form.circuit_breaker_max_failures}
+          onChange={(e) => setForm((p) => ({ ...p, circuit_breaker_max_failures: e.target.value }))}
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+        <Input
+          label="بازه‌ی زمانی شمارش خطا (دقیقه)"
+          type="number"
+          min="1"
+          value={form.circuit_breaker_window_minutes}
+          onChange={(e) => setForm((p) => ({ ...p, circuit_breaker_window_minutes: e.target.value }))}
+          dir="ltr"
+          disabled={!form.is_enabled}
+        />
+      </div>
+      <p className="settings-section__info">
+        اگر در این بازه‌ی زمانی، به تعداد بالا خطای پیاپی رخ دهد، یکپارچه‌سازی خودکار موقتاً غیرفعال می‌شود.
+      </p>
+
+      <div className="settings-section__actions">
+        <Button size="sm" loading={saving} onClick={handleSave}>
+          <MdSave size={14} /> ذخیره تنظیمات اسنپ‌باکس
+        </Button>
+      </div>
+    </SettingsSection>
+  )
+}
+
 export default function AdminSettingsPage() {
   return (
     <div>
@@ -556,6 +796,7 @@ export default function AdminSettingsPage() {
         <DeliverySection />
         <ReservationSection />
         <LoyaltySection />
+        <SnappSection />
       </div>
     </div>
   )

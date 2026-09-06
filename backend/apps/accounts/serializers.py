@@ -222,3 +222,29 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = '__all__'
         read_only_fields = ['user', 'created_at']
+
+    def validate(self, data):
+        # مختصات نقشه اجباری است — بدون آن سفارش پیک (apps.snapp) اصلاً امکان ثبت
+        # مقصد واقعی ندارد؛ چک روی حاصل نهایی (instance موجود + داده‌ی جدید) انجام
+        # می‌شود تا PATCH جزئی هم نتواند یک آدرس را بدون مختصات باقی بگذارد
+        latitude = data.get('latitude', getattr(self.instance, 'latitude', ''))
+        longitude = data.get('longitude', getattr(self.instance, 'longitude', ''))
+        if not latitude or not longitude:
+            raise serializers.ValidationError('لطفاً موقعیت آدرس را روی نقشه مشخص کنید')
+
+        # جلوگیری از ثبت آدرس در شهر/منطقه‌ای خیلی دور از کافه — عملاً غیرقابل‌تحویل
+        # با پیک است. فقط وقتی مبدا و شعاع در تنظیمات اسنپ‌باکس مشخص شده باشد چک می‌شود
+        from apps.snapp.models import SnappSettings
+        from apps.common.utils import haversine_distance_km
+
+        snapp_settings = SnappSettings.get_settings()
+        if snapp_settings.store_latitude and snapp_settings.store_longitude:
+            distance = haversine_distance_km(
+                snapp_settings.store_latitude, snapp_settings.store_longitude, latitude, longitude,
+            )
+            if distance > snapp_settings.max_delivery_radius_km:
+                raise serializers.ValidationError(
+                    f'موقعیت انتخاب‌شده حدود {round(distance)} کیلومتر با کافه فاصله دارد — '
+                    f'فقط آدرس‌های تا {snapp_settings.max_delivery_radius_km} کیلومتری قابل ثبت هستند'
+                )
+        return data

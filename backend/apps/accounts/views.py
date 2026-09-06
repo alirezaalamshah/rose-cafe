@@ -18,6 +18,7 @@ from .serializers import (
 )
 from .permissions import IsWaiter
 from .otp import generate_otp, save_otp, verify_otp
+from apps.common import geocoding
 from apps.notifications.sms import send_otp_sms
 from apps.common.pagination import StandardPagination
 from .throttles import OTPSendThrottle, OTPSendIPThrottle, OTPVerifyThrottle, LoginThrottle
@@ -274,6 +275,71 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
+
+
+class AddressGeocodeSearchView(APIView):
+    """جست‌وجوی متنی آدرس -> لیست نتایج با مختصات (Nominatim) — با کلیک صریح دکمه‌ی
+    «جستجو» صدا زده می‌شود، نه به‌صورت suggestion زنده (به‌خاطر سقف نرخ Nominatim).
+    نتایج به شعاع مجاز ثبت آدرس (SnappSettings.max_delivery_radius_km) محدود می‌شوند —
+    هم با viewbox (فیلتر اولیه‌ی سمت Nominatim) هم با فاصله‌ی واقعی هاورساین (چون
+    viewbox یک مستطیل است، نه دایره‌ی دقیق؛ نتیجه‌ای در گوشه‌ی مستطیل می‌تواند
+    واقعاً خارج از شعاع باشد)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({'detail': 'متن جست‌وجو الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.snapp.models import SnappSettings
+        from apps.common.utils import haversine_distance_km
+        snapp_settings = SnappSettings.get_settings()
+
+        viewbox = None
+        store_lat = store_lng = None
+        if snapp_settings.store_latitude and snapp_settings.store_longitude:
+            store_lat, store_lng = float(snapp_settings.store_latitude), float(snapp_settings.store_longitude)
+            radius_km = snapp_settings.max_delivery_radius_km
+            # تبدیل تقریبی کیلومتر به درجه‌ی طول/عرض جغرافیایی، برای ساخت کادر جست‌وجو
+            deg = radius_km / 111.0
+            viewbox = f'{store_lng-deg},{store_lat+deg},{store_lng+deg},{store_lat-deg}'
+
+        result = geocoding.search_address(query, viewbox=viewbox, bounded=bool(viewbox))
+        if not result['success']:
+            return Response({'detail': result['message']}, status=status.HTTP_502_BAD_GATEWAY)
+
+        results = result['results']
+        if store_lat is not None:
+            filtered = []
+            for r in results:
+                distance = haversine_distance_km(store_lat, store_lng, r['latitude'], r['longitude'])
+                if distance <= snapp_settings.max_delivery_radius_km:
+                    filtered.append(r)
+            results = filtered
+
+        if not results:
+            return Response({
+                'results': [],
+                'detail': f'آدرسی در محدوده‌ی {snapp_settings.max_delivery_radius_km} کیلومتری کافه با این متن یافت نشد — '
+                          'می‌توانید موقعیت را مستقیم روی نقشه انتخاب کنید',
+            })
+        return Response({'results': results})
+
+
+class AddressReverseGeocodeView(APIView):
+    """مختصات پین -> آدرس خوانا، برای پر کردن خودکار فیلدهای فرم بعد از کلیک/درگ روی نقشه."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        latitude = request.query_params.get('lat')
+        longitude = request.query_params.get('lng')
+        if not latitude or not longitude:
+            return Response({'detail': 'مختصات الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = geocoding.reverse_geocode(latitude, longitude)
+        if not result['success']:
+            return Response({'detail': result['message']}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result)
 
 
 # ─── Admin User Views ───────────────────────────────────────────────────────

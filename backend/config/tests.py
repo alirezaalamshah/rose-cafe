@@ -176,3 +176,44 @@ class AdminDashboardRangeTestCase(APITestCase):
         comparison = response.data['range']['comparison']
         self.assertIsNone(comparison['revenue_change_pct'])
         self.assertIsNone(comparison['orders_change_pct'])
+
+    def test_courier_stats_empty_when_nothing_dispatched(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/dashboard/', {'from': self.today_iso, 'to': self.today_iso})
+        courier = response.data['range']['courier']
+        self.assertEqual(courier['total_dispatched'], 0)
+        self.assertIsNone(courier['cancellation_rate'])
+        self.assertIsNone(courier['avg_delivery_minutes'])
+
+    def test_courier_stats_with_real_records(self):
+        from apps.snapp.models import SnappCourierOrder
+
+        order1 = self._create_order(Order.Status.DELIVERED, True)
+        order2 = self._create_order(Order.Status.DELIVERED, True)
+        order3 = self._create_order(Order.Status.DELIVERED, True)
+
+        now = timezone.now()
+        delivered = SnappCourierOrder.objects.create(
+            order=order1, snapp_order_id='s1', status=SnappCourierOrder.Status.DELIVERED,
+            delivery_fare=45000,
+        )
+        SnappCourierOrder.objects.filter(pk=delivered.pk).update(
+            dispatched_at=now - timedelta(minutes=20), last_webhook_at=now,
+        )
+        cancelled = SnappCourierOrder.objects.create(
+            order=order2, snapp_order_id='s2', status=SnappCourierOrder.Status.CANCELLED,
+        )
+        SnappCourierOrder.objects.filter(pk=cancelled.pk).update(dispatched_at=now)
+        SnappCourierOrder.objects.create(
+            order=order3, snapp_order_id='s3', status=SnappCourierOrder.Status.ACCEPTED,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/dashboard/', {'from': self.today_iso, 'to': self.today_iso})
+        courier = response.data['range']['courier']
+        self.assertEqual(courier['total_dispatched'], 3)
+        self.assertEqual(courier['delivered_count'], 1)
+        self.assertEqual(courier['cancelled_count'], 1)
+        self.assertAlmostEqual(courier['cancellation_rate'], 33.3, places=1)
+        self.assertAlmostEqual(courier['avg_delivery_minutes'], 20.0, places=0)
+        self.assertEqual(courier['total_delivery_fare'], 45000)

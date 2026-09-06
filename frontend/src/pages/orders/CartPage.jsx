@@ -18,12 +18,12 @@ import { walletAPI } from '../../api/wallet.js'
 import Button from '../../components/common/Button/Button.jsx'
 import { Input, Textarea } from '../../components/common/Input/Input.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
+import AddressFormFields, { EMPTY_ADDRESS } from '../../components/common/AddressFormFields/AddressFormFields.jsx'
 import { formatPrice, getMediaUrl, itemUnitPrice } from '../../utils/helpers.js'
 import './CartPage.css'
 
 const LOCATION_LABEL = { indoor: 'داخل', outdoor: 'فضای باز', vip: 'VIP' }
 const LOCATION_COLOR = { indoor: 'var(--text-muted)', outdoor: 'var(--success)', vip: 'var(--primary)' }
-const EMPTY_ADDR = { title: '', province: '', city: '', street: '', detail: '', postal_code: '', is_default: false }
 
 export default function CartPage() {
   const {
@@ -53,7 +53,7 @@ export default function CartPage() {
 
   // Quick address modal
   const [quickAddrModal, setQuickAddrModal] = useState(false)
-  const [quickAddrForm, setQuickAddrForm] = useState(EMPTY_ADDR)
+  const [quickAddrForm, setQuickAddrForm] = useState(EMPTY_ADDRESS)
   const [savingAddr, setSavingAddr] = useState(false)
 
   // Delivery cost from settings
@@ -165,13 +165,17 @@ export default function CartPage() {
   }
 
   function openQuickAddrModal() {
-    setQuickAddrForm(EMPTY_ADDR)
+    setQuickAddrForm(EMPTY_ADDRESS)
     setQuickAddrModal(true)
   }
 
   async function handleQuickAddrSave() {
     if (!quickAddrForm.title || !quickAddrForm.city || !quickAddrForm.street) {
       toast.error('لطفاً عنوان، شهر و آدرس را وارد کنید')
+      return
+    }
+    if (!quickAddrForm.latitude || !quickAddrForm.longitude) {
+      toast.error('لطفاً موقعیت آدرس را روی نقشه مشخص کنید')
       return
     }
     setSavingAddr(true)
@@ -186,8 +190,11 @@ export default function CartPage() {
       setSelectedAddressId(newAddr.id)
       setQuickAddrModal(false)
       toast.success('آدرس با موفقیت اضافه شد')
-    } catch {
-      toast.error('خطا در ثبت آدرس')
+    } catch (err) {
+      const data = err.response?.data
+      const msg = data?.non_field_errors?.[0] || data?.detail
+        || data?.latitude?.[0] || data?.longitude?.[0] || 'خطا در ثبت آدرس'
+      toast.error(msg)
     } finally {
       setSavingAddr(false)
     }
@@ -504,7 +511,8 @@ export default function CartPage() {
                             )}
                           </p>
                           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                            {addr.province && `${addr.province}، `}{addr.city} — {addr.street}
+                            {[addr.city, addr.province].filter(Boolean).join('، ')}
+                            {addr.street && ` — ${addr.street}`}
                           </p>
                         </div>
                       </button>
@@ -760,58 +768,10 @@ export default function CartPage() {
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          <Input
-            label="عنوان آدرس *"
-            value={quickAddrForm.title}
-            onChange={(e) => setQuickAddrForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="مثلاً: خانه، محل کار"
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
-            <Input
-              label="استان (اختیاری)"
-              value={quickAddrForm.province}
-              onChange={(e) => setQuickAddrForm((p) => ({ ...p, province: e.target.value }))}
-              placeholder="استان"
-            />
-            <Input
-              label="شهر *"
-              value={quickAddrForm.city}
-              onChange={(e) => setQuickAddrForm((p) => ({ ...p, city: e.target.value }))}
-              placeholder="شهر"
-            />
-          </div>
-          <Input
-            label="خیابان / کوچه / پلاک *"
-            value={quickAddrForm.street}
-            onChange={(e) => setQuickAddrForm((p) => ({ ...p, street: e.target.value }))}
-            placeholder="خیابان، کوچه، پلاک"
-          />
-          <Textarea
-            label="جزئیات بیشتر (اختیاری)"
-            value={quickAddrForm.detail}
-            onChange={(e) => setQuickAddrForm((p) => ({ ...p, detail: e.target.value }))}
-            placeholder="طبقه، واحد و ..."
-            rows={2}
-          />
-          <Input
-            label="کد پستی (اختیاری)"
-            value={quickAddrForm.postal_code}
-            onChange={(e) => setQuickAddrForm((p) => ({ ...p, postal_code: e.target.value }))}
-            placeholder="1234567890"
-            dir="ltr"
-          />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-            <input
-              type="checkbox"
-              checked={quickAddrForm.is_default}
-              onChange={(e) => setQuickAddrForm((p) => ({ ...p, is_default: e.target.checked }))}
-              style={{ width: 16, height: 16, accentColor: 'var(--primary)' }}
-            />
-            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>آدرس پیش‌فرض</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: 'auto' }}>برای سفارشات بعدی به‌صورت خودکار انتخاب می‌شود</span>
-          </label>
-        </div>
+        <AddressFormFields
+          form={quickAddrForm}
+          onChange={(field, value) => setQuickAddrForm((p) => ({ ...p, [field]: value }))}
+        />
       </Modal>
     </div>
   )

@@ -4,6 +4,7 @@ const SOUND_MAP = {
   new_order: '/sounds/new-order.mp3',
   new_reservation: '/sounds/new-reservation.mp3',
   cash_reminder: '/sounds/cash-reminder.mp3',
+  snapp_courier_issue: '/sounds/courier-alert.mp3',
 }
 
 /**

@@ -45,6 +45,23 @@ def _send_status_change_sms(order):
         send_order_ready_for_courier_sms(str(order.user.phone), order.order_number)
 
 
+def _maybe_dispatch_to_snapp(order, previous_status):
+    """اگر تنظیمات اسنپ‌باکس روی «خودکار» باشد و همین تغییر وضعیت دقیقاً همان مرحله‌ای
+    باشد که ادمین برایش انتخاب کرده (بعد از تأیید=PAID یا بعد از آماده‌سازی=READY)،
+    سفارش را خودکار به پیک می‌فرستد. اگر سفارش لغو/رد شد، پیک فعالش را هم خودکار
+    لغو می‌کند — تا پیک به سمت سفارشی که دیگر معتبر نیست حرکت نکند. خطاها فقط لاگ
+    می‌شوند، جلوی ذخیره‌ی تغییر وضعیت را نمی‌گیرند."""
+    if order.status == previous_status:
+        return
+    from apps.snapp import services as snapp_services
+    if order.status == Order.Status.PAID:
+        snapp_services.maybe_auto_dispatch(order, trigger='confirm')
+    elif order.status == Order.Status.READY:
+        snapp_services.maybe_auto_dispatch(order, trigger='ready')
+    elif order.status in (Order.Status.CANCELLED, Order.Status.REJECTED):
+        snapp_services.maybe_cancel_on_order_termination(order)
+
+
 def _assigned_waiter_suffix(order, actor):
     """
     وقتی ادمین به‌جای گارسونِ مسئولِ سفارش اکشنی می‌زند (مثلاً وصول وجه)، این پسوند
@@ -61,7 +78,7 @@ class OrderListCreateView(APIView):
     def get(self, request):
         orders = Order.objects.filter(
             user=request.user
-        ).prefetch_related('items__menu_item')
+        ).select_related('snapp_courier').prefetch_related('items__menu_item')
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
@@ -265,7 +282,7 @@ class OrderDetailView(generics.RetrieveAPIView):
     def get_queryset(self):  # type: ignore[override]
         return Order.objects.filter(
             user=self.request.user
-        ).prefetch_related('items__menu_item')
+        ).select_related('snapp_courier').prefetch_related('items__menu_item')
 
 
 class OrderCancelView(APIView):
@@ -300,7 +317,7 @@ class AdminOrderListView(generics.ListAPIView):
 
     def get_queryset(self):  # type: ignore[override]
         qs = Order.objects.all().select_related(
-            'user', 'address', 'table'
+            'user', 'address', 'table', 'snapp_courier'
         ).prefetch_related('items__menu_item')
         closed_statuses = [Order.Status.DELIVERED, Order.Status.CANCELLED, Order.Status.REJECTED]
         status_filter = self.request.query_params.get('status')
@@ -366,6 +383,7 @@ class AdminOrderStatusUpdateView(APIView):
         except Order.DoesNotExist:
             return Response({'detail': 'سفارش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
 
+        previous_status = order.status
         serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -375,6 +393,8 @@ class AdminOrderStatusUpdateView(APIView):
             order.save(update_fields=['delivered_at'])
             from apps.wallet.services import credit_order_cashback
             credit_order_cashback(order)
+
+        _maybe_dispatch_to_snapp(order, previous_status)
 
         log_staff_action(
             request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,
@@ -587,7 +607,7 @@ class WaiterOrderListView(generics.ListAPIView):
             status=Order.Status.WAITING_PAYMENT
         ).filter(
             Q(assigned_waiter__isnull=True) | Q(assigned_waiter=self.request.user)
-        ).select_related('user', 'address', 'table').prefetch_related('items__menu_item')
+        ).select_related('user', 'address', 'table', 'snapp_courier').prefetch_related('items__menu_item')
         closed_statuses = [Order.Status.DELIVERED, Order.Status.CANCELLED, Order.Status.REJECTED]
         status_filter = self.request.query_params.get('status')
         if status_filter:
@@ -631,6 +651,7 @@ class WaiterOrderStatusUpdateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        previous_status = order.status
         order.status = new_status
         newly_delivered = new_status == Order.Status.DELIVERED and not order.delivered_at
         if newly_delivered:
@@ -640,6 +661,8 @@ class WaiterOrderStatusUpdateView(APIView):
         if newly_delivered:
             from apps.wallet.services import credit_order_cashback
             credit_order_cashback(order)
+
+        _maybe_dispatch_to_snapp(order, previous_status)
 
         log_staff_action(
             request.user, StaffActionLog.Action.ORDER_STATUS_CHANGED,

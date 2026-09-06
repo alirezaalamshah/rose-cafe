@@ -21,7 +21,7 @@ export function Input({ label, error, iconRight, iconLeft, id, className = '', .
   )
 }
 
-export function Textarea({ label, error, id, className = '', ...props }) {
+export function Textarea({ label, error, iconLeft, iconRight, id, className = '', ...props }) {
   const generatedId = useId()
   const inputId = id || generatedId
   return (

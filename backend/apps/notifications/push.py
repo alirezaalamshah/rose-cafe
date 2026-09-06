@@ -98,6 +98,24 @@ def notify_unpaid_cash(order) -> None:
     )
 
 
+def notify_courier_issue(order, message: str) -> None:
+    """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت سفارش — یک رویداد
+    نگران‌کننده در ارسال پیک اسنپ‌باکس (پیک لغو کرد/تحویل ناموفق بود). notif_type
+    'snapp_courier_issue' یک صدای اختصاصی دارد (فایل courier-alert.mp3، فقط وقتی اپ باز
+    است)؛ وقتی اپ بسته/پس‌زمینه است، صدای پیش‌فرض سیستم‌عامل پخش می‌شود (محدودیت پلتفرم)."""
+    title = 'مشکل در ارسال پیک'
+    body = f'سفارش #{order.order_number}: {message}'
+    recipients = list(get_notification_recipients('can_manage_orders'))
+    send_push_to_users(
+        [u for u in recipients if u.is_staff], title, body,
+        url='/admin/orders', notif_type='snapp_courier_issue',
+    )
+    send_push_to_users(
+        [u for u in recipients if not u.is_staff], title, body,
+        url='/waiter/orders', notif_type='snapp_courier_issue',
+    )
+
+
 def notify_new_reservation(reservation) -> None:
     """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت رزرو — رزرو تازه ثبت شده است."""
     title = 'رزرو جدید'

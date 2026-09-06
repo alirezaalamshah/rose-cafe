@@ -6,6 +6,7 @@ import { paymentsAPI } from '../../api/payments.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import Button from '../../components/common/Button/Button.jsx'
 import { formatPrice, formatDate, getStatusLabel, getStatusClass } from '../../utils/helpers.js'
+import CourierStatusCard from '../../components/common/CourierStatusCard/CourierStatusCard.jsx'
 import './OrdersPage.css'
 
 export default function OrdersPage() {
@@ -142,6 +143,10 @@ export default function OrdersPage() {
                     پرداخت سفارش
                   </Button>
                 </div>
+              )}
+
+              {order.delivery_type === 'delivery' && order.snapp_courier && (
+                <CourierStatusCard orderId={order.id} courier={order.snapp_courier} />
               )}
 
               <div className="order-card__footer">

@@ -1,5 +1,6 @@
 """تست‌های «گزارش کامل مشتری» برای ادمین — summary/orders/wallet/discount/reservations/reviews."""
 from datetime import time
+from unittest.mock import patch
 
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -259,3 +260,182 @@ class AdminUserListWalletBalanceTestCase(APITestCase):
         response = self.client.get(f'/api/auth/admin/users/{user.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIsNone(response.data['wallet_balance'])
+
+
+class AddressCoordinatesRequiredTestCase(APITestCase):
+    """مختصات نقشه (latitude/longitude) اجباری است — بدون آن سفارش پیک اسنپ‌باکس
+    اصلاً مقصد ندارد؛ این چک باید هم در ایجاد هم در ویرایش جزئی اعمال شود."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(phone='+989120000091', full_name='مشتری تست آدرس')
+        self.client.force_authenticate(user=self.user)
+
+    def _payload(self, **overrides):
+        payload = {
+            'title': 'خانه', 'city': 'دزفول', 'street': 'خیابان آزادگان',
+            'latitude': '32.390000', 'longitude': '48.410000',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_create_fails_without_coordinates(self):
+        response = self.client.post('/api/auth/addresses/', self._payload(latitude='', longitude=''))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_fails_with_only_one_coordinate(self):
+        response = self.client.post('/api/auth/addresses/', self._payload(longitude=''))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_succeeds_with_coordinates(self):
+        response = self.client.post('/api/auth/addresses/', self._payload())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+    def test_patch_cannot_clear_coordinates_from_existing_address(self):
+        create_response = self.client.post('/api/auth/addresses/', self._payload())
+        address_id = create_response.data['id']
+
+        response = self.client.patch(f'/api/auth/addresses/{address_id}/', {'latitude': ''})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class AddressDeliveryRadiusTestCase(APITestCase):
+    """جلوگیری از ثبت آدرس در شهر/منطقه‌ای خیلی دور از مبدای کافه — فقط وقتی مبدا
+    در تنظیمات اسنپ‌باکس مشخص شده باشد اعمال می‌شود."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from apps.snapp.models import SnappSettings
+        # CachedSingletonModel از کش فرآیندی استفاده می‌کند — rollback خودکار پاکش نمی‌کند
+        cache.clear()
+        self.user = User.objects.create_user(phone='+989120000092', full_name='مشتری تست شعاع')
+        self.client.force_authenticate(user=self.user)
+
+        # مبدا: دزفول، میدان فرهنگ — شعاع مجاز ۱۵ کیلومتر (پیش‌فرض)
+        self.snapp_settings = SnappSettings.get_settings()
+        self.snapp_settings.store_latitude = '32.382500'
+        self.snapp_settings.store_longitude = '48.404700'
+        self.snapp_settings.max_delivery_radius_km = 15
+        self.snapp_settings.save()
+
+    def test_address_within_radius_is_accepted(self):
+        payload = {
+            'title': 'خانه', 'city': 'دزفول', 'street': 'خیابان آزادگان',
+            'latitude': '32.390000', 'longitude': '48.410000',  # حدود ۱ کیلومتر با مبدا
+        }
+        response = self.client.post('/api/auth/addresses/', payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+    def test_address_outside_radius_is_rejected(self):
+        payload = {
+            # اهواز — حدود ۱۰۰ کیلومتر با دزفول، خارج از شعاع مجاز
+            'title': 'محل کار', 'city': 'اهواز', 'street': 'خیابان کیانپارس',
+            'latitude': '31.317500', 'longitude': '48.687000',
+        }
+        response = self.client.post('/api/auth/addresses/', payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_radius_check_skipped_when_store_location_not_configured(self):
+        self.snapp_settings.store_latitude = ''
+        self.snapp_settings.store_longitude = ''
+        self.snapp_settings.save()
+
+        payload = {
+            'title': 'محل کار', 'city': 'اهواز', 'street': 'خیابان کیانپارس',
+            'latitude': '31.317500', 'longitude': '48.687000',
+        }
+        response = self.client.post('/api/auth/addresses/', payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+
+class AddressGeocodingTestCase(APITestCase):
+    """جست‌وجوی متنی آدرس و reverse geocoding — کلاینت واقعی Nominatim mock می‌شود،
+    تست فقط لایه‌ی view/serialization ما را پوشش می‌دهد."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(phone='+989120000093', full_name='مشتری تست جستجو')
+        self.client.force_authenticate(user=self.user)
+
+    def test_search_requires_query(self):
+        response = self.client.get('/api/auth/addresses/geocode/search/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('apps.accounts.views.geocoding.search_address')
+    def test_search_returns_results(self, mock_search):
+        mock_search.return_value = {
+            'success': True,
+            'results': [{'display_name': 'دزفول، میدان فرهنگ', 'latitude': '32.3825', 'longitude': '48.4047'}],
+        }
+        response = self.client.get('/api/auth/addresses/geocode/search/', {'q': 'میدان فرهنگ دزفول'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+
+    @patch('apps.accounts.views.geocoding.search_address')
+    def test_search_propagates_failure(self, mock_search):
+        mock_search.return_value = {'success': False, 'message': 'خطای فرضی'}
+        response = self.client.get('/api/auth/addresses/geocode/search/', {'q': 'تست'})
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+
+    def test_reverse_requires_coordinates(self):
+        response = self.client.get('/api/auth/addresses/geocode/reverse/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('apps.accounts.views.geocoding.reverse_geocode')
+    def test_reverse_returns_address_fields(self, mock_reverse):
+        mock_reverse.return_value = {
+            'success': True, 'display_name': 'دزفول، خیابان آزادگان',
+            'city': 'دزفول', 'province': 'خوزستان', 'street': 'خیابان آزادگان',
+        }
+        response = self.client.get('/api/auth/addresses/geocode/reverse/', {'lat': '32.39', 'lng': '48.41'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['city'], 'دزفول')
+
+
+class AddressSearchRadiusFilterTestCase(APITestCase):
+    """نتایج جست‌وجوی متنی آدرس باید به شعاع مجاز ثبت آدرس محدود شوند — حتی اگر
+    Nominatim (به‌خاطر ماهیت مستطیلی viewbox) نتیجه‌ای کمی بیرون از شعاع واقعی برگرداند."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from apps.snapp.models import SnappSettings
+        cache.clear()
+        self.user = User.objects.create_user(phone='+989120000094', full_name='مشتری تست فیلتر شعاع')
+        self.client.force_authenticate(user=self.user)
+
+        self.snapp_settings = SnappSettings.get_settings()
+        self.snapp_settings.store_latitude = '32.382500'
+        self.snapp_settings.store_longitude = '48.404700'
+        self.snapp_settings.max_delivery_radius_km = 15
+        self.snapp_settings.save()
+
+    @patch('apps.accounts.views.geocoding.search_address')
+    def test_results_outside_radius_are_filtered_out(self, mock_search):
+        mock_search.return_value = {
+            'success': True,
+            'results': [
+                {'display_name': 'دزفول، میدان فرهنگ', 'latitude': 32.3900, 'longitude': 48.4100},  # نزدیک
+                {'display_name': 'اهواز، کیانپارس', 'latitude': 31.3175, 'longitude': 48.6870},  # دور
+            ],
+        }
+        response = self.client.get('/api/auth/addresses/geocode/search/', {'q': 'تست'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertIn('میدان فرهنگ', response.data['results'][0]['display_name'])
+
+    @patch('apps.accounts.views.geocoding.search_address')
+    def test_no_results_within_radius_returns_helpful_message(self, mock_search):
+        mock_search.return_value = {
+            'success': True,
+            'results': [{'display_name': 'اهواز، کیانپارس', 'latitude': 31.3175, 'longitude': 48.6870}],
+        }
+        response = self.client.get('/api/auth/addresses/geocode/search/', {'q': 'تست'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], [])
+        self.assertIn('محدوده', response.data['detail'])
+
+    @patch('apps.accounts.views.geocoding.search_address')
+    def test_search_uses_bounded_viewbox_when_store_configured(self, mock_search):
+        mock_search.return_value = {'success': True, 'results': []}
+        self.client.get('/api/auth/addresses/geocode/search/', {'q': 'تست'})
+        _, kwargs = mock_search.call_args
+        self.assertTrue(kwargs['bounded'])
+        self.assertIsNotNone(kwargs['viewbox'])

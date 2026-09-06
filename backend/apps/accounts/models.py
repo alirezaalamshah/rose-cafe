@@ -119,6 +119,10 @@ class Address(models.Model):
     street = models.CharField(max_length=200, verbose_name='خیابان')
     detail = models.TextField(blank=True, verbose_name='جزئیات آدرس')
     postal_code = models.CharField(max_length=10, blank=True, verbose_name='کد پستی')
+    # مختصات پین‌شده روی نقشه — nullable چون آدرس‌های قبل از این migration این را ندارند؛
+    # بدون این، سفارش پیک (apps.snapp) امکان ثبت مقصد واقعی را ندارد
+    latitude = models.CharField(max_length=30, blank=True, verbose_name='عرض جغرافیایی')
+    longitude = models.CharField(max_length=30, blank=True, verbose_name='طول جغرافیایی')
     is_default = models.BooleanField(default=False, verbose_name='آدرس پیش‌فرض')
     created_at = models.DateTimeField(auto_now_add=True)
 
