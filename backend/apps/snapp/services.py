@@ -71,10 +71,21 @@ def dispatch_order(order) -> SnappCourierOrder:
         raise DispatchError(result['message'])
 
     data = result['data']
+    snapp_order_id = str(data.get('orderId', ''))
+
+    # پاسخ خودِ POST /v1/orders لینک رهگیری (trackingUrl) را ندارد — بلافاصله با یک
+    # GET جداگانه می‌گیریم تا از همان ابتدا برای نمایش به مشتری/ادمین آماده باشد.
+    # اگر همین یک درخواست fail شد، جلوی کل dispatch را نمی‌گیرد (سفارش خودش موفق ثبت
+    # شده)، فقط لینک رهگیری خالی می‌ماند تا بعداً با یک رفرش دیگر پر شود.
+    tracking_url = ''
+    detail_result = client.get_order_detail(snapp_order_id)
+    if detail_result['success']:
+        tracking_url = detail_result['data'].get('trackingUrl') or ''
+
     defaults = {
-        'snapp_order_id': str(data.get('id', '')),
+        'snapp_order_id': snapp_order_id,
         'status': data.get('status') or SnappCourierOrder.Status.PENDING,
-        'tracking_url': data.get('trackingUrl') or '',
+        'tracking_url': tracking_url,
         'raw_last_response': data,
         'dispatched_at': timezone.now(),
         # این فیلدها فقط با یک ارسال تازه پاک می‌شوند — نتیجه‌ی تلاش قبلی روی رکورد نماند

@@ -20,8 +20,10 @@ class SnappSettings(CachedSingletonModel):
         verbose_name='نحوه‌ی ارسال به پیک',
     )
     default_delivery_category = models.CharField(
-        max_length=50, default='bike-without-box', verbose_name='دسته‌بندی پیش‌فرض ارسال',
-        help_text='مثلاً bike-without-box، bike، van — طبق مستندات اسنپ‌باکس (یا از لیست واقعی زیر انتخاب کنید)',
+        # 'bike' یعنی پیک با باکس — برای این کافه لازم است چون محصول (نوشیدنی/غذا) نیاز
+        # به جابه‌جایی ایمن با باکس دارد؛ 'bike-without-box' موتور بدون باکس است
+        max_length=50, default='bike', verbose_name='دسته‌بندی پیش‌فرض ارسال',
+        help_text='مثلاً bike (با باکس)، bike-without-box، van — طبق مستندات اسنپ‌باکس (یا از لیست واقعی زیر انتخاب کنید)',
     )
 
     # مبدا ثابت سفارش‌ها (خود کافه) — یک‌بار توسط ادمین (از روی نقشه) وارد می‌شود

@@ -65,8 +65,29 @@ def _headers() -> dict | None:
     }
 
 
+def _to_domestic_phone(value: str) -> str:
+    """اسنپ‌باکس شماره را به فرمت داخلی ایران (09xxxxxxxxx) می‌خواهد، نه بین‌المللی
+    (+98xxxxxxxxxx که فرمت پیش‌فرض PhoneNumberField پروژه است) — تست واقعی با
+    API استیج این را با خطای «شماره تلفن نامعتبر است» تأیید کرد."""
+    value = str(value).strip()
+    if value.startswith('+98'):
+        return '0' + value[3:]
+    if value.startswith('98') and len(value) == 12:
+        return '0' + value[2:]
+    return value
+
+
 def build_order_payload(order, settings_obj) -> dict:
-    """Order مدل داخلی ما را به بدنه‌ی POST /v1/orders اسنپ‌باکس تبدیل می‌کند."""
+    """Order مدل داخلی ما را به بدنه‌ی POST /v1/orders اسنپ‌باکس تبدیل می‌کند.
+    ساختار این تابع دقیقاً از روی نمونه‌های واقعی Postman Collection رسمی اسنپ‌باکس
+    (نه فقط توضیح فیلدهای مستندات متنی قدیمی‌تر) تنظیم شده — چند نکته‌ی مهم که در
+    آن نمونه‌ها ثابت بود و مستندات متنی مشخص نکرده بود:
+    - terminals[].type برای مقصد «drop» است، نه «dropoff»
+    - هر آیتم packages[].items[] همیشه volume/weight هم دارد (حتی برای غذا، با
+      مقادیر تقریبی/پیش‌فرض کوچک، نه فیلد اختیاری واقعاً حذف‌شدنی)
+    - waitingTime/hasReturn/sequenceNumberDeliveryCollection/totalPackageSize در
+      همه‌ی نمونه‌های واقعی حاضرند، نه فقط «قابل ارسال»
+    """
     address = order.address
     items = []
     for item in order.items.all():
@@ -75,6 +96,10 @@ def build_order_payload(order, settings_obj) -> dict:
             'packageValue': item.subtotal,
             'quantity': item.quantity,
             'quantityMeasuringUnit': 'عدد',
+            # مقادیر تقریبی — سیستم منو فعلاً وزن/حجم واقعی آیتم‌ها را ذخیره نمی‌کند؛
+            # عددهای کوچک غیرصفر برای عبور از احتمال اعتبارسنجی سخت‌گیرانه‌ی سمت اسنپ کافی است
+            'volume': 1,
+            'weight': 1,
         })
 
     return {
@@ -84,6 +109,10 @@ def build_order_payload(order, settings_obj) -> dict:
         'refId': order.order_number,
         'podEnabled': False,
         'popEnabled': False,
+        'hasReturn': False,
+        'waitingTime': 0,
+        'sequenceNumberDeliveryCollection': 1,
+        'totalPackageSize': len(items) or 1,
         'terminals': [
             {
                 'type': 'pickup',
@@ -92,16 +121,16 @@ def build_order_payload(order, settings_obj) -> dict:
                 'latitude': settings_obj.store_latitude,
                 'longitude': settings_obj.store_longitude,
                 'contactName': settings_obj.store_contact_name,
-                'phoneNumber': settings_obj.store_contact_phone,
+                'phoneNumber': _to_domestic_phone(settings_obj.store_contact_phone),
             },
             {
-                'type': 'dropoff',
+                'type': 'drop',
                 'reference': '2',
                 'address': address.detail or f'{address.city}, {address.street}' if address else '',
                 'latitude': getattr(address, 'latitude', '') or '',
                 'longitude': getattr(address, 'longitude', '') or '',
                 'contactName': order.user.full_name or str(order.user.phone),
-                'phoneNumber': str(order.user.phone),
+                'phoneNumber': _to_domestic_phone(order.user.phone),
                 'customerRefId': order.order_number,
             },
         ],
@@ -125,13 +154,40 @@ def create_order(order, settings_obj) -> dict:
         data = response.json()
         logger.info('Snapp create_order response: %s', data)
 
-        if response.status_code == 201 and data.get('id'):
+        # نکته‌ی مهم: پاسخ واقعی /v1/orders کلید سفارش را «orderId» برمی‌گرداند، نه «id»
+        # (برخلاف اسکیمای مفصل‌تر داک‌های نمونه که «id» داشت — با تست واقعی روی استیج تأیید شد)
+        if response.status_code == 201 and data.get('orderId'):
             return {'success': True, 'data': data}
         return {'success': False, 'message': data.get('message') or 'ثبت سفارش پیک ناموفق بود', 'data': data}
     except requests.exceptions.Timeout:
         return {'success': False, 'message': 'زمان اتصال به اسنپ‌باکس به پایان رسید'}
     except Exception:
         logger.exception('خطا در ثبت سفارش پیک اسنپ‌باکس')
+        return {'success': False, 'message': 'خطا در ارتباط با اسنپ‌باکس'}
+
+
+def get_order_detail(snapp_order_id: str) -> dict:
+    """جزئیات کامل سفارش — پاسخ POST /v1/orders خودش لینک رهگیری (trackingUrl) را
+    ندارد، فقط با این GET بعدی به دست می‌آید. dispatch_order بلافاصله بعد از
+    ساخت موفق سفارش این را صدا می‌زند تا لینک رهگیری از همان ابتدا ذخیره شود."""
+    headers = _headers()
+    if not headers:
+        return {'success': False, 'message': 'اتصال به اسنپ‌باکس برقرار نشد (توکن نامعتبر)'}
+
+    try:
+        response = requests.get(
+            f'{_base_url()}/v1/orders/{snapp_order_id}',
+            headers={'Accept': 'application/json', 'Authorization': headers['Authorization']},
+            timeout=15,
+        )
+        data = response.json()
+        if response.status_code == 200:
+            return {'success': True, 'data': data}
+        return {'success': False, 'message': data.get('message') or 'دریافت جزئیات سفارش ناموفق بود'}
+    except requests.exceptions.Timeout:
+        return {'success': False, 'message': 'زمان اتصال به اسنپ‌باکس به پایان رسید'}
+    except Exception:
+        logger.exception('خطا در دریافت جزئیات سفارش پیک اسنپ‌باکس')
         return {'success': False, 'message': 'خطا در ارتباط با اسنپ‌باکس'}
 
 

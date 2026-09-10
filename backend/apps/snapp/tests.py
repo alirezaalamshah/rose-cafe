@@ -36,9 +36,23 @@ def _make_delivery_order(user, with_coordinates=True):
     )
 
 
+def _mock_get_order_detail(test_case):
+    """dispatch_order موفق حالا بلافاصله یک GET جداگانه (client.get_order_detail) هم
+    برای گرفتن trackingUrl می‌زند — بدون mock این تابع، تست‌ها به‌جای چند میلی‌ثانیه،
+    منتظر timeout واقعی شبکه می‌مانند (چند ده ثانیه). در setUp هر کلاسی که
+    dispatch_order موفق را تست می‌کند صدا زده می‌شود؛ addCleanup خودش را stop می‌کند."""
+    patcher = patch(
+        'apps.snapp.client.get_order_detail',
+        return_value={'success': True, 'data': {'trackingUrl': 'https://track.example/mock'}},
+    )
+    patcher.start()
+    test_case.addCleanup(patcher.stop)
+
+
 class DispatchOrderTestCase(APITestCase):
     def setUp(self):
         cache.clear()
+        _mock_get_order_detail(self)
         self.user = User.objects.create_user(phone='+989120000071', full_name='مشتری تست پیک')
 
     def test_dispatch_fails_when_integration_disabled(self):
@@ -78,7 +92,7 @@ class DispatchOrderTestCase(APITestCase):
         order = _make_delivery_order(self.user)
         mock_create.return_value = {
             'success': True,
-            'data': {'id': 'snapp-123', 'status': 'PENDING', 'trackingUrl': 'https://track.example/1'},
+            'data': {'orderId': 'snapp-123', 'status': 'PENDING', 'trackingUrl': 'https://track.example/1'},
         }
 
         courier_order = services.dispatch_order(order)
@@ -92,7 +106,7 @@ class DispatchOrderTestCase(APITestCase):
         order = _make_delivery_order(self.user)
         mock_create.return_value = {
             'success': True,
-            'data': {'id': 'snapp-123', 'status': 'ACCEPTED', 'trackingUrl': ''},
+            'data': {'orderId': 'snapp-123', 'status': 'ACCEPTED', 'trackingUrl': ''},
         }
         services.dispatch_order(order)
         with self.assertRaises(services.DispatchError):
@@ -103,12 +117,12 @@ class DispatchOrderTestCase(APITestCase):
     def test_dispatch_retries_after_previous_cancelled(self, mock_create):
         _enabled_settings()
         order = _make_delivery_order(self.user)
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-1', 'status': 'PENDING'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-1', 'status': 'PENDING'}}
         first = services.dispatch_order(order)
         first.status = SnappCourierOrder.Status.CANCELLED
         first.save()
 
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-2', 'status': 'PENDING'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-2', 'status': 'PENDING'}}
         second = services.dispatch_order(order)
         self.assertEqual(second.id, first.id)  # همان رکورد بازنویسی می‌شود، نه رکورد جدید
         self.assertEqual(second.snapp_order_id, 'snapp-2')
@@ -127,13 +141,14 @@ class DispatchOrderTestCase(APITestCase):
 class MaybeAutoDispatchTestCase(APITestCase):
     def setUp(self):
         cache.clear()
+        _mock_get_order_detail(self)
         self.user = User.objects.create_user(phone='+989120000072', full_name='مشتری تست خودکار')
 
     @patch('apps.snapp.client.create_order')
     def test_auto_dispatch_on_confirm_when_mode_matches(self, mock_create):
         _enabled_settings(dispatch_mode=SnappSettings.DispatchMode.AUTO_ON_CONFIRM)
         order = _make_delivery_order(self.user)
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-9', 'status': 'PENDING'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-9', 'status': 'PENDING'}}
 
         services.maybe_auto_dispatch(order, trigger='confirm')
         self.assertTrue(SnappCourierOrder.objects.filter(order=order).exists())
@@ -236,6 +251,7 @@ class SnappWebhookViewTestCase(APITestCase):
 class CircuitBreakerTestCase(APITestCase):
     def setUp(self):
         cache.clear()
+        _mock_get_order_detail(self)
         self.user = User.objects.create_user(phone='+989120000074', full_name='مشتری تست سوییچ اضطراری')
 
     @patch('apps.snapp.client.create_order')
@@ -287,6 +303,7 @@ class CircuitBreakerTestCase(APITestCase):
 class AutoCancelOnTerminationTestCase(APITestCase):
     def setUp(self):
         cache.clear()
+        _mock_get_order_detail(self)
         self.user = User.objects.create_user(phone='+989120000075', full_name='مشتری تست لغو خودکار')
 
     @patch('apps.snapp.client.cancel_order')
@@ -294,7 +311,7 @@ class AutoCancelOnTerminationTestCase(APITestCase):
     def test_active_courier_cancelled_when_order_terminates(self, mock_create, mock_cancel):
         _enabled_settings()
         order = _make_delivery_order(self.user)
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-1', 'status': 'ACCEPTED'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-1', 'status': 'ACCEPTED'}}
         services.dispatch_order(order)
         mock_cancel.return_value = {'success': True}
 
@@ -314,7 +331,7 @@ class AutoCancelOnTerminationTestCase(APITestCase):
     def test_already_terminal_courier_is_not_cancelled_again(self, mock_create, mock_cancel):
         _enabled_settings()
         order = _make_delivery_order(self.user)
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-1', 'status': 'DELIVERED'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-1', 'status': 'DELIVERED'}}
         services.dispatch_order(order)
 
         services.maybe_cancel_on_order_termination(order)
@@ -324,6 +341,7 @@ class AutoCancelOnTerminationTestCase(APITestCase):
 class RetryDispatchViewTestCase(APITestCase):
     def setUp(self):
         cache.clear()
+        _mock_get_order_detail(self)
         self.admin = User.objects.create_user(phone='+989120000076', full_name='ادمین تست')
         self.admin.is_staff = True
         self.admin.save()
@@ -334,12 +352,12 @@ class RetryDispatchViewTestCase(APITestCase):
     def test_retry_dispatch_succeeds_after_cancellation(self, mock_create):
         _enabled_settings()
         order = _make_delivery_order(self.user)
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-1', 'status': 'PENDING'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-1', 'status': 'PENDING'}}
         courier_order = services.dispatch_order(order)
         courier_order.status = SnappCourierOrder.Status.CANCELLED
         courier_order.save()
 
-        mock_create.return_value = {'success': True, 'data': {'id': 'snapp-2', 'status': 'PENDING'}}
+        mock_create.return_value = {'success': True, 'data': {'orderId': 'snapp-2', 'status': 'PENDING'}}
         response = self.client.post(f'/api/snapp/admin/orders/{order.id}/retry/')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['snapp_order_id'], 'snapp-2')
