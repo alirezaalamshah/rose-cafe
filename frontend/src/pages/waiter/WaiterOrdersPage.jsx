@@ -346,15 +346,6 @@ export default function WaiterOrdersPage() {
                               {trackingOrderId === order.id ? 'بستن نقشه' : 'نمایش روی نقشه'}
                             </button>
                           )}
-                          {courier.tracking_url && (
-                            <a
-                              href={courier.tracking_url}
-                              target="_blank" rel="noreferrer"
-                              style={{ color: 'inherit', textDecoration: 'underline', marginRight: 4 }}
-                            >
-                              رهگیری
-                            </a>
-                          )}
                         </span>
                       )
                     })()}

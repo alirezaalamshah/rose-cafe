@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { MdDeliveryDining, MdOpenInNew, MdPhone } from 'react-icons/md'
+import { MdDeliveryDining, MdPhone } from 'react-icons/md'
 import { snappAPI } from '../../../api/snapp.js'
 import ReadOnlyMap from '../ReadOnlyMap/ReadOnlyMap.jsx'
 import './CourierStatusCard.css'
@@ -62,12 +62,6 @@ export default function CourierStatusCard({ orderId, courier: initialCourier }) 
 
       {courier.is_trackable && courier.current_latitude && courier.current_longitude && (
         <ReadOnlyMap latitude={courier.current_latitude} longitude={courier.current_longitude} height="160px" />
-      )}
-
-      {courier.tracking_url && (
-        <a href={courier.tracking_url} target="_blank" rel="noreferrer" className="courier-card__tracking-link">
-          <MdOpenInNew size={14} /> مشاهده‌ی رهگیری کامل در اسنپ‌باکس
-        </a>
       )}
     </div>
   )
