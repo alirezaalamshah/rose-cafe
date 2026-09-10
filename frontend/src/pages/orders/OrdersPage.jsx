@@ -146,7 +146,7 @@ export default function OrdersPage() {
               )}
 
               {order.delivery_type === 'delivery' && order.snapp_courier && (
-                <CourierStatusCard orderId={order.id} courier={order.snapp_courier} />
+                <CourierStatusCard orderId={order.id} courier={order.snapp_courier} destination={order.address_detail} />
               )}
 
               <div className="order-card__footer">
