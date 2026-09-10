@@ -310,6 +310,10 @@ export default function WaiterOrdersPage() {
                     )}
                     {order.delivery_type === 'delivery' && (() => {
                       const courier = order.snapp_courier
+                      // قبل از تأیید کافه (در انتظار پرداخت/تأیید) هنوز معنی ندارد پیک درخواست
+                      // شود؛ بعد از رد/لغو هم که اصلاً دیگر قرار نیست ارسال شود
+                      const NOT_YET_CONFIRMABLE = ['waiting_payment', 'pending_confirmation', 'rejected', 'cancelled']
+                      if (!courier && NOT_YET_CONFIRMABLE.includes(order.status)) return null
                       if (!courier) {
                         return (
                           <button
@@ -346,15 +350,6 @@ export default function WaiterOrdersPage() {
                               {trackingOrderId === order.id ? 'بستن نقشه' : 'نمایش روی نقشه'}
                             </button>
                           )}
-                          {courier.tracking_url && (
-                            <a
-                              href={courier.tracking_url}
-                              target="_blank" rel="noreferrer"
-                              style={{ color: 'inherit', textDecoration: 'underline', marginRight: 4 }}
-                            >
-                              رهگیری
-                            </a>
-                          )}
                         </span>
                       )
                     })()}
@@ -362,7 +357,7 @@ export default function WaiterOrdersPage() {
                 </div>
 
                 {trackingOrderId === order.id && order.snapp_courier && (
-                  <CourierStatusCard orderId={order.id} courier={order.snapp_courier} />
+                  <CourierStatusCard orderId={order.id} courier={order.snapp_courier} destination={order.address_detail} />
                 )}
               </div>
             )

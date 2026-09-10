@@ -56,11 +56,3 @@
   text-decoration: none;
 }
 
-.courier-card__tracking-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-  color: var(--primary);
-  text-decoration: underline;
-}

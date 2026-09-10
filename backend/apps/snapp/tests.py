@@ -247,6 +247,62 @@ class SnappWebhookViewTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_notify.assert_not_called()
 
+    @patch('django.conf.settings.SNAPP_BOX_WEBHOOK_TOKEN', 'secret-token')
+    def test_webhook_status_update_stores_intermediate_statuses_and_location(self):
+        """ORDER_STATUS_UPDATE با orderStatus های ARRIVED_AT_PICK_UP/ARRIVED_AT_DROP_OFF
+        باید هم وضعیت هم مختصات لحظه‌ای همراه‌شده را ذخیره کند."""
+        url = '/api/snapp/webhook/?token=secret-token'
+        response = self.client.post(url, data={
+            'webhookType': 'ORDER_STATUS_UPDATE',
+            'orderId': 'snapp-webhook-1',
+            'orderStatus': 'ARRIVED_AT_PICK_UP',
+            'customerRefId': self.order.order_number,
+            'latitude': 32.3838,
+            'longitude': 48.4020,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.courier_order.refresh_from_db()
+        self.assertEqual(self.courier_order.status, 'ARRIVED_AT_PICK_UP')
+        self.assertEqual(self.courier_order.current_latitude, '32.3838')
+        self.assertEqual(self.courier_order.current_longitude, '48.402')
+        self.assertTrue(self.courier_order.is_trackable)
+
+    @patch('apps.snapp.views.notify_courier_delivered')
+    @patch('django.conf.settings.SNAPP_BOX_WEBHOOK_TOKEN', 'secret-token')
+    def test_webhook_delivered_triggers_delivered_notification(self, mock_notify):
+        url = '/api/snapp/webhook/?token=secret-token'
+        response = self.client.post(url, data={
+            'webhookType': 'ORDER_STATUS_UPDATE',
+            'orderId': 'snapp-webhook-1',
+            'orderStatus': 'DELIVERED',
+            'customerRefId': self.order.order_number,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.courier_order.refresh_from_db()
+        self.assertEqual(self.courier_order.status, 'DELIVERED')
+        self.assertTrue(self.courier_order.is_terminal)
+        mock_notify.assert_called_once_with(self.order)
+
+    @patch('apps.snapp.views.notify_courier_delivered')
+    @patch('django.conf.settings.SNAPP_BOX_WEBHOOK_TOKEN', 'secret-token')
+    def test_webhook_repeated_delivered_does_not_renotify(self, mock_notify):
+        """اگر اسنپ به هر دلیلی همان رویداد DELIVERED را دوباره بفرستد، نباید دوباره
+        نوتیف تحویل بفرستیم — چون وضعیت از قبل DELIVERED بوده، نه تازه تغییر کرده."""
+        self.courier_order.status = SnappCourierOrder.Status.DELIVERED
+        self.courier_order.save()
+
+        url = '/api/snapp/webhook/?token=secret-token'
+        response = self.client.post(url, data={
+            'webhookType': 'ORDER_STATUS_UPDATE',
+            'orderId': 'snapp-webhook-1',
+            'orderStatus': 'DELIVERED',
+            'customerRefId': self.order.order_number,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_notify.assert_not_called()
+
 
 class CircuitBreakerTestCase(APITestCase):
     def setUp(self):

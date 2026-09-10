@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from apps.orders.models import Order
 from apps.accounts.permissions import IsWaiter
 from apps.staff_activity.models import StaffActionLog, log_staff_action
-from apps.notifications.push import notify_courier_issue
+from apps.notifications.push import notify_courier_issue, notify_courier_delivered
 
 from .models import SnappSettings, SnappCourierOrder
 from .serializers import SnappSettingsSerializer, SnappCourierOrderSerializer
@@ -225,6 +225,7 @@ class SnappWebhookView(APIView):
 
         webhook_type = data.get('webhookType', '')
         new_status = data.get('orderStatus') or _WEBHOOK_TYPE_STATUS.get(webhook_type)
+        just_delivered = new_status == SnappCourierOrder.Status.DELIVERED and courier_order.status != new_status
         if new_status:
             courier_order.status = new_status
 
@@ -236,6 +237,13 @@ class SnappWebhookView(APIView):
             courier_order.biker_photo_url = data['bikerPhotoUrl']
         if data.get('totalFare'):
             courier_order.delivery_fare = int(data['totalFare'])
+        # ORDER_STATUS_UPDATE (رسیدن به کافه/تحویل‌گرفتن بسته/رسیدن به مقصد) همراه خودش
+        # مختصات لحظه‌ای پیک را هم می‌فرستد — برای زنده‌نگه‌داشتن نقشه‌ی رهگیری بدون
+        # نیاز به پول جداگانه در همان لحظه‌ای که وضعیت عوض می‌شود
+        if data.get('latitude') is not None and data.get('longitude') is not None:
+            courier_order.current_latitude = str(data['latitude'])
+            courier_order.current_longitude = str(data['longitude'])
+            courier_order.location_updated_at = timezone.now()
         if webhook_type in ('ORDER_CANCELLED', 'CANCEL_ALLOCATION', 'FAILED_DELIVERY'):
             courier_order.cancel_reason = webhook_type
 
@@ -246,5 +254,7 @@ class SnappWebhookView(APIView):
         concerning_message = _CONCERNING_WEBHOOK_TYPES.get(webhook_type)
         if concerning_message:
             notify_courier_issue(courier_order.order, concerning_message)
+        elif just_delivered:
+            notify_courier_delivered(courier_order.order)
 
         return Response(status=status.HTTP_200_OK)

@@ -111,8 +111,10 @@ class SnappCourierOrder(models.Model):
     """
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'در انتظار تخصیص پیک'
-        ACCEPTED = 'ACCEPTED', 'پیک تخصیص یافت'
+        ACCEPTED = 'ACCEPTED', 'پیک تخصیص یافت — در راه کافه'
+        ARRIVED_AT_PICK_UP = 'ARRIVED_AT_PICK_UP', 'پیک به کافه رسید'
         PICKED_UP = 'PICKED_UP', 'بسته توسط پیک دریافت شد'
+        ARRIVED_AT_DROP_OFF = 'ARRIVED_AT_DROP_OFF', 'پیک به آدرس مشتری رسید'
         DELIVERED = 'DELIVERED', 'تحویل داده شد'
         CANCELLED = 'CANCELLED', 'لغو شده'
         PREPENDING = 'PREPENDING', 'در حال ثبت'
@@ -167,4 +169,7 @@ class SnappCourierOrder(models.Model):
     @property
     def is_trackable(self):
         """فقط وقتی که پیک واقعاً تخصیص یافته و در حال حمل است، رهگیری زنده معنی دارد."""
-        return self.status in (self.Status.ACCEPTED, self.Status.PICKED_UP)
+        return self.status in (
+            self.Status.ACCEPTED, self.Status.ARRIVED_AT_PICK_UP,
+            self.Status.PICKED_UP, self.Status.ARRIVED_AT_DROP_OFF,
+        )

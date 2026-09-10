@@ -116,6 +116,24 @@ def notify_courier_issue(order, message: str) -> None:
     )
 
 
+def notify_courier_delivered(order) -> None:
+    """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت سفارش — پیک
+    اسنپ‌باکس تحویل سفارش به مشتری را با موفقیت گزارش کرد (رویداد ORDER_STATUS_UPDATE
+    با orderStatus=DELIVERED). notif_type جدا از 'snapp_courier_issue' است چون این
+    خبر خوب است نه هشدار — صدای پیش‌فرض نوتیف را پخش می‌کند، نه صدای اختصاصی هشدار."""
+    title = 'تحویل سفارش'
+    body = f'سفارش #{order.order_number} توسط پیک به مشتری تحویل داده شد'
+    recipients = list(get_notification_recipients('can_manage_orders'))
+    send_push_to_users(
+        [u for u in recipients if u.is_staff], title, body,
+        url='/admin/orders', notif_type='snapp_courier_delivered',
+    )
+    send_push_to_users(
+        [u for u in recipients if not u.is_staff], title, body,
+        url='/waiter/orders', notif_type='snapp_courier_delivered',
+    )
+
+
 def notify_new_reservation(reservation) -> None:
     """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت رزرو — رزرو تازه ثبت شده است."""
     title = 'رزرو جدید'
