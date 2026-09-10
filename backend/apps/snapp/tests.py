@@ -443,3 +443,34 @@ class DeliveryZoneInfoViewTestCase(APITestCase):
         response = self.client.get('/api/snapp/delivery-zone/')
         self.assertNotIn('client_id', response.data)
         self.assertNotIn('client_secret', response.data)
+
+
+class GetAccessTokenTestCase(APITestCase):
+    """اسنپ‌باکس (محیط استیج) گاهی expires_in را یک عدد نجومی غیرواقعی برمی‌گرداند
+    (مثلاً چند هزار سال) — دیده‌شده روی هاست واقعی: cache.set با این مقدار خام
+    تلاش می‌کرد یک تاریخ انقضا بسازد و با ValueError('year ... out of range')
+    می‌ترکید، و کل درخواست توکنِ در واقع موفق را شکست‌خورده گزارش می‌کرد."""
+
+    def setUp(self):
+        cache.clear()
+
+    @patch('apps.snapp.client.requests.post')
+    def test_absurd_expires_in_does_not_crash_token_caching(self, mock_post):
+        mock_post.return_value.json.return_value = {
+            'access_token': 'real-token-despite-bad-expiry',
+            'expires_in': 1209599000000000,
+        }
+        from . import client
+        token = client.get_access_token()
+        self.assertEqual(token, 'real-token-despite-bad-expiry')
+
+    @patch('apps.snapp.client.requests.post')
+    def test_normal_expires_in_still_works(self, mock_post):
+        mock_post.return_value.json.return_value = {
+            'access_token': 'normal-token',
+            'expires_in': 3600,
+        }
+        from . import client
+        token = client.get_access_token()
+        self.assertEqual(token, 'normal-token')
+        self.assertEqual(cache.get(client.TOKEN_CACHE_KEY), 'normal-token')

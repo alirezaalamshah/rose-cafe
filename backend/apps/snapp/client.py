@@ -43,8 +43,13 @@ def get_access_token() -> str | None:
             logger.error('دریافت توکن اسنپ‌باکس ناموفق بود: %s', data)
             return None
 
-        expires_in = data.get('expires_in', 3600)
-        cache.set(TOKEN_CACHE_KEY, token, max(int(expires_in) - 60, 60))
+        # expires_in گاهی از سمت اسنپ‌باکس (استیج) یک عدد نجومی غیرواقعی برمی‌گردد
+        # (مثلاً بیش از ۱۰۰۰ سال) که اگر مستقیم به cache.set داده شود، تلاش برای
+        # ساخت تاریخ انقضا با ValueError («year ... out of range») می‌ترکد و کل
+        # درخواست توکن (با اینکه واقعاً موفق بوده) شکست‌خورده گزارش می‌شود — یک
+        # سقف منطقی (یک روز) این را کاملاً بی‌اثر می‌کند
+        expires_in = min(int(data.get('expires_in', 3600)), 86400)
+        cache.set(TOKEN_CACHE_KEY, token, max(expires_in - 60, 60))
         return token
     except requests.exceptions.Timeout:
         logger.error('زمان اتصال به اسنپ‌باکس (oauth2/token) به پایان رسید')
