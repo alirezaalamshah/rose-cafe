@@ -1,0 +1,73 @@
+.map-picker__box {
+  width: 100%;
+  height: 260px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  /* بدون این، pane های داخلی Leaflet (z-index تا 700) و کنترل‌های زوم/اتریبیوشن
+     (z-index 1000) از stacking context مودال (--z-modal: 500) عبور می‌کنند و
+     روی هدر/فوتر مودال «می‌مانند» — یک stacking context جدید و پایین‌تر می‌سازیم
+     تا هرچه داخل نقشه است، حداکثر همان‌جا محدود بماند */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
+.map-picker__map {
+  width: 100%;
+  height: 100%;
+  /* پس‌زمینه‌ی خودِ Leaflet روشن است؛ تا زمان بارگذاری کاشی‌ها هم با تم هماهنگ بماند */
+  background: var(--bg-secondary);
+}
+
+.map-picker__zone-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.map-picker__zone-info--warning {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.map-picker__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.map-picker__locate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.map-picker__locate-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.map-picker__locate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.map-picker__hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

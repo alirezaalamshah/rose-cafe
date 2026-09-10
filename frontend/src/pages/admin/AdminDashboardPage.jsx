@@ -8,7 +8,7 @@ import {
   MdEventBusy, MdPersonAddAlt, MdBlock, MdCategory, MdWhatshot,
   MdAccountBalanceWallet, MdLocalOffer, MdStar, MdCancel, MdGroups,
   MdCalendarToday, MdRefresh, MdLocalShipping, MdInventory2, MdHistory,
-  MdAllInclusive,
+  MdAllInclusive, MdCheckCircle, MdAccessTime,
 } from 'react-icons/md'
 import api from '../../api/axios.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
@@ -223,6 +223,7 @@ export default function AdminDashboardPage() {
   const quality = range?.quality || {}
   const sales = range?.sales || {}
   const staffRows = range?.staff?.rows || []
+  const courier = range?.courier || {}
   const comparison = range?.comparison || null
 
   const hasAttention = (attention.cash_pending_count > 0) || (attention.pending_reviews > 0) ||
@@ -687,6 +688,28 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* عملکرد پیک اسنپ‌باکس */}
+          <p className="dash-subsection-label"><MdDeliveryDining size={15} />عملکرد پیک اسنپ‌باکس</p>
+          {courier.total_dispatched === 0 ? (
+            <p className="dash-empty">در این بازه سفارشی به پیک ارسال نشده</p>
+          ) : (
+            <div className="dash-kpi-grid">
+              <KpiCard label="ارسال‌شده به پیک" value={toPersianNum(courier.total_dispatched)} icon={MdDeliveryDining} color="var(--primary)" to="/admin/orders" />
+              <KpiCard label="تحویل موفق" value={toPersianNum(courier.delivered_count)} icon={MdCheckCircle} color="var(--success)" />
+              <KpiCard
+                label="نرخ لغو/ناموفق" value={`${toPersianNum(courier.cancellation_rate ?? 0)}٪`} icon={MdCancel}
+                color={courier.cancellation_rate > 20 ? 'var(--error)' : 'var(--text-secondary)'}
+                sub={`${toPersianNum(courier.cancelled_count)} مورد`}
+              />
+              <KpiCard
+                label="میانگین زمان تحویل"
+                value={courier.avg_delivery_minutes != null ? `${toPersianNum(courier.avg_delivery_minutes)} دقیقه` : '—'}
+                icon={MdAccessTime} color="var(--info)"
+              />
+              <KpiCard label="هزینه‌ی کل پیک" value={formatPrice(courier.total_delivery_fare || 0)} icon={MdPayments} color="var(--warning)" />
+            </div>
+          )}
         </div>
       </div>
 

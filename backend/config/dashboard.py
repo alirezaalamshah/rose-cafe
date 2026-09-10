@@ -180,6 +180,45 @@ def _range_sales(start, end):
     }
 
 
+def _range_courier(start, end):
+    """آمار عملکرد پیک اسنپ‌باکس در بازه — بر اساس زمان dispatched_at (نه created_at
+    سفارش)، چون این آمار درباره‌ی خودِ رویداد ارسال به پیک است."""
+    from django.db.models.functions import Cast
+    from django.db.models import DurationField, F
+    from apps.snapp.models import SnappCourierOrder
+
+    couriers_in_range = SnappCourierOrder.objects.filter(dispatched_at__gte=start, dispatched_at__lt=end)
+    total = couriers_in_range.count()
+    if not total:
+        return {
+            'total_dispatched': 0, 'delivered_count': 0, 'cancelled_count': 0,
+            'cancellation_rate': None, 'avg_delivery_minutes': None, 'total_delivery_fare': 0,
+        }
+
+    delivered = couriers_in_range.filter(status=SnappCourierOrder.Status.DELIVERED)
+    cancelled_or_failed = couriers_in_range.filter(
+        status__in=[SnappCourierOrder.Status.CANCELLED, SnappCourierOrder.Status.FAILED]
+    ).count()
+
+    # میانگین فاصله‌ی ارسال تا آخرین وبهوک برای سفارش‌های تحویل‌شده — تقریبی از «زمان تحویل»
+    # (وبهوک آخر برای DELIVERED دقیقاً همان لحظه‌ی تحویل است)
+    avg_duration = delivered.exclude(last_webhook_at__isnull=True).annotate(
+        duration=Cast(F('last_webhook_at') - F('dispatched_at'), output_field=DurationField())
+    ).aggregate(avg=Avg('duration'))['avg']
+    avg_minutes = round(avg_duration.total_seconds() / 60, 1) if avg_duration else None
+
+    total_fare = couriers_in_range.aggregate(s=Sum('delivery_fare'))['s'] or 0
+
+    return {
+        'total_dispatched': total,
+        'delivered_count': delivered.count(),
+        'cancelled_count': cancelled_or_failed,
+        'cancellation_rate': round(cancelled_or_failed / total * 100, 1),
+        'avg_delivery_minutes': avg_minutes,
+        'total_delivery_fare': total_fare,
+    }
+
+
 def _range_staff(start, end):
     from apps.accounts.models import User
     from apps.staff_activity.views import _compute_waiter_stats
@@ -227,6 +266,7 @@ def _range_insights(date_from, date_to):
         'quality': _range_quality(orders_in_range, start, end),
         'sales': _range_sales(start, end),
         'staff': _range_staff(start, end),
+        'courier': _range_courier(start, end),
         'comparison': comparison,
     }
 

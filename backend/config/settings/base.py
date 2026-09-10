@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.business.apps.BusinessConfig',
     'apps.staff_activity.apps.StaffActivityConfig',
     'apps.wallet.apps.WalletConfig',
+    'apps.snapp.apps.SnappConfig',
 ]
 
 MIDDLEWARE = [
@@ -152,6 +153,14 @@ ZARINPAL_MERCHANT = config('ZARINPAL_MERCHANT', default='')
 ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 ZARINPAL_CALLBACK_URL = config('ZARINPAL_CALLBACK_URL', default='http://localhost:5173/payment/callback')
 WALLET_TOPUP_CALLBACK_URL = config('WALLET_TOPUP_CALLBACK_URL', default='http://localhost:3000/wallet/callback')
+
+# اسنپ‌باکس (ارسال پیک) — client_id/secret واقعی هرگز در دیتابیس/گیت نگه‌داشته نمی‌شود
+SNAPP_BOX_BASE_URL = config('SNAPP_BOX_BASE_URL', default='https://b2b-stg.snapp-box.com')
+SNAPP_BOX_CLIENT_ID = config('SNAPP_BOX_CLIENT_ID', default='')
+SNAPP_BOX_CLIENT_SECRET = config('SNAPP_BOX_CLIENT_SECRET', default='')
+# توکن مخفی که در URL وبهوک (پنل B2B اسنپ‌باکس) قرار می‌دهیم تا صحت درخواست‌های
+# رسیده به SnappWebhookView تأیید شود (مستندات اسنپ امضای اختصاصی ارائه نکرده)
+SNAPP_BOX_WEBHOOK_TOKEN = config('SNAPP_BOX_WEBHOOK_TOKEN', default='')
 
 # Push Notification (Web Push / VAPID) — کلید عمومی از طریق API به فرانت‌اند هم داده می‌شود
 VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')

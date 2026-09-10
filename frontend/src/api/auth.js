@@ -21,4 +21,6 @@ export const authAPI = {
   updateAddress: (id, data) => api.patch(`/auth/addresses/${id}/`, data),
   setDefaultAddress: (id) => api.patch(`/auth/addresses/${id}/`, { is_default: true }),
   deleteAddress: (id) => api.delete(`/auth/addresses/${id}/`),
+  searchAddress: (q) => api.get('/auth/addresses/geocode/search/', { params: { q } }),
+  reverseGeocode: (lat, lng) => api.get('/auth/addresses/geocode/reverse/', { params: { lat, lng } }),
 }

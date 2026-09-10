@@ -1,0 +1,17 @@
+.readonly-map {
+  width: 100%;
+  height: 160px;
+}
+
+.readonly-map__box {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  /* بدون این، کنترل‌های Leaflet (z-index تا 1000) از stacking context مودال
+     (--z-modal: 500) عبور می‌کنند و روی هدر/فوتر مودال «می‌مانند» */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}

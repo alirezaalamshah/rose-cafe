@@ -4,6 +4,7 @@ from .views import (
     RegisterView, RegisterVerifyView, LoginView,
     ForgotPasswordView, ResetPasswordView,
     MeView, AddressListCreateView, AddressDetailView,
+    AddressGeocodeSearchView, AddressReverseGeocodeView,
     AdminUserListView, AdminUserDetailView, AdminWaiterPermissionView,
     AdminUserSummaryView, AdminUserOrdersView, AdminUserWalletTransactionsView,
     AdminUserDiscountUsageView, AdminUserReservationsView, AdminUserReviewsView,
@@ -27,6 +28,8 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('addresses/', AddressListCreateView.as_view(), name='addresses'),
     path('addresses/<int:pk>/', AddressDetailView.as_view(), name='address-detail'),
+    path('addresses/geocode/search/', AddressGeocodeSearchView.as_view(), name='address-geocode-search'),
+    path('addresses/geocode/reverse/', AddressReverseGeocodeView.as_view(), name='address-geocode-reverse'),
 
     # Admin user management
     path('admin/users/', AdminUserListView.as_view(), name='admin-users'),

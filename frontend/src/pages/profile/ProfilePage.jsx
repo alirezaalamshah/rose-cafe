@@ -14,6 +14,8 @@ import { Input, Textarea } from '../../components/common/Input/Input.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import BirthdayPicker from '../../components/common/BirthdayPicker/BirthdayPicker.jsx'
+import AddressFormFields, { EMPTY_ADDRESS } from '../../components/common/AddressFormFields/AddressFormFields.jsx'
+import ReadOnlyMap from '../../components/common/ReadOnlyMap/ReadOnlyMap.jsx'
 import { formatJalali, toPersianNum } from '../../utils/jalali.js'
 import './ProfilePage.css'
 
@@ -220,69 +222,6 @@ function PasswordSection({ hasPassword }) {
   )
 }
 
-const EMPTY_ADDR = { title: '', province: '', city: '', street: '', detail: '', postal_code: '', is_default: false }
-
-function AddressFormFields({ form, onChange }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-      <Input
-        label="عنوان آدرس *"
-        value={form.title}
-        onChange={(e) => onChange('title', e.target.value)}
-        placeholder="مثلاً: خانه، محل کار"
-      />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
-        <Input
-          label="استان (اختیاری)"
-          value={form.province}
-          onChange={(e) => onChange('province', e.target.value)}
-          placeholder="استان"
-        />
-        <Input
-          label="شهر *"
-          value={form.city}
-          onChange={(e) => onChange('city', e.target.value)}
-          placeholder="شهر"
-        />
-      </div>
-      <Input
-        label="خیابان / کوچه / پلاک *"
-        value={form.street}
-        onChange={(e) => onChange('street', e.target.value)}
-        placeholder="خیابان، کوچه، پلاک"
-      />
-      <Textarea
-        label="جزئیات بیشتر (اختیاری)"
-        value={form.detail}
-        onChange={(e) => onChange('detail', e.target.value)}
-        placeholder="طبقه، واحد و ..."
-        rows={2}
-      />
-      <Input
-        label="کد پستی (اختیاری)"
-        value={form.postal_code}
-        onChange={(e) => onChange('postal_code', e.target.value)}
-        placeholder="1234567890"
-        dir="ltr"
-      />
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-        <input
-          type="checkbox"
-          checked={form.is_default}
-          onChange={(e) => onChange('is_default', e.target.checked)}
-          style={{ width: 16, height: 16, accentColor: 'var(--primary)' }}
-        />
-        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-          آدرس پیش‌فرض
-        </span>
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: 'auto' }}>
-          برای سفارشات پیک به‌صورت خودکار انتخاب می‌شود
-        </span>
-      </label>
-    </div>
-  )
-}
-
 const GENDER_OPTIONS = [
   { value: 'male', label: 'آقا', icon: MdMale },
   { value: 'female', label: 'خانم', icon: MdFemale },
@@ -323,7 +262,7 @@ export default function ProfilePage() {
   const [addrModal, setAddrModal] = useState(false) // 'add' | 'edit' | false
   const [editingAddr, setEditingAddr] = useState(null) // address object being edited
   const [form, setForm] = useState({ full_name: '', email: '', gender: '', marital_status: '', food_interests: '' })
-  const [addrForm, setAddrForm] = useState(EMPTY_ADDR)
+  const [addrForm, setAddrForm] = useState(EMPTY_ADDRESS)
   const [addrSaving, setAddrSaving] = useState(false)
   const [settingDefault, setSettingDefault] = useState(null)
   const [birthdayValue, setBirthdayValue] = useState('')
@@ -376,7 +315,7 @@ export default function ProfilePage() {
 
   function openAddModal() {
     setEditingAddr(null)
-    setAddrForm(EMPTY_ADDR)
+    setAddrForm(EMPTY_ADDRESS)
     setAddrModal('add')
   }
 
@@ -389,6 +328,8 @@ export default function ProfilePage() {
       street: addr.street || '',
       detail: addr.detail || '',
       postal_code: addr.postal_code || '',
+      latitude: addr.latitude || '',
+      longitude: addr.longitude || '',
       is_default: addr.is_default || false,
     })
     setAddrModal('edit')
@@ -401,6 +342,10 @@ export default function ProfilePage() {
   async function handleSaveAddress() {
     if (!addrForm.title || !addrForm.city || !addrForm.street) {
       toast.error('لطفاً فیلدهای اجباری را پر کنید')
+      return
+    }
+    if (!addrForm.latitude || !addrForm.longitude) {
+      toast.error('لطفاً موقعیت آدرس را روی نقشه مشخص کنید')
       return
     }
     setAddrSaving(true)
@@ -425,8 +370,11 @@ export default function ProfilePage() {
         toast.success('آدرس اضافه شد')
       }
       setAddrModal(false)
-    } catch {
-      toast.error('خطا در ذخیره آدرس')
+    } catch (err) {
+      const data = err.response?.data
+      const msg = data?.non_field_errors?.[0] || data?.detail
+        || data?.latitude?.[0] || data?.longitude?.[0] || 'خطا در ذخیره آدرس'
+      toast.error(msg)
     } finally {
       setAddrSaving(false)
     }
@@ -601,78 +549,61 @@ export default function ProfilePage() {
               <p>اولین آدرس خود را اضافه کنید</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div className="address-list">
               {addresses.map((addr) => (
                 <div key={addr.id} className="address-card neu-card-sm">
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  <div className="address-card__header">
+                    <span className="address-card__title">
+                      <MdLocationOn size={15} />
                       {addr.title}
-                      {addr.is_default && (
-                        <span style={{ marginRight: 8, fontSize: '0.72rem', background: 'var(--primary-bg)', color: 'var(--primary)', padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>
-                          پیش‌فرض
-                        </span>
-                      )}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      {addr.province && `${addr.province} ،`}{addr.city} — {addr.street}
-                    </p>
-                    {addr.detail && (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>{addr.detail}</p>
-                    )}
-                    {addr.postal_code && (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2, direction: 'ltr', textAlign: 'right' }}>
-                        کد پستی: {addr.postal_code}
-                      </p>
+                    </span>
+                    {addr.is_default && (
+                      <span className="address-card__badge">پیش‌فرض</span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                    {!addr.is_default && (
+
+                  <p className="address-card__location">
+                    {[addr.city, addr.province].filter(Boolean).join('، ')}
+                    {addr.street && <span className="address-card__street"> — {addr.street}</span>}
+                  </p>
+
+                  {addr.detail && <p className="address-card__detail">{addr.detail}</p>}
+                  {addr.postal_code && (
+                    <p className="address-card__postal">
+                      کد پستی: <span dir="ltr">{addr.postal_code}</span>
+                    </p>
+                  )}
+
+                  {addr.latitude && addr.longitude && (
+                    <ReadOnlyMap latitude={addr.latitude} longitude={addr.longitude} height="140px" />
+                  )}
+
+                  <div className="address-card__actions">
+                    {addr.is_default ? (
+                      <span className="address-card__action-btn address-card__action-btn--default" title="آدرس پیش‌فرض">
+                        <MdStar size={16} />
+                      </span>
+                    ) : (
                       <button
+                        className="address-card__action-btn"
                         onClick={() => handleSetDefault(addr)}
                         disabled={settingDefault === addr.id}
                         title="تنظیم به عنوان پیش‌فرض"
-                        style={{
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-muted)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '6px 10px',
-                          cursor: 'pointer',
-                        }}
                       >
                         <MdStarOutline size={16} />
                       </button>
                     )}
-                    {addr.is_default && (
-                      <span style={{ padding: '6px 10px', color: 'var(--primary)' }}>
-                        <MdStar size={16} />
-                      </span>
-                    )}
                     <button
+                      className="address-card__action-btn"
                       onClick={() => openEditModal(addr)}
                       title="ویرایش"
-                      style={{
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text-secondary)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '6px 10px',
-                        cursor: 'pointer',
-                      }}
                     >
                       <MdEdit size={16} />
                     </button>
                     <button
+                      className="address-card__action-btn address-card__action-btn--danger"
                       onClick={() => handleDeleteAddress(addr.id)}
                       title="حذف"
-                      style={{
-                        background: 'var(--error-bg)',
-                        border: '1px solid rgba(248,113,113,0.2)',
-                        color: 'var(--error)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '6px 10px',
-                        cursor: 'pointer',
-                      }}
                     >
                       <MdDelete size={16} />
                     </button>

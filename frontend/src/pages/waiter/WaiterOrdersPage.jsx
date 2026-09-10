@@ -7,6 +7,8 @@ import {
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import { ordersAPI } from '../../api/orders.js'
+import { snappAPI } from '../../api/snapp.js'
+import CourierStatusCard from '../../components/common/CourierStatusCard/CourierStatusCard.jsx'
 import Loading from '../../components/common/Loading/Loading.jsx'
 import Modal from '../../components/common/Modal/Modal.jsx'
 import Button from '../../components/common/Button/Button.jsx'
@@ -56,6 +58,8 @@ export default function WaiterOrdersPage() {
   const [updating, setUpdating] = useState(null)
   const [confirmingCash, setConfirmingCash] = useState(null)
   const [approving, setApproving] = useState(null)
+  const [dispatching, setDispatching] = useState(null)
+  const [trackingOrderId, setTrackingOrderId] = useState(null)
   const [rejectModal, setRejectModal] = useState(null) // order being rejected
   const [rejectReason, setRejectReason] = useState('')
   const [rejecting, setRejecting] = useState(false)
@@ -93,6 +97,32 @@ export default function WaiterOrdersPage() {
       load(true)
     } finally {
       setConfirmingCash(null)
+    }
+  }
+
+  async function handleDispatchToSnapp(order) {
+    setDispatching(order.id)
+    try {
+      const courier = await snappAPI.dispatchOrder(order.id)
+      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, snapp_courier: courier } : o))
+      toast.success('سفارش به پیک اسنپ‌باکس ارسال شد')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'ارسال به پیک ناموفق بود')
+    } finally {
+      setDispatching(null)
+    }
+  }
+
+  async function handleRetryDispatch(order) {
+    setDispatching(order.id)
+    try {
+      const courier = await snappAPI.retryDispatch(order.id)
+      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, snapp_courier: courier } : o))
+      toast.success('سفارش دوباره به پیک اسنپ‌باکس ارسال شد')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'ارسال مجدد ناموفق بود')
+    } finally {
+      setDispatching(null)
     }
   }
 
@@ -278,8 +308,62 @@ export default function WaiterOrdersPage() {
                         {updating === order.id ? '...' : next.label}
                       </button>
                     )}
+                    {order.delivery_type === 'delivery' && (() => {
+                      const courier = order.snapp_courier
+                      if (!courier) {
+                        return (
+                          <button
+                            className="waiter-action-btn waiter-action-btn--primary"
+                            disabled={dispatching === order.id}
+                            onClick={() => handleDispatchToSnapp(order)}
+                            title="ارسال دستی سفارش به پیک اسنپ‌باکس"
+                          >
+                            <MdDeliveryDining size={15} /> {dispatching === order.id ? '...' : 'ارسال به پیک'}
+                          </button>
+                        )
+                      }
+                      if (['CANCELLED', 'FAILED'].includes(courier.status)) {
+                        return (
+                          <button
+                            className="waiter-action-btn waiter-action-btn--accent"
+                            disabled={dispatching === order.id}
+                            onClick={() => handleRetryDispatch(order)}
+                            title={`پیک قبلی: ${courier.status_label}`}
+                          >
+                            <MdDeliveryDining size={15} /> {dispatching === order.id ? '...' : 'ارسال مجدد به پیک'}
+                          </button>
+                        )
+                      }
+                      return (
+                        <span className="waiter-action-btn waiter-action-btn--primary" style={{ cursor: 'default' }}>
+                          <MdDeliveryDining size={15} /> پیک: {courier.status_label}
+                          {courier.is_trackable && (
+                            <button
+                              type="button"
+                              onClick={() => setTrackingOrderId((id) => id === order.id ? null : order.id)}
+                              style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, marginRight: 4, font: 'inherit' }}
+                            >
+                              {trackingOrderId === order.id ? 'بستن نقشه' : 'نمایش روی نقشه'}
+                            </button>
+                          )}
+                          {courier.tracking_url && (
+                            <a
+                              href={courier.tracking_url}
+                              target="_blank" rel="noreferrer"
+                              style={{ color: 'inherit', textDecoration: 'underline', marginRight: 4 }}
+                            >
+                              رهگیری
+                            </a>
+                          )}
+                        </span>
+                      )
+                    })()}
                   </div>
                 </div>
+
+                {trackingOrderId === order.id && order.snapp_courier && (
+                  <CourierStatusCard orderId={order.id} courier={order.snapp_courier} />
+                )}
               </div>
             )
           })}

@@ -19,6 +19,7 @@ class StaffActionLog(models.Model):
         CAFE_FORCE_CLOSED = 'cafe_force_closed', 'بستن فوری کافه'
         CAFE_REOPENED = 'cafe_reopened', 'بازکردن مجدد کافه'
         WALLET_ADMIN_ADJUSTMENT = 'wallet_admin_adjustment', 'تنظیم دستی کیف‌پول'
+        SNAPP_CIRCUIT_BREAKER_RESET = 'snapp_circuit_breaker_reset', 'فعال‌سازی مجدد اسنپ‌باکس'
 
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,

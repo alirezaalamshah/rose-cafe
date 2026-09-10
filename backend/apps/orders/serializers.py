@@ -81,6 +81,7 @@ class OrderSerializer(serializers.ModelSerializer):
     table_detail = TableSimpleSerializer(source='table', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_type_display = serializers.CharField(source='get_delivery_type_display', read_only=True)
+    snapp_courier = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -90,7 +91,15 @@ class OrderSerializer(serializers.ModelSerializer):
             'address', 'address_detail', 'table', 'table_detail',
             'note', 'total_price', 'delivery_cost', 'packaging_cost', 'discount_amount',
             'final_price', 'discount_code', 'items', 'created_at', 'rejection_reason',
+            'snapp_courier',
         ]
+
+    def get_snapp_courier(self, obj):
+        courier = getattr(obj, 'snapp_courier', None)
+        if not courier:
+            return None
+        from apps.snapp.serializers import SnappCourierOrderSerializer
+        return SnappCourierOrderSerializer(courier).data
 
 
 class AdminOrderSerializer(serializers.ModelSerializer):
@@ -101,6 +110,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     table_detail = TableSimpleSerializer(source='table', read_only=True)
     address_detail = AddressSerializer(source='address', read_only=True)
     assigned_waiter_name = serializers.SerializerMethodField()
+    snapp_courier = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -110,6 +120,13 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         if not obj.assigned_waiter:
             return None
         return obj.assigned_waiter.full_name or str(obj.assigned_waiter.phone)
+
+    def get_snapp_courier(self, obj):
+        courier = getattr(obj, 'snapp_courier', None)
+        if not courier:
+            return None
+        from apps.snapp.serializers import SnappCourierOrderSerializer
+        return SnappCourierOrderSerializer(courier).data
 
 
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
