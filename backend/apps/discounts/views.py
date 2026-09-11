@@ -6,8 +6,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, generics, status
 
-from .models import Discount, WinBackSettings
-from .serializers import DiscountCheckSerializer, DiscountSerializer, WinBackSettingsSerializer
+from .models import Discount, DiscountUsage, WinBackSettings
+from .serializers import (
+    DiscountCheckSerializer, DiscountSerializer, WinBackSettingsSerializer, UserAssignedDiscountSerializer,
+)
 from .utils import apply_discount
 from apps.common.pagination import StandardPagination
 from apps.notifications.sms import send_win_back_discount_sms
@@ -138,3 +140,25 @@ class AdminSendWinBackSMSView(APIView):
             'value': settings_obj.value,
             'valid_until': discount.valid_until,
         })
+
+
+class AdminUserAssignedDiscountsView(generics.ListAPIView):
+    """دکمه‌ی «کدهای تخفیف» کنار «پیام دلتنگی» — همه‌ی کدهای تخفیفی که مستقیماً
+    به این مشتری اختصاص یافته‌اند (M2M users)، صرف‌نظر از اینکه استفاده شده/
+    منقضی شده/هنوز فعال باشند — تا ادمین قبل از ارسال دوباره، وضعیت واقعی را ببیند."""
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = UserAssignedDiscountSerializer
+
+    def get_queryset(self):  # type: ignore[override]
+        return Discount.objects.filter(users__id=self.kwargs['pk']).order_by('-created_at')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        discount_ids = [d.id for d in self.get_queryset()]
+        used_discount_ids = set(
+            DiscountUsage.objects.filter(
+                discount_id__in=discount_ids, user_id=self.kwargs['pk'],
+            ).values_list('discount_id', flat=True)
+        )
+        context['used_discount_ids'] = used_discount_ids
+        return context

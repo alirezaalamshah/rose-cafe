@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Discount, DiscountUsage, WinBackSettings
 
@@ -35,6 +36,34 @@ class DiscountUsageSerializer(serializers.ModelSerializer):
 
     def get_order_discount_amount(self, obj):
         return self.context.get('order_lookup', {}).get(obj.order_id, {}).get('discount_amount')
+
+
+class UserAssignedDiscountSerializer(serializers.ModelSerializer):
+    """برای مودال «کدهای تخفیف» یک مشتری خاص — وضعیت واقعی هر کد (استفاده‌شده/
+    منقضی/فعال) و روزهای باقی‌مانده، تا ادمین قبل از ارسال دوباره‌ی پیام دلتنگی
+    تصمیم بگیرد که کد قبلی هنوز زنده است یا نه."""
+    status = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Discount
+        fields = [
+            'id', 'code', 'discount_type', 'value', 'is_active',
+            'valid_from', 'valid_until', 'status', 'days_remaining', 'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_status(self, obj):
+        used_ids = self.context.get('used_discount_ids', set())
+        if obj.id in used_ids:
+            return 'used'
+        if not obj.is_active or timezone.now() > obj.valid_until:
+            return 'expired'
+        return 'active'
+
+    def get_days_remaining(self, obj):
+        delta = obj.valid_until - timezone.now()
+        return max(delta.days, 0)
 
 
 class WinBackSettingsSerializer(serializers.ModelSerializer):

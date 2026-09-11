@@ -10,4 +10,5 @@ export const discountsAPI = {
   adminGetWinBackSettings: () => api.get('/discounts/admin/win-back-settings/'),
   adminUpdateWinBackSettings: (data) => api.patch('/discounts/admin/win-back-settings/', data),
   adminSendWinBackSMS: (userId) => api.post(`/discounts/admin/win-back/${userId}/send/`),
+  adminGetUserAssignedDiscounts: (userId) => api.get(`/discounts/admin/user/${userId}/assigned/`),
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MdVisibility, MdSms, MdSettings } from 'react-icons/md'
+import { MdVisibility, MdSms, MdSettings, MdLocalOffer } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { usersAPI } from '../../api/users.js'
 import { discountsAPI } from '../../api/discounts.js'
@@ -24,6 +24,12 @@ function daysSince(isoDate) {
 
 const DISCOUNT_TYPE_LABEL = { percentage: 'درصدی', fixed: 'مبلغ ثابت' }
 
+const STATUS_META = {
+  active: { label: 'فعال', cls: 'status-badge status-confirmed' },
+  used: { label: 'استفاده شده', cls: 'status-badge status-delivered' },
+  expired: { label: 'منقضی', cls: 'status-badge status-cancelled' },
+}
+
 export default function AdminChurnedCustomersPage() {
   const navigate = useNavigate()
   const [customers, setCustomers] = useState(null)
@@ -31,6 +37,8 @@ export default function AdminChurnedCustomersPage() {
   const [settingsModal, setSettingsModal] = useState(false)
   const [settings, setSettings] = useState(null)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [codesModal, setCodesModal] = useState(null) // customer object یا null
+  const [codes, setCodes] = useState(null)
 
   useEffect(() => {
     usersAPI.adminGetChurnedCustomers()
@@ -56,6 +64,14 @@ export default function AdminChurnedCustomersPage() {
     } finally {
       setSavingSettings(false)
     }
+  }
+
+  function openCodesModal(customer) {
+    setCodesModal(customer)
+    setCodes(null)
+    discountsAPI.adminGetUserAssignedDiscounts(customer.id)
+      .then((data) => setCodes(Array.isArray(data) ? data : (data.results || [])))
+      .catch(() => toast.error('خطا در دریافت کدهای تخفیف'))
   }
 
   async function handleSendWinBack(customer) {
@@ -147,6 +163,13 @@ export default function AdminChurnedCustomersPage() {
                         >
                           <MdSms size={14} /> {sending === c.id ? '...' : 'پیام دلتنگی'}
                         </button>
+                        <button
+                          className="admin-action-btn"
+                          onClick={() => openCodesModal(c)}
+                          title="مشاهده‌ی کدهای تخفیفی که قبلاً برای این مشتری ارسال شده"
+                        >
+                          <MdLocalOffer size={14} /> کدهای تخفیف
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -200,6 +223,52 @@ export default function AdminChurnedCustomersPage() {
               هر بار که برای یک مشتری «پیام دلتنگی» ارسال شود، یک کد تخفیف تازه با همین مقادیر و
               فقط برای همان مشتری ساخته می‌شود — هر کد فقط یک‌بار قابل استفاده است.
             </p>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!codesModal}
+        onClose={() => setCodesModal(null)}
+        title={`کدهای تخفیف — ${codesModal?.full_name || codesModal?.phone || ''}`}
+      >
+        {codes === null ? (
+          <Loading />
+        ) : codes.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-md) 0' }}>
+            هنوز هیچ کد تخفیفی برای این مشتری ارسال نشده است
+          </p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>کد</th>
+                  <th>تخفیف</th>
+                  <th>وضعیت</th>
+                  <th>روز باقی‌مانده</th>
+                  <th>تاریخ ساخت</th>
+                </tr>
+              </thead>
+              <tbody>
+                {codes.map((d) => {
+                  const meta = STATUS_META[d.status] || STATUS_META.expired
+                  return (
+                    <tr key={d.id}>
+                      <td data-label="کد"><span dir="ltr" style={{ fontFamily: 'monospace' }}>{d.code}</span></td>
+                      <td data-label="تخفیف">
+                        {d.discount_type === 'percentage' ? `${toPersianNum(d.value)}٪` : formatPrice(d.value)}
+                      </td>
+                      <td data-label="وضعیت"><span className={meta.cls}>{meta.label}</span></td>
+                      <td data-label="روز باقی‌مانده">
+                        {d.status === 'active' ? `${toPersianNum(d.days_remaining)} روز` : '—'}
+                      </td>
+                      <td data-label="تاریخ ساخت">{formatJalali(d.created_at)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </Modal>
