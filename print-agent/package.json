@@ -1,0 +1,16 @@
+{
+  "name": "cafe-print-agent",
+  "version": "1.0.0",
+  "description": "برنامه‌ی محلی چاپ فیش سفارش روی پرینتر حرارتی USB — سرور را poll می‌کند و با ESC/POS چاپ می‌کند",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

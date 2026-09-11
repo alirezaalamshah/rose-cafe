@@ -18,7 +18,7 @@ from apps.business.models import BusinessHours
 from apps.reservations.models import Table
 from apps.orders.models import Order
 from .models import ReceiptSettings, PrintJob
-from .services import get_walk_in_customer, render_receipt_text
+from .services import get_walk_in_customer
 
 
 class WalkInOrderTestCase(APITestCase):
@@ -165,7 +165,9 @@ class PrintAgentEndpointsTestCase(APITestCase):
         )
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['order_number'], order.order_number)
-        self.assertIn('موکا', response.data[0]['receipt_text'])
+        receipt_data = response.data[0]['receipt_data']
+        item_rows = [b for b in receipt_data if b.get('type') == 'row' and 'موکا' in b.get('left', '')]
+        self.assertEqual(len(item_rows), 1)
 
         ack_response = self.client.post(
             f'/api/pos/print-jobs/{job.id}/ack/', HTTP_X_PRINT_AGENT_KEY='test-secret-key',

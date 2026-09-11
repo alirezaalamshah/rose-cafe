@@ -31,14 +31,15 @@ class WalkInOrderCreateSerializer(serializers.Serializer):
 
 
 class PrintJobSerializer(serializers.ModelSerializer):
-    """برای Print Agent — شامل متن آماده‌ی چاپ، نه فقط داده‌ی خام."""
-    receipt_text = serializers.SerializerMethodField()
+    """برای Print Agent — شامل بلوک‌های ساختاریافته‌ی آماده‌ی چاپ (نه متن تخت)،
+    چون Print Agent خودش با فونت فارسی proportional چیدمان واقعی را رسم می‌کند."""
+    receipt_data = serializers.SerializerMethodField()
     order_number = serializers.CharField(source='order.order_number', read_only=True)
 
     class Meta:
         model = PrintJob
-        fields = ['id', 'order_number', 'receipt_text', 'created_at']
+        fields = ['id', 'order_number', 'receipt_data', 'created_at']
 
-    def get_receipt_text(self, obj):
-        from .services import render_receipt_text
-        return render_receipt_text(obj.order)
+    def get_receipt_data(self, obj):
+        from .services import build_receipt_data
+        return build_receipt_data(obj.order)

@@ -27,24 +27,27 @@ def queue_print_job(order) -> None:
     PrintJob.objects.get_or_create(order=order)
 
 
-RECEIPT_LINE_WIDTH = 32  # عرض استاندارد فیش پرینترهای حرارتی ۵۸ میلی‌متری با فونت پایه
+def _text(text, align='right', bold=False):
+    return {'type': 'text', 'text': text, 'align': align, 'bold': bold}
 
 
-def _center(text: str, width: int = RECEIPT_LINE_WIDTH) -> str:
-    return text.center(width)
+def _row(left, right, bold=False):
+    return {'type': 'row', 'left': left, 'right': right, 'bold': bold}
 
 
-def _kv_line(label: str, value: str, width: int = RECEIPT_LINE_WIDTH) -> str:
-    """یک ردیف «برچسب ..... مقدار» با نقطه‌چین پرکننده تا عرض فیش."""
-    gap = width - len(label) - len(value)
-    return f'{label}{"." * max(gap, 1)}{value}' if gap > 0 else f'{label} {value}'
+def _divider():
+    return {'type': 'divider'}
 
 
-def render_receipt_text(order) -> str:
-    """Order را به متن monospace قابل چاپ روی پرینتر حرارتی تبدیل می‌کند — بخش‌های
-    وابسته به داده‌ی سفارش (شماره/آیتم‌ها/قیمت/تاریخ) همیشه ثابت‌الگو هستند؛ فقط
-    header_text/footer_text/نمایش نام و تلفن مشتری از ReceiptSettings خوانده
-    می‌شوند (تنها بخش‌هایی که ادمین از پنل قابل تغییر گذاشته است)."""
+def build_receipt_data(order) -> list:
+    """Order را به یک لیست از بلوک‌های ساختاریافته (نه متن تخت) تبدیل می‌کند —
+    چون فونت فارسی روی پرینتر proportional است (نه monospace)، وسط‌چین‌کردن و
+    ردیف‌های دوطرفه باید توسط Print Agent با چیدمان واقعی canvas رسم شوند، نه با
+    فاصله‌گذاری کاراکتری اینجا. هر بلوک یک type مشخص دارد: text (یک خط، با
+    align)، row (برچسب راست + مقدار چپ، مثل جدول)، divider (خط افقی کامل).
+    بخش‌های وابسته به داده‌ی سفارش (شماره/آیتم‌ها/قیمت/تاریخ) همیشه ثابت‌الگو
+    هستند؛ فقط header_text/footer_text/نمایش نام و تلفن مشتری از ReceiptSettings
+    خوانده می‌شوند (تنها بخش‌هایی که ادمین از پنل قابل تغییر گذاشته است)."""
     import jdatetime
     from django.utils import timezone
     from .models import ReceiptSettings
@@ -53,56 +56,55 @@ def render_receipt_text(order) -> str:
     settings_obj = ReceiptSettings.get_settings()
     cafe = CafeInfo.get_info()
 
-    lines = []
-    lines.append(_center(settings_obj.header_text or cafe.name))
+    blocks = []
+    blocks.append(_text(settings_obj.header_text or cafe.name, align='center', bold=True))
     if cafe.address:
-        lines.append(_center(cafe.address))
+        blocks.append(_text(cafe.address, align='center'))
     if cafe.phone:
-        lines.append(_center(cafe.phone))
-    lines.append('-' * RECEIPT_LINE_WIDTH)
+        blocks.append(_text(cafe.phone, align='center'))
+    blocks.append(_divider())
 
-    lines.append(_kv_line('شماره سفارش', order.order_number))
+    blocks.append(_row('شماره سفارش', order.order_number))
     created_local = timezone.localtime(order.created_at)
     jalali = jdatetime.date.fromgregorian(date=created_local.date())
-    lines.append(_kv_line('تاریخ', f'{jalali.strftime("%Y/%m/%d")} {created_local.strftime("%H:%M")}'))
-    lines.append(_kv_line('نوع تحویل', order.get_delivery_type_display()))
+    blocks.append(_row('تاریخ', f'{jalali.strftime("%Y/%m/%d")} {created_local.strftime("%H:%M")}'))
+    blocks.append(_row('نوع تحویل', order.get_delivery_type_display()))
     if order.table_id:
-        lines.append(_kv_line('میز', str(order.table.number)))
+        blocks.append(_row('میز', str(order.table.number)))
 
     customer_name = order.walk_in_customer_name or order.user.full_name
     if settings_obj.show_customer_name and customer_name:
-        lines.append(_kv_line('مشتری', customer_name))
+        blocks.append(_row('مشتری', customer_name))
     if settings_obj.show_customer_phone and not order.walk_in_customer_name:
-        lines.append(_kv_line('تلفن', str(order.user.phone)))
+        blocks.append(_row('تلفن', str(order.user.phone)))
 
-    lines.append('-' * RECEIPT_LINE_WIDTH)
+    blocks.append(_divider())
 
     for item in order.items.all():
         name = item.menu_item.name
         if item.variant_name:
             name = f'{name} ({item.variant_name})'
-        lines.append(f'{name} × {item.quantity}')
-        lines.append(_kv_line('', f'{item.subtotal:,} تومان'))
+        blocks.append(_row(f'{name} × {item.quantity}', f'{item.subtotal:,} تومان'))
         for addon in item.addons.all():
-            lines.append(f'  + {addon.name} ({addon.price:,})')
+            blocks.append(_text(f'+ {addon.name} ({addon.price:,})', align='right'))
 
-    lines.append('-' * RECEIPT_LINE_WIDTH)
-    lines.append(_kv_line('جمع اقلام', f'{order.total_price:,} تومان'))
+    blocks.append(_divider())
+    blocks.append(_row('جمع اقلام', f'{order.total_price:,} تومان'))
     if order.packaging_cost:
-        lines.append(_kv_line('بسته‌بندی', f'{order.packaging_cost:,} تومان'))
+        blocks.append(_row('بسته‌بندی', f'{order.packaging_cost:,} تومان'))
     if order.delivery_cost:
-        lines.append(_kv_line('ارسال', f'{order.delivery_cost:,} تومان'))
+        blocks.append(_row('ارسال', f'{order.delivery_cost:,} تومان'))
     if order.discount_amount:
-        lines.append(_kv_line('تخفیف', f'-{order.discount_amount:,} تومان'))
-    lines.append(_kv_line('مبلغ نهایی', f'{order.final_price:,} تومان'))
-    lines.append(_kv_line('پرداخت', order.get_payment_method_display()))
+        blocks.append(_row('تخفیف', f'-{order.discount_amount:,} تومان'))
+    blocks.append(_row('مبلغ نهایی', f'{order.final_price:,} تومان', bold=True))
+    blocks.append(_row('پرداخت', order.get_payment_method_display()))
 
     if order.note:
-        lines.append('-' * RECEIPT_LINE_WIDTH)
-        lines.append(f'توضیحات: {order.note}')
+        blocks.append(_divider())
+        blocks.append(_text(f'توضیحات: {order.note}', align='right'))
 
     if settings_obj.footer_text:
-        lines.append('-' * RECEIPT_LINE_WIDTH)
-        lines.append(_center(settings_obj.footer_text))
+        blocks.append(_divider())
+        blocks.append(_text(settings_obj.footer_text, align='center'))
 
-    return '\n'.join(lines)
+    return blocks
