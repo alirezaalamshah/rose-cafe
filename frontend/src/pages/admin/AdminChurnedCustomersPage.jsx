@@ -171,8 +171,20 @@ export default function AdminChurnedCustomersPage() {
                           className="admin-action-btn"
                           onClick={() => openCodesModal(c)}
                           title="مشاهده‌ی کدهای تخفیفی که قبلاً برای این مشتری ارسال شده"
+                          style={{ position: 'relative' }}
                         >
                           <MdLocalOffer size={14} /> کدهای تخفیف
+                          {c.active_discount_codes_count > 0 && (
+                            <svg className="win-back-badge" viewBox="0 0 19 19" aria-hidden="true">
+                              <circle cx="9.5" cy="9.5" r="8.5" fill="var(--error)" stroke="var(--bg-card)" strokeWidth="2" />
+                              <text
+                                x="9.5" y="9.5" textAnchor="middle" dominantBaseline="central"
+                                fontSize="9.5" fontWeight="700" fill="#fff"
+                              >
+                                {toPersianNum(c.active_discount_codes_count > 9 ? '9+' : c.active_discount_codes_count)}
+                              </text>
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </td>

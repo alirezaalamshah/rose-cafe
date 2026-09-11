@@ -253,6 +253,39 @@ class AdminChurnedCustomersTestCase(APITestCase):
         churned_row = next(r for r in results if r['id'] == churned.id)
         self.assertIsNotNone(churned_row['last_order_at'])
 
+    def test_active_discount_codes_count(self):
+        from datetime import timedelta
+        from apps.discounts.models import Discount, DiscountUsage
+
+        churned = User.objects.create_user(phone='+989120000075', full_name='مشتری در معرض ریزش')
+        self._order_for(churned, timezone.now() - timezone.timedelta(days=40))
+        self._order_for(churned, timezone.now() - timezone.timedelta(days=30))
+
+        now = timezone.now()
+        active_code = Discount.objects.create(
+            code='WB-ACTIVE', discount_type='percentage', value=10, usage_limit=1,
+            valid_from=now, valid_until=now + timedelta(days=14),
+        )
+        active_code.users.add(churned)
+
+        used_code = Discount.objects.create(
+            code='WB-USED', discount_type='percentage', value=10, usage_limit=1,
+            valid_from=now, valid_until=now + timedelta(days=14),
+        )
+        used_code.users.add(churned)
+        DiscountUsage.objects.create(discount=used_code, user=churned, order_id=1)
+
+        expired_code = Discount.objects.create(
+            code='WB-EXPIRED', discount_type='percentage', value=10, usage_limit=1,
+            valid_from=now - timedelta(days=20), valid_until=now - timedelta(days=1),
+        )
+        expired_code.users.add(churned)
+
+        response = self.client.get('/api/auth/admin/customers/churned/')
+        results = response.data['results'] if 'results' in response.data else response.data
+        row = next(r for r in results if r['id'] == churned.id)
+        self.assertEqual(row['active_discount_codes_count'], 1)
+
 
 class AdminUserListWalletBalanceTestCase(APITestCase):
     """ستون کیف‌پول در جدول کاربران — لیست باید موجودی هر کاربر را بدون N+1 برگرداند."""

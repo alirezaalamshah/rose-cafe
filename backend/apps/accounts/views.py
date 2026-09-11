@@ -501,10 +501,25 @@ class AdminChurnedCustomersView(generics.ListAPIView):
     def get_queryset(self):
         from django.utils import timezone
         from datetime import timedelta
+        from django.db.models import Count, Q, OuterRef, Exists
+        from apps.discounts.models import DiscountUsage
         from .customer_insights import annotate_customer_stats, CHURN_MIN_ORDERS, CHURN_INACTIVE_DAYS
 
         cutoff = timezone.now() - timedelta(days=CHURN_INACTIVE_DAYS)
         qs = annotate_customer_stats(User.objects.filter(role=User.Role.CUSTOMER))
+
+        # کد فعال یعنی: is_active، هنوز منقضی نشده، و برای همین مشتری استفاده نشده
+        # (روی دکمه‌ی «کدهای تخفیف» به‌شکل شمارنده نشان داده می‌شود، مثل بج نوتیفیکیشن)
+        unused_by_this_user = ~Exists(
+            DiscountUsage.objects.filter(discount_id=OuterRef('discounts__id'), user_id=OuterRef('id'))
+        )
+        qs = qs.annotate(
+            active_discount_codes_count=Count(
+                'discounts',
+                filter=Q(discounts__is_active=True, discounts__valid_until__gt=timezone.now()) & unused_by_this_user,
+                distinct=True,
+            ),
+        )
         return qs.filter(
             orders_count__gte=CHURN_MIN_ORDERS, last_order_at__isnull=False, last_order_at__lt=cutoff,
         ).order_by('last_order_at')

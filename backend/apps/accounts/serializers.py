@@ -163,6 +163,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     last_order_at = serializers.SerializerMethodField()
     wallet_balance = serializers.SerializerMethodField()
     tier = serializers.SerializerMethodField()
+    active_discount_codes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -170,6 +171,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             'id', 'phone', 'full_name', 'email', 'role', 'is_staff', 'is_active', 'date_joined',
             'waiter_permissions', 'birthday', 'birthday_set_at', 'gender', 'marital_status', 'food_interests',
             'has_password', 'admin_note', 'orders_count', 'total_spent', 'last_order_at', 'wallet_balance', 'tier',
+            'active_discount_codes_count',
         ]
         read_only_fields = ['id', 'phone', 'date_joined', 'has_password']
 
@@ -193,6 +195,11 @@ class AdminUserSerializer(serializers.ModelSerializer):
             return None
         from .customer_insights import tier_for
         return tier_for(obj.orders_count, obj.total_spent)
+
+    def get_active_discount_codes_count(self, obj):
+        # فقط وقتی annotate شده مقدار دارد (مثلاً لیست مشتریان در معرض ریزش) — تا
+        # ادمین قبل از کلیک روی «کدهای تخفیف» بداند از قبل چند کد فعال دارد
+        return getattr(obj, 'active_discount_codes_count', None)
 
     def get_phone(self, obj):
         return str(obj.phone)
