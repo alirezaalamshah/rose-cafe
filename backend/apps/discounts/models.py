@@ -65,6 +65,10 @@ class WinBackSettings(CachedSingletonModel):
         default=Discount.DiscountType.PERCENTAGE, verbose_name='نوع تخفیف',
     )
     value = models.PositiveIntegerField(default=10, verbose_name='مقدار تخفیف')
+    max_discount_amount = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='حداکثر مبلغ تخفیف (تومان)',
+        help_text='برای جلوگیری از تخفیف سنگین روی سفارش‌های بزرگ — فقط برای نوع درصدی معنی دارد؛ خالی یعنی بدون سقف',
+    )
     valid_days = models.PositiveSmallIntegerField(
         default=14, verbose_name='مدت اعتبار کد (روز)',
         help_text='از لحظه‌ی ارسال پیامک، کد تخفیف تا چند روز معتبر بماند',

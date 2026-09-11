@@ -22,6 +22,7 @@ class WinBackSettingsTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['discount_type'], 'percentage')
         self.assertEqual(response.data['value'], 10)
+        self.assertIsNone(response.data['max_discount_amount'])
         self.assertEqual(response.data['valid_days'], 14)
 
     def test_patch_updates_settings(self):
@@ -34,6 +35,15 @@ class WinBackSettingsTestCase(APITestCase):
         self.assertEqual(settings_obj.discount_type, 'fixed')
         self.assertEqual(settings_obj.value, 50000)
         self.assertEqual(settings_obj.valid_days, 7)
+
+    def test_patch_updates_max_discount_amount(self):
+        response = self.client.patch(
+            '/api/discounts/admin/win-back-settings/',
+            {'discount_type': 'percentage', 'value': 20, 'max_discount_amount': 200000}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        settings_obj = WinBackSettings.get_settings()
+        self.assertEqual(settings_obj.max_discount_amount, 200000)
 
     def test_percentage_over_100_rejected(self):
         response = self.client.patch(
@@ -73,6 +83,24 @@ class SendWinBackSMSTestCase(APITestCase):
         self.assertIn(self.customer, discount.users.all())
 
         mock_sms.assert_called_once_with(str(self.customer.phone), code, 'percentage', 10)
+
+    @patch('apps.discounts.views.send_win_back_discount_sms')
+    def test_generated_code_respects_max_discount_amount_cap(self, mock_sms):
+        from .utils import apply_discount
+        mock_sms.return_value = True
+        settings_obj = WinBackSettings.get_settings()
+        settings_obj.discount_type = 'percentage'
+        settings_obj.value = 20
+        settings_obj.max_discount_amount = 200000
+        settings_obj.save()
+
+        response = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        code = response.data['code']
+
+        # سفارش ۵ میلیونی: ۲۰٪ می‌شود ۱ میلیون، ولی باید به سقف ۲۰۰ هزار محدود شود
+        result = apply_discount(code, 5_000_000, self.customer)
+        self.assertTrue(result['valid'])
+        self.assertEqual(result['discount_amount'], 200000)
 
     @patch('apps.discounts.views.send_win_back_discount_sms')
     def test_second_send_reuses_active_unused_code(self, mock_sms):

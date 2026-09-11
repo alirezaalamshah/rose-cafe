@@ -164,6 +164,7 @@ class AdminSendWinBackSMSView(APIView):
                 code=code,
                 discount_type=settings_obj.discount_type,
                 value=settings_obj.value,
+                max_discount_amount=settings_obj.max_discount_amount,
                 usage_limit=1,
                 valid_from=now,
                 valid_until=now + timedelta(days=settings_obj.valid_days),

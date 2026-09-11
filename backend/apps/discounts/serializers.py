@@ -69,7 +69,7 @@ class UserAssignedDiscountSerializer(serializers.ModelSerializer):
 class WinBackSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WinBackSettings
-        fields = ['discount_type', 'value', 'valid_days']
+        fields = ['discount_type', 'value', 'max_discount_amount', 'valid_days']
 
     def validate(self, attrs):
         discount_type = attrs.get('discount_type', getattr(self.instance, 'discount_type', None))

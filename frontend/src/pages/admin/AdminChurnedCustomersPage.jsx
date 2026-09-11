@@ -216,6 +216,16 @@ export default function AdminChurnedCustomersPage() {
               value={settings.value}
               onChange={(e) => setSettings((s) => ({ ...s, value: e.target.value }))}
             />
+            {settings.discount_type === 'percentage' && (
+              <Input
+                label="حداکثر مبلغ تخفیف (تومان)"
+                type="number"
+                min={0}
+                placeholder="بدون سقف"
+                value={settings.max_discount_amount ?? ''}
+                onChange={(e) => setSettings((s) => ({ ...s, max_discount_amount: e.target.value || null }))}
+              />
+            )}
             <Input
               label="مدت اعتبار کد (روز)"
               type="number"
@@ -226,6 +236,7 @@ export default function AdminChurnedCustomersPage() {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               هر بار که برای یک مشتری «پیام دلتنگی» ارسال شود، یک کد تخفیف تازه با همین مقادیر و
               فقط برای همان مشتری ساخته می‌شود — هر کد فقط یک‌بار قابل استفاده است.
+              {settings.discount_type === 'percentage' && ' حداکثر مبلغ تخفیف مانع تخفیف سنگین روی سفارش‌های بزرگ می‌شود.'}
             </p>
           </div>
         )}
