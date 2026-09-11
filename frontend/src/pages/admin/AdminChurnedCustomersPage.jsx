@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MdEventBusy, MdVisibility } from 'react-icons/md'
+import { MdVisibility, MdSms, MdSettings } from 'react-icons/md'
+import toast from 'react-hot-toast'
 import { usersAPI } from '../../api/users.js'
+import { discountsAPI } from '../../api/discounts.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
+import Modal from '../../components/common/Modal/Modal.jsx'
+import Button from '../../components/common/Button/Button.jsx'
+import { Select, Input } from '../../components/common/Input/Input.jsx'
+import { confirm } from '../../store/confirmStore.js'
 import { formatPrice, getTierMeta } from '../../utils/helpers.js'
 import { formatJalali, toPersianNum } from '../../utils/jalali.js'
 import './AdminOrdersPage.css'
@@ -16,14 +22,65 @@ function daysSince(isoDate) {
   return Math.floor(diffMs / 86400000)
 }
 
+const DISCOUNT_TYPE_LABEL = { percentage: 'درصدی', fixed: 'مبلغ ثابت' }
+
 export default function AdminChurnedCustomersPage() {
   const navigate = useNavigate()
   const [customers, setCustomers] = useState(null)
+  const [sending, setSending] = useState(null)
+  const [settingsModal, setSettingsModal] = useState(false)
+  const [settings, setSettings] = useState(null)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => {
     usersAPI.adminGetChurnedCustomers()
       .then((data) => setCustomers(Array.isArray(data) ? data : (data.results || [])))
   }, [])
+
+  function openSettingsModal() {
+    setSettingsModal(true)
+    if (!settings) {
+      discountsAPI.adminGetWinBackSettings().then(setSettings).catch(() => toast.error('خطا در دریافت تنظیمات'))
+    }
+  }
+
+  async function handleSaveSettings() {
+    setSavingSettings(true)
+    try {
+      const updated = await discountsAPI.adminUpdateWinBackSettings(settings)
+      setSettings(updated)
+      toast.success('تنظیمات ذخیره شد')
+      setSettingsModal(false)
+    } catch (err) {
+      toast.error(err.response?.data?.value?.[0] || err.response?.data?.detail || 'خطا در ذخیره تنظیمات')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  async function handleSendWinBack(customer) {
+    const label = settings
+      ? `${settings.discount_type === 'percentage' ? `${settings.value}٪` : `${formatPrice(settings.value)}`} تخفیف`
+      : 'کد تخفیف اختصاصی'
+    if (!(await confirm(
+      `یک پیامک دلتنگی همراه با ${label} برای ${customer.full_name || customer.phone} ارسال شود؟`,
+      { confirmLabel: 'ارسال پیامک', danger: false },
+    ))) return
+
+    setSending(customer.id)
+    try {
+      const res = await discountsAPI.adminSendWinBackSMS(customer.id)
+      if (res.sent) {
+        toast.success(`پیامک ارسال شد — کد: ${res.code}`)
+      } else {
+        toast.error(`کد ${res.code} ساخته شد ولی ارسال پیامک ناموفق بود`)
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'خطا در ارسال پیامک')
+    } finally {
+      setSending(null)
+    }
+  }
 
   if (customers === null) return <Loading />
 
@@ -32,6 +89,12 @@ export default function AdminChurnedCustomersPage() {
       <div className="page-header">
         <h1>مشتریان در معرض ریزش</h1>
         <p>مشتریانی که قبلاً چند سفارش واقعی داشته‌اند ولی بیش از ۲۱ روز است سفارشی نداده‌اند — فرصت خوبی برای یادآوری یا کد تخفیف اختصاصی</p>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-md)' }}>
+        <Button variant="ghost" onClick={openSettingsModal}>
+          <MdSettings size={16} /> تنظیمات تخفیف دلتنگی
+        </Button>
       </div>
 
       {customers.length === 0 ? (
@@ -75,6 +138,14 @@ export default function AdminChurnedCustomersPage() {
                       >
                         <MdVisibility size={14} /> جزئیات
                       </button>
+                      <button
+                        className="admin-action-btn"
+                        disabled={sending === c.id}
+                        onClick={() => handleSendWinBack(c)}
+                        title="ارسال پیامک دلتنگی همراه با کد تخفیف اختصاصی"
+                      >
+                        <MdSms size={14} /> {sending === c.id ? '...' : 'پیام دلتنگی'}
+                      </button>
                     </td>
                   </tr>
                 )
@@ -83,6 +154,53 @@ export default function AdminChurnedCustomersPage() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={settingsModal}
+        onClose={() => setSettingsModal(false)}
+        title="تنظیمات پیامک/تخفیف دلتنگی"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setSettingsModal(false)}>انصراف</Button>
+            <Button onClick={handleSaveSettings} loading={savingSettings} disabled={!settings}>ذخیره</Button>
+          </>
+        }
+      >
+        {!settings ? (
+          <Loading />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <Select
+              label="نوع تخفیف"
+              value={settings.discount_type}
+              onChange={(e) => setSettings((s) => ({ ...s, discount_type: e.target.value }))}
+            >
+              {Object.entries(DISCOUNT_TYPE_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </Select>
+            <Input
+              label={settings.discount_type === 'percentage' ? 'مقدار تخفیف (٪)' : 'مقدار تخفیف (تومان)'}
+              type="number"
+              min={1}
+              value={settings.value}
+              onChange={(e) => setSettings((s) => ({ ...s, value: e.target.value }))}
+            />
+            <Input
+              label="مدت اعتبار کد (روز)"
+              type="number"
+              min={1}
+              value={settings.valid_days}
+              onChange={(e) => setSettings((s) => ({ ...s, valid_days: e.target.value }))}
+            />
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              هر بار که برای یک مشتری «پیام دلتنگی» ارسال شود، یک کد تخفیف تازه با همین مقادیر و
+              فقط برای همان مشتری ساخته می‌شود — هر کد فقط یک‌بار قابل استفاده است.
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -14,6 +14,7 @@ from .serializers import (
     LoyaltySettingsSerializer,
 )
 from .services import get_or_create_wallet, credit
+from apps.notifications.sms import send_wallet_topup_sms
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class WalletTopupVerifyView(APIView):
                 request.user, topup.amount, WalletTransaction.Type.TOPUP,
                 description=f'شارژ کیف‌پول از درگاه — کد پیگیری {result["ref_id"]}',
             )
+            send_wallet_topup_sms(str(request.user.phone), topup.amount, wallet.balance)
 
             return Response({
                 'success': True, 'ref_id': result['ref_id'], 'balance': wallet.balance,

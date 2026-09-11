@@ -181,6 +181,30 @@ class AdminWalletAdjustmentTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_credit_sends_topup_sms(self):
+        from unittest.mock import patch
+        with patch('apps.notifications.sms.send_wallet_topup_sms') as mock_sms:
+            response = self.client.post(
+                f'/api/auth/admin/users/{self.customer.id}/wallet-adjustment/',
+                {'amount': 20000, 'description': 'جبران سفارش خراب'}, format='json',
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        mock_sms.assert_called_once_with(str(self.customer.phone), 20000, 20000)
+
+    def test_debit_does_not_send_topup_sms(self):
+        from unittest.mock import patch
+        self.client.post(
+            f'/api/auth/admin/users/{self.customer.id}/wallet-adjustment/',
+            {'amount': 20000, 'description': 'شارژ اولیه'}, format='json',
+        )
+        with patch('apps.notifications.sms.send_wallet_topup_sms') as mock_sms:
+            response = self.client.post(
+                f'/api/auth/admin/users/{self.customer.id}/wallet-adjustment/',
+                {'amount': -5000, 'description': 'اصلاح'}, format='json',
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        mock_sms.assert_not_called()
+
 
 class AdminChurnedCustomersTestCase(APITestCase):
     def setUp(self):

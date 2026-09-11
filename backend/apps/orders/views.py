@@ -14,7 +14,7 @@ from .serializers import (
 from apps.accounts.models import Address
 from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
-from apps.notifications.sms import send_order_ready_for_courier_sms
+from apps.notifications.sms import send_order_ready_for_courier_sms, send_order_rejected_sms
 from apps.notifications.push import notify_new_order
 from apps.common.utils import local_day_range
 from apps.staff_activity.models import StaffActionLog, log_staff_action
@@ -573,6 +573,8 @@ class OrderRejectView(APIView):
             request.user, StaffActionLog.Action.ORDER_REJECTED,
             f'سفارش #{order.order_number} را رد کرد — دلیل: {reason}', order=order,
         )
+
+        send_order_rejected_sms(str(order.user.phone), order.order_number)
 
         return Response(AdminOrderSerializer(order).data)
 

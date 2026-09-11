@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Discount, DiscountUsage
+from .models import Discount, DiscountUsage, WinBackSettings
 
 
 class DiscountCheckSerializer(serializers.Serializer):
@@ -35,3 +35,16 @@ class DiscountUsageSerializer(serializers.ModelSerializer):
 
     def get_order_discount_amount(self, obj):
         return self.context.get('order_lookup', {}).get(obj.order_id, {}).get('discount_amount')
+
+
+class WinBackSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WinBackSettings
+        fields = ['discount_type', 'value', 'valid_days']
+
+    def validate(self, attrs):
+        discount_type = attrs.get('discount_type', getattr(self.instance, 'discount_type', None))
+        value = attrs.get('value', getattr(self.instance, 'value', None))
+        if discount_type == Discount.DiscountType.PERCENTAGE and value is not None and value > 100:
+            raise serializers.ValidationError({'value': 'درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد'})
+        return attrs

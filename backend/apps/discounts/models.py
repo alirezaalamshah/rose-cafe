@@ -1,5 +1,6 @@
 from django.db import models
 from apps.accounts.models import User
+from apps.business.models import CachedSingletonModel
 
 
 class Discount(models.Model):
@@ -53,3 +54,29 @@ class DiscountUsage(models.Model):
     class Meta:
         verbose_name = 'استفاده از تخفیف'
         verbose_name_plural = 'استفاده‌های تخفیف'
+
+
+class WinBackSettings(CachedSingletonModel):
+    """تنظیمات پیامک/تخفیف «دلتنگی» برای مشتریان در معرض ریزش — تک ردیف، از پنل
+    ادمین قابل تغییر. مقدار تخفیف هر بار که دکمه‌ی ارسال زده می‌شود همین مقدار
+    فعلی است (نه چیزی که در لحظه‌ی ساخت کد تخفیف قبلی ثابت شده باشد)."""
+    discount_type = models.CharField(
+        max_length=20, choices=Discount.DiscountType.choices,
+        default=Discount.DiscountType.PERCENTAGE, verbose_name='نوع تخفیف',
+    )
+    value = models.PositiveIntegerField(default=10, verbose_name='مقدار تخفیف')
+    valid_days = models.PositiveSmallIntegerField(
+        default=14, verbose_name='مدت اعتبار کد (روز)',
+        help_text='از لحظه‌ی ارسال پیامک، کد تخفیف تا چند روز معتبر بماند',
+    )
+
+    class Meta:
+        verbose_name = 'تنظیمات پیامک دلتنگی'
+        verbose_name_plural = 'تنظیمات پیامک دلتنگی'
+
+    def __str__(self):
+        return 'تنظیمات پیامک دلتنگی'
+
+    @classmethod
+    def get_settings(cls):
+        return cls._get_or_create_cached({})
