@@ -87,9 +87,13 @@ export default function AdminChurnedCustomersPage() {
     try {
       const res = await discountsAPI.adminSendWinBackSMS(customer.id)
       if (res.sent) {
-        toast.success(`پیامک ارسال شد — کد: ${res.code}`)
+        toast.success(
+          res.reused
+            ? `کد قبلی این مشتری هنوز معتبر بود — دوباره پیامک شد: ${res.code}`
+            : `پیامک ارسال شد — کد: ${res.code}`,
+        )
       } else {
-        toast.error(`کد ${res.code} ساخته شد ولی ارسال پیامک ناموفق بود`)
+        toast.error(`کد ${res.code} آماده بود ولی ارسال پیامک ناموفق بود`)
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'خطا در ارسال پیامک')
@@ -159,7 +163,7 @@ export default function AdminChurnedCustomersPage() {
                           className="admin-action-btn"
                           disabled={sending === c.id}
                           onClick={() => handleSendWinBack(c)}
-                          title="ارسال پیامک دلتنگی همراه با کد تخفیف اختصاصی"
+                          title="ارسال پیامک دلتنگی — اگر کد فعال قبلی وجود داشته باشد، همان دوباره ارسال می‌شود"
                         >
                           <MdSms size={14} /> {sending === c.id ? '...' : 'پیام دلتنگی'}
                         </button>

@@ -94,10 +94,28 @@ def _generate_win_back_code(user) -> str:
             return code
 
 
+def _find_active_win_back_code(user):
+    """اگر کاربر از قبل یک کد دلتنگی فعال (نه استفاده‌شده، نه منقضی) دارد، همان
+    را برمی‌گرداند — تا به‌جای انبار شدن چندین کد بلااستفاده، همان کد دوباره
+    پیامک شود. کد قدیمی‌تر (غیر دلتنگی، مثلاً از AdminDiscountListCreateView)
+    عمداً لحاظ نمی‌شود، چون فقط کدهای این کمپین را کنترل می‌کنیم."""
+    now = timezone.now()
+    candidates = Discount.objects.filter(
+        users=user, code__startswith='WB-', is_active=True, valid_until__gt=now,
+    ).order_by('-created_at')
+    used_ids = set(DiscountUsage.objects.filter(user=user, discount__in=candidates).values_list('discount_id', flat=True))
+    for discount in candidates:
+        if discount.id not in used_ids:
+            return discount
+    return None
+
+
 class AdminSendWinBackSMSView(APIView):
-    """دکمه‌ی «ارسال پیام دلتنگی» در صفحه‌ی مشتریان در معرض ریزش — یک کد تخفیف
-    تک‌مصرف اختصاصی برای همین مشتری می‌سازد (طبق تنظیمات فعلی WinBackSettings)
-    و بلافاصله پیامک متناظر (درصدی/مبلغی) را برایش ارسال می‌کند."""
+    """دکمه‌ی «ارسال پیام دلتنگی» در صفحه‌ی مشتریان در معرض ریزش. اگر کاربر از
+    قبل یک کد دلتنگی فعال و بدون‌استفاده دارد، کد تازه نمی‌سازد — همان کد را
+    دوباره پیامک می‌کند (جلوگیری از انبار شدن چند کد بلااستفاده برای یک نفر).
+    فقط وقتی کد قبلی استفاده/منقضی شده، کد تک‌مصرف جدیدی (طبق تنظیمات فعلی
+    WinBackSettings) ساخته می‌شود."""
     permission_classes = [permissions.IsAdminUser]
 
     def post(self, request, pk):
@@ -110,34 +128,41 @@ class AdminSendWinBackSMSView(APIView):
             return Response({'detail': 'مشتری یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
 
         settings_obj = WinBackSettings.get_settings()
-        now = timezone.now()
-        code = _generate_win_back_code(user)
+        existing = _find_active_win_back_code(user)
+        reused = existing is not None
 
-        discount = Discount.objects.create(
-            code=code,
-            discount_type=settings_obj.discount_type,
-            value=settings_obj.value,
-            usage_limit=1,
-            valid_from=now,
-            valid_until=now + timedelta(days=settings_obj.valid_days),
-        )
-        discount.users.add(user)
+        if existing:
+            discount = existing
+        else:
+            now = timezone.now()
+            code = _generate_win_back_code(user)
+            discount = Discount.objects.create(
+                code=code,
+                discount_type=settings_obj.discount_type,
+                value=settings_obj.value,
+                usage_limit=1,
+                valid_from=now,
+                valid_until=now + timedelta(days=settings_obj.valid_days),
+            )
+            discount.users.add(user)
 
         sent = send_win_back_discount_sms(
-            str(user.phone), code, settings_obj.discount_type, settings_obj.value,
+            str(user.phone), discount.code, discount.discount_type, discount.value,
         )
 
         from apps.staff_activity.models import StaffActionLog, log_staff_action
+        verb = 'دوباره' if reused else ''
         log_staff_action(
             request.user, StaffActionLog.Action.WIN_BACK_SMS_SENT,
-            f'پیام دلتنگی برای {user.full_name or user.phone} با کد {code} ارسال شد',
+            f'پیام دلتنگی برای {user.full_name or user.phone} {verb} با کد {discount.code} ارسال شد'.replace('  ', ' '),
         )
 
         return Response({
             'sent': sent,
-            'code': code,
-            'discount_type': settings_obj.discount_type,
-            'value': settings_obj.value,
+            'reused': reused,
+            'code': discount.code,
+            'discount_type': discount.discount_type,
+            'value': discount.value,
             'valid_until': discount.valid_until,
         })
 

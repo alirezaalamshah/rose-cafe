@@ -75,12 +75,37 @@ class SendWinBackSMSTestCase(APITestCase):
         mock_sms.assert_called_once_with(str(self.customer.phone), code, 'percentage', 10)
 
     @patch('apps.discounts.views.send_win_back_discount_sms')
-    def test_two_sends_create_two_distinct_codes(self, mock_sms):
+    def test_second_send_reuses_active_unused_code(self, mock_sms):
         mock_sms.return_value = True
         res1 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        self.assertFalse(res1.data['reused'])
         res2 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        self.assertTrue(res2.data['reused'])
+        self.assertEqual(res1.data['code'], res2.data['code'])
+        self.assertEqual(Discount.objects.filter(users=self.customer).count(), 1)
+        self.assertEqual(mock_sms.call_count, 2)
+
+    @patch('apps.discounts.views.send_win_back_discount_sms')
+    def test_new_code_created_after_previous_one_used(self, mock_sms):
+        mock_sms.return_value = True
+        res1 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        discount = Discount.objects.get(code=res1.data['code'])
+        DiscountUsage.objects.create(discount=discount, user=self.customer, order_id=1)
+
+        res2 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        self.assertFalse(res2.data['reused'])
         self.assertNotEqual(res1.data['code'], res2.data['code'])
         self.assertEqual(Discount.objects.filter(users=self.customer).count(), 2)
+
+    @patch('apps.discounts.views.send_win_back_discount_sms')
+    def test_new_code_created_after_previous_one_expired(self, mock_sms):
+        mock_sms.return_value = True
+        res1 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        Discount.objects.filter(code=res1.data['code']).update(valid_until=timezone.now() - timedelta(days=1))
+
+        res2 = self.client.post(f'/api/discounts/admin/win-back/{self.customer.id}/send/')
+        self.assertFalse(res2.data['reused'])
+        self.assertNotEqual(res1.data['code'], res2.data['code'])
 
     @patch('apps.discounts.views.send_win_back_discount_sms')
     def test_reports_sms_failure(self, mock_sms):
