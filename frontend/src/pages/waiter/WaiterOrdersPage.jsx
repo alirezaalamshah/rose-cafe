@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   MdRefresh, MdCheckCircle, MdCancel, MdRestaurant, MdTakeoutDining,
-  MdDeliveryDining, MdAttachMoney, MdCreditCard,
+  MdDeliveryDining, MdAttachMoney, MdCreditCard, MdPerson, MdPhone, MdLocationOn,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
@@ -232,6 +232,37 @@ export default function WaiterOrdersPage() {
                   </span>
                   <span>{formatDateTime(order.created_at)}</span>
                 </div>
+
+                {(order.user_name || order.user_phone || order.address_detail) && (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8,
+                    padding: '8px 10px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem', color: 'var(--text-secondary)',
+                  }}>
+                    {(order.user_name || order.user_phone) && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <MdPerson size={14} />
+                        {order.user_name || '—'}
+                        {order.user_phone && (
+                          <>
+                            <MdPhone size={12} style={{ marginInlineStart: 4 }} />
+                            <span dir="ltr">{order.user_phone}</span>
+                          </>
+                        )}
+                      </span>
+                    )}
+                    {order.delivery_type === 'delivery' && order.address_detail && (
+                      <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>
+                        <MdLocationOn size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+                        <span>
+                          {order.address_detail.province && `${order.address_detail.province}، `}
+                          {order.address_detail.city} — {order.address_detail.street}
+                          {order.address_detail.detail && ` (${order.address_detail.detail})`}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <span style={{

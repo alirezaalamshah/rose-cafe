@@ -24,6 +24,22 @@ def _staff_display_name(user):
     return user.full_name or str(user.phone)
 
 
+def _order_response_for_waiter(order, user):
+    """پاسخ AdminOrderSerializer برای یک سفارش، با حذف نام/تلفن/آدرس مشتری اگر
+    کاربر (سرپرست سالن) دسترسی can_view_customer_contact_info نداشته باشد. ادمین
+    (بدون waiter_permissions) همیشه کامل می‌بیند — این تابع فقط مسیرهایی که خودِ
+    گارسون هم می‌تواند صدا بزند (تأیید/رد/تغییر وضعیت) را محدود می‌کند."""
+    data = AdminOrderSerializer(order).data
+    if user.is_staff:
+        return data
+    perm = getattr(user, 'waiter_permissions', None)
+    if not perm or not perm.can_view_customer_contact_info:
+        data['user_phone'] = None
+        data['user_name'] = None
+        data['address_detail'] = None
+    return data
+
+
 def _already_actioned_response(order):
     """
     وقتی دو گارسون هم‌زمان تأیید/رد بزنند، دومی این پیام را می‌گیرد — با ذکر اینکه
@@ -526,7 +542,7 @@ class OrderApproveView(APIView):
             f'سفارش #{order.order_number} را تأیید کرد', order=order,
         )
 
-        return Response(AdminOrderSerializer(order).data)
+        return Response(_order_response_for_waiter(order, request.user))
 
 
 class OrderRejectView(APIView):
@@ -576,7 +592,7 @@ class OrderRejectView(APIView):
 
         send_order_rejected_sms(str(order.user.phone), order.order_number)
 
-        return Response(AdminOrderSerializer(order).data)
+        return Response(_order_response_for_waiter(order, request.user))
 
 
 # ─── Waiter Views ────────────────────────────────────────────────────────────
@@ -626,7 +642,19 @@ class WaiterOrderListView(generics.ListAPIView):
         perm = getattr(request.user, 'waiter_permissions', None)
         if not perm or not perm.can_manage_orders:
             return Response({'detail': 'دسترسی به مدیریت سفارشات ندارید'}, status=status.HTTP_403_FORBIDDEN)
-        return super().list(request, *args, **kwargs)
+        response = super().list(request, *args, **kwargs)
+
+        # نام/تلفن/آدرس مشتری فقط با یک دسترسی جدا (can_view_customer_contact_info)
+        # قابل‌مشاهده است — مدیریت سفارش (can_manage_orders) به‌تنهایی کافی نیست، چون
+        # این اطلاعات حساس است و ادمین باید صریحاً به هر سرپرست سالن آن را بدهد
+        if not perm.can_view_customer_contact_info:
+            rows = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+            for row in rows:
+                row['user_phone'] = None
+                row['user_name'] = None
+                row['address_detail'] = None
+
+        return response
 
 
 class WaiterOrderStatusUpdateView(APIView):
@@ -674,7 +702,7 @@ class WaiterOrderStatusUpdateView(APIView):
 
         _send_status_change_sms(order)
 
-        return Response(AdminOrderSerializer(order).data)
+        return Response(_order_response_for_waiter(order, request.user))
 
 
 class ConfirmCashPaymentView(APIView):

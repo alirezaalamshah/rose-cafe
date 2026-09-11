@@ -56,7 +56,10 @@ export default function AdminUsersPage() {
 
   // Waiter permission modal
   const [permUser, setPermUser] = useState(null)
-  const [perms, setPerms] = useState({ can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false })
+  const [perms, setPerms] = useState({
+    can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false,
+    can_manage_menu_availability: false, can_force_close_cafe: false, can_view_own_performance: false,
+  })
   const [savingPerms, setSavingPerms] = useState(false)
 
   const fetchUsers = useCallback((q = '', role = '') => {
@@ -111,7 +114,10 @@ export default function AdminUsersPage() {
       const data = await usersAPI.adminGetWaiterPermissions(user.id)
       setPerms(data)
     } catch {
-      setPerms({ can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false })
+      setPerms({
+        can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false,
+        can_manage_menu_availability: false, can_force_close_cafe: false, can_view_own_performance: false,
+      })
     }
   }
 
@@ -381,6 +387,7 @@ export default function AdminUsersPage() {
             { key: 'can_manage_menu_availability', label: 'مدیریت موجودی منو', desc: 'موجود/ناموجود کردن آیتم‌ها، تنوع‌ها و افزودنی‌ها' },
             { key: 'can_force_close_cafe', label: 'بستن فوری کافه', desc: 'بستن/بازکردن اضطراری کافه برای امروز' },
             { key: 'can_view_own_performance', label: 'مشاهده عملکرد خود', desc: 'گزارش شخصی از سفارش‌های تأیید/رد‌شده و وجوه وصول‌شده' },
+            { key: 'can_view_customer_contact_info', label: 'مشاهده اطلاعات تماس مشتری', desc: 'نام، شماره تماس و آدرس مشتری در کارت سفارش نمایش داده شود' },
           ].map(({ key, label, desc }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input

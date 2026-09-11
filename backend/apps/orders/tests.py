@@ -318,6 +318,100 @@ class OrderApprovalWorkflowTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
+class WaiterCustomerContactInfoVisibilityTestCase(APITestCase):
+    """can_view_customer_contact_info یک دسترسی جدا از can_manage_orders است —
+    بدون آن، گارسون باید بتواند سفارش را مدیریت کند ولی نام/تلفن/آدرس مشتری را
+    در هیچ‌کدام از مسیرهای مرتبط (لیست، تأیید، رد، تغییر وضعیت) نبیند."""
+
+    def setUp(self):
+        from apps.accounts.models import WaiterPermission, Address
+
+        self.customer = User.objects.create_user(phone='+989120000005', full_name='مشتری محرمانه')
+        self.address = Address.objects.create(
+            user=self.customer, title='خانه', city='دزفول', street='خیابان طالقانی',
+            latitude='32.38', longitude='48.40',
+        )
+        self.order = Order.objects.create(
+            user=self.customer, address=self.address,
+            delivery_type=Order.DeliveryType.DELIVERY,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.Status.PENDING_CONFIRMATION,
+            final_price=100000,
+        )
+
+        self.waiter_no_access = User.objects.create_user(phone='+989120000006', full_name='گارسون بدون دسترسی')
+        self.waiter_no_access.role = User.Role.WAITER
+        self.waiter_no_access.save(update_fields=['role'])
+        WaiterPermission.objects.create(
+            user=self.waiter_no_access, can_manage_orders=True, can_view_customer_contact_info=False,
+        )
+
+        self.waiter_with_access = User.objects.create_user(phone='+989120000007', full_name='گارسون با دسترسی')
+        self.waiter_with_access.role = User.Role.WAITER
+        self.waiter_with_access.save(update_fields=['role'])
+        WaiterPermission.objects.create(
+            user=self.waiter_with_access, can_manage_orders=True, can_view_customer_contact_info=True,
+        )
+
+    def test_list_hides_contact_info_without_permission(self):
+        self.client.force_authenticate(user=self.waiter_no_access)
+        response = self.client.get('/api/orders/waiter/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rows = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        row = next(r for r in rows if r['id'] == self.order.id)
+        self.assertIsNone(row['user_name'])
+        self.assertIsNone(row['user_phone'])
+        self.assertIsNone(row['address_detail'])
+
+    def test_list_shows_contact_info_with_permission(self):
+        self.client.force_authenticate(user=self.waiter_with_access)
+        response = self.client.get('/api/orders/waiter/')
+        rows = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        row = next(r for r in rows if r['id'] == self.order.id)
+        self.assertEqual(row['user_name'], 'مشتری محرمانه')
+        self.assertIsNotNone(row['user_phone'])
+        self.assertIsNotNone(row['address_detail'])
+        self.assertEqual(row['address_detail']['city'], 'دزفول')
+
+    def test_approve_response_hides_contact_info_without_permission(self):
+        self.client.force_authenticate(user=self.waiter_no_access)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertIsNone(response.data['user_name'])
+        self.assertIsNone(response.data['user_phone'])
+        self.assertIsNone(response.data['address_detail'])
+
+    def test_reject_response_hides_contact_info_without_permission(self):
+        self.client.force_authenticate(user=self.waiter_no_access)
+        response = self.client.post(
+            f'/api/orders/{self.order.id}/reject/', {'reason': 'دلیل تست'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertIsNone(response.data['user_name'])
+        self.assertIsNone(response.data['user_phone'])
+
+    def test_status_update_response_hides_contact_info_without_permission(self):
+        self.order.status = Order.Status.PAID
+        self.order.save(update_fields=['status'])
+        self.client.force_authenticate(user=self.waiter_no_access)
+        response = self.client.patch(
+            f'/api/orders/waiter/{self.order.id}/status/', {'status': 'preparing'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertIsNone(response.data['user_name'])
+        self.assertIsNone(response.data['user_phone'])
+
+    def test_admin_always_sees_contact_info(self):
+        admin = User.objects.create_user(phone='+989120000008', full_name='ادمین تست')
+        admin.is_staff = True
+        admin.save(update_fields=['is_staff'])
+        self.client.force_authenticate(user=admin)
+        response = self.client.post(f'/api/orders/{self.order.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['user_name'], 'مشتری محرمانه')
+        self.assertIsNotNone(response.data['user_phone'])
+
+
 class OrderAssignmentLockTestCase(APITestCase):
     """
     از لحظه‌ای که یک گارسون سفارشی را تأیید/رد می‌کند، آن سفارش تا پایان مسیرش فقط برای

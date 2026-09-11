@@ -102,6 +102,10 @@ class WaiterPermission(models.Model):
     can_manage_menu_availability = models.BooleanField(default=False, verbose_name='مدیریت موجودی منو')
     can_force_close_cafe = models.BooleanField(default=False, verbose_name='بستن فوری کافه')
     can_view_own_performance = models.BooleanField(default=False, verbose_name='مشاهده عملکرد خود')
+    can_view_customer_contact_info = models.BooleanField(
+        default=False, verbose_name='مشاهده اطلاعات تماس مشتری',
+        help_text='نام، شماره تماس و آدرس مشتری در کارت سفارش نمایش داده شود',
+    )
 
     class Meta:
         verbose_name = 'دسترسی سرپرست سالن'

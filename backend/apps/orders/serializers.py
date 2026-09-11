@@ -105,6 +105,7 @@ class OrderSerializer(serializers.ModelSerializer):
 class AdminOrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     user_phone = serializers.CharField(source='user.phone', read_only=True)
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_type_display = serializers.CharField(source='get_delivery_type_display', read_only=True)
     table_detail = TableSimpleSerializer(source='table', read_only=True)
