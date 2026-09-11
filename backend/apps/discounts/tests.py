@@ -187,3 +187,60 @@ class AdminUserAssignedDiscountsTestCase(APITestCase):
         self.client.force_authenticate(user=self.customer)
         response = self.client.get(f'/api/discounts/admin/user/{self.customer.id}/assigned/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class MyActiveDiscountsTestCase(APITestCase):
+    """صفحه‌ی سبد خرید — کدهای تخفیف اختصاصی و هنوز قابل‌استفاده‌ی خود کاربر."""
+
+    def setUp(self):
+        cache.clear()
+        self.customer = User.objects.create_user(phone='+989120000098', full_name='مشتری تست')
+        self.client.force_authenticate(user=self.customer)
+
+    def _make_discount(self, code, **overrides):
+        now = timezone.now()
+        defaults = {
+            'discount_type': 'percentage', 'value': 15, 'usage_limit': 1,
+            'valid_from': now, 'valid_until': now + timedelta(days=14),
+        }
+        defaults.update(overrides)
+        discount = Discount.objects.create(code=code, **defaults)
+        discount.users.add(self.customer)
+        return discount
+
+    def test_shows_active_unused_code(self):
+        self._make_discount('WB-MINE01')
+        response = self.client.get('/api/discounts/my-active/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['code'], 'WB-MINE01')
+
+    def test_hides_used_code(self):
+        discount = self._make_discount('WB-USEDMINE')
+        DiscountUsage.objects.create(discount=discount, user=self.customer, order_id=1)
+        response = self.client.get('/api/discounts/my-active/')
+        self.assertEqual(response.data, [])
+
+    def test_hides_expired_code(self):
+        self._make_discount(
+            'WB-EXPMINE',
+            valid_from=timezone.now() - timedelta(days=20),
+            valid_until=timezone.now() - timedelta(days=1),
+        )
+        response = self.client.get('/api/discounts/my-active/')
+        self.assertEqual(response.data, [])
+
+    def test_hides_other_users_code(self):
+        other = User.objects.create_user(phone='+989120000099')
+        discount = Discount.objects.create(
+            code='WB-OTHERMINE', discount_type='percentage', value=15, usage_limit=1,
+            valid_from=timezone.now(), valid_until=timezone.now() + timedelta(days=14),
+        )
+        discount.users.add(other)
+        response = self.client.get('/api/discounts/my-active/')
+        self.assertEqual(response.data, [])
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get('/api/discounts/my-active/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

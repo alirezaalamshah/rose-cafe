@@ -1,11 +1,12 @@
 from django.urls import path
 from .views import (
-    CheckDiscountView, AdminDiscountListCreateView, AdminDiscountDetailView, BirthdayOfferView,
+    CheckDiscountView, MyActiveDiscountsView, AdminDiscountListCreateView, AdminDiscountDetailView, BirthdayOfferView,
     AdminWinBackSettingsView, AdminSendWinBackSMSView, AdminUserAssignedDiscountsView,
 )
 
 urlpatterns = [
     path('check/', CheckDiscountView.as_view(), name='check-discount'),
+    path('my-active/', MyActiveDiscountsView.as_view(), name='my-active-discounts'),
     path('birthday-offer/', BirthdayOfferView.as_view(), name='birthday-offer'),
     path('admin/', AdminDiscountListCreateView.as_view(), name='admin-discounts'),
     path('admin/<int:pk>/', AdminDiscountDetailView.as_view(), name='admin-discount-detail'),

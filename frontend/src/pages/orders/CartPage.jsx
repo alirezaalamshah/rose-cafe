@@ -63,6 +63,7 @@ export default function CartPage() {
   const [discountCode, setDiscountCode] = useState('')
   const [discountInfo, setDiscountInfo] = useState(null) // { amount, message }
   const [applyingDiscount, setApplyingDiscount] = useState(false)
+  const [myDiscounts, setMyDiscounts] = useState([])
 
   const subtotal = items.reduce((s, i) => s + itemUnitPrice(i) * i.quantity, 0)
 
@@ -104,6 +105,14 @@ export default function CartPage() {
       .catch(() => {})
   }, [])
 
+  // کدهای تخفیف اختصاصی این مشتری (مثلاً کد دلتنگی) — تا مجبور نباشد از متن
+  // پیامک کپی کند، همین‌جا با یک دکمه مستقیم اعمال می‌شود
+  useEffect(() => {
+    discountsAPI.getMyActiveDiscounts()
+      .then((data) => setMyDiscounts(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
   // Fetch tables when dine_in selected
   useEffect(() => {
     if (deliveryType === 'dine_in') {
@@ -139,12 +148,14 @@ export default function CartPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal])
 
-  async function handleApplyDiscount() {
-    if (!discountCode.trim()) return
+  async function handleApplyDiscount(codeOverride) {
+    const code = (codeOverride ?? discountCode).trim()
+    if (!code) return
     setApplyingDiscount(true)
     try {
-      const result = await discountsAPI.checkCode(discountCode.trim(), subtotal)
+      const result = await discountsAPI.checkCode(code, subtotal)
       if (result.valid) {
+        setDiscountCode(code)
         setDiscountInfo({ amount: result.discount_amount, message: result.message })
         toast.success(result.message || 'کد تخفیف اعمال شد')
       } else {
@@ -619,6 +630,29 @@ export default function CartPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                  {myDiscounts.map((d) => (
+                    <div
+                      key={d.code}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                        background: 'var(--primary-bg)', borderRadius: 'var(--radius-md)',
+                        border: '1px solid rgba(240,214,132,.3)',
+                      }}
+                    >
+                      <MdLocalOffer size={16} color="var(--primary)" />
+                      <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--primary)' }}>
+                        یک کد تخفیف {d.discount_type === 'percentage' ? `${d.value}٪` : formatPrice(d.value)} برای شما فعال است
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={applyingDiscount}
+                        onClick={() => handleApplyDiscount(d.code)}
+                      >
+                        اعمال
+                      </Button>
+                    </div>
+                  ))}
                   <Input
                     label="کد تخفیف"
                     value={discountCode}
@@ -633,7 +667,7 @@ export default function CartPage() {
                     variant="secondary"
                     loading={applyingDiscount}
                     disabled={!discountCode.trim()}
-                    onClick={handleApplyDiscount}
+                    onClick={() => handleApplyDiscount()}
                   >
                     اعمال کد تخفیف
                   </Button>

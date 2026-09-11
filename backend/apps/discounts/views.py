@@ -37,6 +37,30 @@ class CheckDiscountView(APIView):
         return Response({'valid': False, 'message': result['message']})
 
 
+class MyActiveDiscountsView(APIView):
+    """صفحه‌ی سبد خرید مشتری — کدهای تخفیفی که مستقیماً به خود او اختصاص یافته و هنوز
+    فعال/بدون‌استفاده‌اند (مثلاً کد دلتنگی که پیامک شده) را نشان می‌دهد، تا کاربر مجبور
+    نباشد کد را از متن پیامک کپی کند؛ فقط با یک دکمه می‌تواند مستقیماً اعمالش کند."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        now = timezone.now()
+        used_ids = DiscountUsage.objects.filter(user=request.user).values_list('discount_id', flat=True)
+        codes = Discount.objects.filter(
+            users=request.user, is_active=True, valid_from__lte=now, valid_until__gt=now,
+        ).exclude(id__in=used_ids).order_by('-created_at')
+
+        return Response([
+            {
+                'code': d.code,
+                'discount_type': d.discount_type,
+                'value': d.value,
+                'valid_until': d.valid_until,
+            }
+            for d in codes
+        ])
+
+
 class AdminDiscountListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = DiscountSerializer
