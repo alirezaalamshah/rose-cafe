@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     CheckDiscountView, AdminDiscountListCreateView, AdminDiscountDetailView, BirthdayOfferView,
-    AdminWinBackSettingsView, AdminSendWinBackSMSView,
+    AdminWinBackSettingsView, AdminSendWinBackSMSView, AdminUserAssignedDiscountsView,
 )
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
     path('admin/<int:pk>/', AdminDiscountDetailView.as_view(), name='admin-discount-detail'),
     path('admin/win-back-settings/', AdminWinBackSettingsView.as_view(), name='admin-win-back-settings'),
     path('admin/win-back/<int:pk>/send/', AdminSendWinBackSMSView.as_view(), name='admin-win-back-send'),
+    path('admin/user/<int:pk>/assigned/', AdminUserAssignedDiscountsView.as_view(), name='admin-user-assigned-discounts'),
 ]
