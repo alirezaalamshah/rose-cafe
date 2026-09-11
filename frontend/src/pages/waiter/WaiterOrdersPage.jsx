@@ -217,93 +217,83 @@ export default function WaiterOrdersPage() {
             const next = NEXT_STATUS[order.status]
             const badge = paymentBadge(order)
             const deliveryMeta = DELIVERY_TYPE_META[order.delivery_type] || DELIVERY_TYPE_META.delivery
+            const hasContactInfo = order.user_name || order.user_phone || order.address_detail
             return (
-              <div key={order.id} className={`waiter-order-card neu-card-sm waiter-order-card--${order.status}`}>
-                <div className="waiter-order-card__top">
-                  <span className="waiter-order-card__id">#{order.order_number || order.id}</span>
-                  <span className={`status-badge ${getStatusClass(order.status)}`}>
-                    {getStatusLabel(order.status)}
-                  </span>
-                </div>
+              <div key={order.id} className={`waiter-order-card waiter-order-card--${order.status}`}>
+                <div className="waiter-order-card__stripe" />
 
-                <div className="waiter-order-card__meta">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <deliveryMeta.Icon size={14} /> {deliveryMeta.label(order)}
-                  </span>
-                  <span>{formatDateTime(order.created_at)}</span>
-                </div>
-
-                {(order.user_name || order.user_phone || order.address_detail) && (
-                  <div style={{
-                    display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8,
-                    padding: '8px 10px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.8rem', color: 'var(--text-secondary)',
-                  }}>
-                    {(order.user_name || order.user_phone) && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <MdPerson size={14} />
-                        {order.user_name || '—'}
-                        {order.user_phone && (
-                          <>
-                            <MdPhone size={12} style={{ marginInlineStart: 4 }} />
-                            <span dir="ltr">{order.user_phone}</span>
-                          </>
-                        )}
-                      </span>
-                    )}
-                    {order.delivery_type === 'delivery' && order.address_detail && (
-                      <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5 }}>
-                        <MdLocationOn size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-                        <span>
-                          {order.address_detail.province && `${order.address_detail.province}، `}
-                          {order.address_detail.city} — {order.address_detail.street}
-                          {order.address_detail.detail && ` (${order.address_detail.detail})`}
-                        </span>
-                      </span>
-                    )}
+                <div className="waiter-order-card__body">
+                  <div className="waiter-order-card__top">
+                    <span className="waiter-order-card__id">#{order.order_number || order.id}</span>
+                    <span className={`status-badge ${getStatusClass(order.status)}`}>
+                      {getStatusLabel(order.status)}
+                    </span>
                   </div>
-                )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '3px 10px', borderRadius: 'var(--radius-full)',
-                    fontSize: '0.78rem', fontWeight: 700,
-                    background: badge.paid ? 'var(--success-bg)' : 'rgba(251,191,36,0.15)',
-                    color: badge.paid ? 'var(--success)' : '#f59e0b',
-                    border: `1px solid ${badge.paid ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                  }}>
-                    <badge.Icon size={13} /> {badge.text}
-                  </span>
-                </div>
+                  <div className="waiter-order-card__chips">
+                    <span className="waiter-chip">
+                      <deliveryMeta.Icon size={13} /> {deliveryMeta.label(order)}
+                    </span>
+                    <span className="waiter-chip waiter-chip--muted">{formatDateTime(order.created_at)}</span>
+                    <span className={`waiter-chip ${badge.paid ? 'waiter-chip--success' : 'waiter-chip--warning'}`}>
+                      <badge.Icon size={13} /> {badge.text}
+                    </span>
+                  </div>
 
-                {order.items?.length > 0 && (
-                  <div className="waiter-order-card__items">
-                    {order.items.map((item, i) => (
-                      <div key={i} className="waiter-order-card__item">
-                        <div className="waiter-order-card__item-row">
-                          <span className="waiter-order-card__qty">×{item.quantity}</span>
-                          <span>{item.menu_item_detail?.name || '—'}</span>
-                          {item.variant_name && <span className="waiter-order-card__variant">({item.variant_name})</span>}
-                          {item.addons?.length > 0 && (
-                            <span className="waiter-order-card__variant">+ {item.addons.map((a) => a.name).join('، ')}</span>
+                  {hasContactInfo && (
+                    <div className="waiter-order-card__contact">
+                      {(order.user_name || order.user_phone) && (
+                        <div className="waiter-order-card__contact-row">
+                          <MdPerson size={15} />
+                          <span className="waiter-order-card__contact-name">{order.user_name || 'مشتری'}</span>
+                          {order.user_phone && (
+                            <a href={`tel:${order.user_phone}`} className="waiter-order-card__contact-phone" dir="ltr">
+                              <MdPhone size={13} /> {order.user_phone}
+                            </a>
                           )}
                         </div>
-                        <div className="waiter-order-card__item-price">
-                          {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.subtotal)}
+                      )}
+                      {order.delivery_type === 'delivery' && order.address_detail && (
+                        <div className="waiter-order-card__contact-row">
+                          <MdLocationOn size={15} style={{ flexShrink: 0 }} />
+                          <span>
+                            {order.address_detail.province && `${order.address_detail.province}، `}
+                            {order.address_detail.city} — {order.address_detail.street}
+                            {order.address_detail.detail && ` (${order.address_detail.detail})`}
+                          </span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
 
-                {order.note && (
-                  <div className="waiter-order-card__note">📝 {order.note}</div>
-                )}
+                  {order.items?.length > 0 && (
+                    <div className="waiter-order-card__items">
+                      {order.items.map((item, i) => (
+                        <div key={i} className="waiter-order-card__item">
+                          <div className="waiter-order-card__item-row">
+                            <span className="waiter-order-card__qty">×{item.quantity}</span>
+                            <span className="waiter-order-card__item-name">
+                              {item.menu_item_detail?.name || '—'}
+                              {item.variant_name && <span className="waiter-order-card__variant"> ({item.variant_name})</span>}
+                              {item.addons?.length > 0 && (
+                                <span className="waiter-order-card__variant"> + {item.addons.map((a) => a.name).join('، ')}</span>
+                              )}
+                            </span>
+                            <span className="waiter-order-card__item-price">{formatPrice(item.subtotal)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {order.note && (
+                    <div className="waiter-order-card__note">📝 {order.note}</div>
+                  )}
+                </div>
 
                 <div className="waiter-order-card__footer">
                   <span className="waiter-order-card__total">{formatPrice(order.final_price)}</span>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <div className="waiter-order-card__actions">
                     {order.payment_method === 'cash' && !order.is_paid && order.status !== 'rejected' && order.status !== 'cancelled' && (
                       <button
                         className="waiter-action-btn waiter-action-btn--success"
@@ -316,23 +306,23 @@ export default function WaiterOrdersPage() {
                     {order.status === 'pending_confirmation' && (
                       <>
                         <button
-                          className="waiter-action-btn waiter-action-btn--success"
-                          disabled={approving === order.id}
-                          onClick={() => handleApprove(order)}
-                        >
-                          <MdCheckCircle size={15} /> {approving === order.id ? '...' : 'تأیید سفارش'}
-                        </button>
-                        <button
                           className="waiter-action-btn waiter-action-btn--accent"
                           onClick={() => openRejectModal(order)}
                         >
                           <MdCancel size={15} /> رد سفارش
                         </button>
+                        <button
+                          className="waiter-action-btn waiter-action-btn--primary"
+                          disabled={approving === order.id}
+                          onClick={() => handleApprove(order)}
+                        >
+                          <MdCheckCircle size={15} /> {approving === order.id ? '...' : 'تأیید سفارش'}
+                        </button>
                       </>
                     )}
                     {next && (
                       <button
-                        className={`waiter-action-btn waiter-action-btn--${next.color}`}
+                        className="waiter-action-btn waiter-action-btn--primary"
                         disabled={updating === order.id}
                         onClick={() => handleStatusUpdate(order, next.value)}
                       >
@@ -348,7 +338,7 @@ export default function WaiterOrdersPage() {
                       if (!courier) {
                         return (
                           <button
-                            className="waiter-action-btn waiter-action-btn--primary"
+                            className="waiter-action-btn waiter-action-btn--outline"
                             disabled={dispatching === order.id}
                             onClick={() => handleDispatchToSnapp(order)}
                             title="ارسال دستی سفارش به پیک اسنپ‌باکس"
@@ -370,25 +360,24 @@ export default function WaiterOrdersPage() {
                         )
                       }
                       return (
-                        <span className="waiter-action-btn waiter-action-btn--primary" style={{ cursor: 'default' }}>
+                        <button
+                          type="button"
+                          className="waiter-action-btn waiter-action-btn--outline"
+                          onClick={() => setTrackingOrderId((id) => id === order.id ? null : order.id)}
+                          disabled={!courier.is_trackable}
+                        >
                           <MdDeliveryDining size={15} /> پیک: {courier.status_label}
-                          {courier.is_trackable && (
-                            <button
-                              type="button"
-                              onClick={() => setTrackingOrderId((id) => id === order.id ? null : order.id)}
-                              style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, marginRight: 4, font: 'inherit' }}
-                            >
-                              {trackingOrderId === order.id ? 'بستن نقشه' : 'نمایش روی نقشه'}
-                            </button>
-                          )}
-                        </span>
+                          {courier.is_trackable && (trackingOrderId === order.id ? ' — بستن نقشه' : ' — نمایش نقشه')}
+                        </button>
                       )
                     })()}
                   </div>
                 </div>
 
                 {trackingOrderId === order.id && order.snapp_courier && (
-                  <CourierStatusCard orderId={order.id} courier={order.snapp_courier} destination={order.address_detail} />
+                  <div className="waiter-order-card__map">
+                    <CourierStatusCard orderId={order.id} courier={order.snapp_courier} destination={order.address_detail} />
+                  </div>
                 )}
               </div>
             )

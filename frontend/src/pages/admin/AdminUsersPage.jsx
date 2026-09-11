@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
             <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input
                 type="checkbox"
-                checked={perms[key]}
+                checked={Boolean(perms[key])}
                 onChange={(e) => setPerms((p) => ({ ...p, [key]: e.target.checked }))}
                 style={{ marginTop: 3, flexShrink: 0 }}
               />

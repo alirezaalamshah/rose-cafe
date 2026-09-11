@@ -68,27 +68,53 @@
   font-weight: 600;
 }
 
-/* Order grid */
+/* ===== Order grid ===== */
 .waiter-order-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
+/* هر کارت یک شیء واحد: نوار وضعیت رنگی بالا (نه فقط یک border کم‌رنگ) که همان
+   رنگ status-badge را تکرار می‌کند، تا وضعیت حتی قبل از خواندن متن با یک نگاه
+   گذرا مشخص باشد — چیزی که پرسنلی که مدام بین ده‌ها کارت اسکن می‌کنند نیاز دارند */
 .waiter-order-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  transition: transform var(--transition);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neu-shadow-sm);
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
 }
 
 .waiter-order-card:hover {
   transform: translateY(-2px);
+  box-shadow: var(--neu-shadow);
 }
 
-.waiter-order-card--pending { border-color: rgba(240,214,132,0.25); }
-.waiter-order-card--preparing { border-color: rgba(171,77,53,0.25); }
-.waiter-order-card--ready { border-color: rgba(74,222,128,0.25); }
+.waiter-order-card__stripe {
+  height: 4px;
+  flex-shrink: 0;
+  background: var(--text-muted);
+}
+
+.waiter-order-card--pending_confirmation .waiter-order-card__stripe,
+.waiter-order-card--waiting_payment .waiter-order-card__stripe { background: var(--warning); }
+.waiter-order-card--paid .waiter-order-card__stripe { background: var(--info); }
+.waiter-order-card--preparing .waiter-order-card__stripe { background: var(--accent); }
+.waiter-order-card--ready .waiter-order-card__stripe { background: var(--accent); }
+.waiter-order-card--delivered .waiter-order-card__stripe { background: var(--success); }
+.waiter-order-card--rejected .waiter-order-card__stripe,
+.waiter-order-card--cancelled .waiter-order-card__stripe { background: var(--error); }
+
+.waiter-order-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+}
 
 .waiter-order-card__top {
   display: flex;
@@ -97,87 +123,199 @@
 }
 
 .waiter-order-card__id {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
-.waiter-order-card__meta {
+/* ردیف چیپ‌های فشرده — نوع تحویل، زمان، وضعیت پرداخت؛ همه هم‌قد و هم‌فونت
+   تا به‌جای متن‌های پراکنده با فونت‌های مختلف، یک ردیف یکدست اسکن شود */
+.waiter-order-card__chips {
   display: flex;
-  gap: var(--space-md);
-  font-size: 0.78rem;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.waiter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.waiter-chip--muted {
   color: var(--text-muted);
+}
+
+.waiter-chip--success {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: rgba(74,222,128,0.3);
+}
+
+.waiter-chip--warning {
+  background: rgba(251,191,36,0.12);
+  color: #f59e0b;
+  border-color: rgba(245,158,11,0.3);
+}
+
+/* بلوک اطلاعات تماس مشتری — کادر مجزا و برجسته چون مهم‌ترین بخشی است که
+   سرپرست سالن باید سریع پیدا کند (تماس با مشتری، آدرس تحویل) */
+.waiter-order-card__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.waiter-order-card__contact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.waiter-order-card__contact-row svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.waiter-order-card__contact-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.waiter-order-card__contact-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: auto;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.waiter-order-card__contact-phone:hover {
+  background: var(--primary);
+  color: var(--bg-primary);
 }
 
 .waiter-order-card__items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: var(--space-sm) 0;
+  padding: 6px 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 
 .waiter-order-card__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  padding: 4px 0;
 }
 
 .waiter-order-card__item-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: baseline;
+  gap: 8px;
   font-size: 0.85rem;
-  color: var(--text-primary);
-}
-
-.waiter-order-card__item-price {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  direction: ltr;
-  text-align: right;
 }
 
 .waiter-order-card__qty {
+  flex-shrink: 0;
   color: var(--primary);
   font-weight: 700;
-  min-width: 24px;
+  min-width: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.waiter-order-card__item-name {
+  flex: 1;
+  color: var(--text-primary);
+  min-width: 0;
 }
 
 .waiter-order-card__variant {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
-.waiter-order-card__note {
-  font-size: 0.78rem;
+.waiter-order-card__item-price {
+  flex-shrink: 0;
   color: var(--text-muted);
-  background: var(--bg-secondary);
-  padding: 6px 10px;
+  font-size: 0.8rem;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+}
+
+.waiter-order-card__note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: rgba(251,191,36,0.08);
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(245,158,11,0.25);
 }
 
 .waiter-order-card__footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-sm);
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
 }
 
 .waiter-order-card__total {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
   direction: ltr;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.waiter-order-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.waiter-order-card__actions .waiter-action-btn {
+  flex: 1;
+  justify-content: center;
+  min-width: fit-content;
+}
+
+.waiter-order-card__map {
+  padding: 0 var(--space-lg) var(--space-md);
+  background: var(--bg-secondary);
 }
 
 .waiter-action-btn {
-  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  background: var(--bg-card);
   color: var(--text-primary);
   font-family: var(--font-family);
   font-size: 0.82rem;
@@ -192,22 +330,49 @@
   cursor: not-allowed;
 }
 
+/* دکمه‌ی اصلی هر کارت — پررنگ‌ترین/اولین‌اولویت اکشن (تأیید، پیشروی وضعیت) */
 .waiter-action-btn--primary {
-  background: var(--primary-bg);
-  border-color: rgba(240,214,132,0.4);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #241d0f;
+}
+
+.waiter-action-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* دکمه‌ی ثانویه (کم‌اهمیت‌تر ولی هنوز اکشن مثبت) — outline به‌جای پرکردن کامل */
+.waiter-action-btn--outline {
+  background: transparent;
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+
+.waiter-action-btn--outline:hover:not(:disabled) {
+  border-color: var(--primary);
   color: var(--primary);
 }
 
 .waiter-action-btn--accent {
-  background: rgba(171,77,53,0.12);
-  border-color: rgba(171,77,53,0.3);
-  color: #e06b4b;
+  background: var(--error-bg);
+  border-color: rgba(248,113,113,0.3);
+  color: var(--error);
+}
+
+.waiter-action-btn--accent:hover:not(:disabled) {
+  background: var(--error);
+  color: #fff;
 }
 
 .waiter-action-btn--success {
   background: var(--success-bg);
   border-color: rgba(74,222,128,0.3);
   color: var(--success);
+}
+
+.waiter-action-btn--success:hover:not(:disabled) {
+  background: var(--success);
+  color: var(--bg-primary);
 }
 
 .waiter-refresh-btn {
@@ -248,4 +413,3 @@
 }
 
 .spin { animation: spin 1s linear infinite; }
-
