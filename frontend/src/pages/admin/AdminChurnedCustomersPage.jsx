@@ -132,20 +132,22 @@ export default function AdminChurnedCustomersPage() {
                       )}
                     </td>
                     <td className="td-actions">
-                      <button
-                        className="admin-action-btn admin-action-btn--info"
-                        onClick={() => navigate(`/admin/users/${c.id}`)}
-                      >
-                        <MdVisibility size={14} /> جزئیات
-                      </button>
-                      <button
-                        className="admin-action-btn"
-                        disabled={sending === c.id}
-                        onClick={() => handleSendWinBack(c)}
-                        title="ارسال پیامک دلتنگی همراه با کد تخفیف اختصاصی"
-                      >
-                        <MdSms size={14} /> {sending === c.id ? '...' : 'پیام دلتنگی'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        <button
+                          className="admin-action-btn admin-action-btn--info"
+                          onClick={() => navigate(`/admin/users/${c.id}`)}
+                        >
+                          <MdVisibility size={14} /> جزئیات
+                        </button>
+                        <button
+                          className="admin-action-btn"
+                          disabled={sending === c.id}
+                          onClick={() => handleSendWinBack(c)}
+                          title="ارسال پیامک دلتنگی همراه با کد تخفیف اختصاصی"
+                        >
+                          <MdSms size={14} /> {sending === c.id ? '...' : 'پیام دلتنگی'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
