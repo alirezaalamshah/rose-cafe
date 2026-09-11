@@ -475,6 +475,8 @@ class AdminUserWalletAdjustmentView(APIView):
         try:
             if amount > 0:
                 wallet = credit(user, amount, WalletTransaction.Type.ADMIN_ADJUSTMENT, description=full_description)
+                from apps.notifications.sms import send_wallet_topup_sms
+                send_wallet_topup_sms(str(user.phone), amount, wallet.balance)
             else:
                 wallet = debit(user, abs(amount), WalletTransaction.Type.ADMIN_ADJUSTMENT, description=full_description)
         except InsufficientBalanceError:

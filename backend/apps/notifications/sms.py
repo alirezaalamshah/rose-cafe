@@ -18,6 +18,18 @@ ORDER_PLACED_TEXT = 'سفارش شما با موفقیت ثبت شد. شماره
 MELIPAYAMAK_ORDER_READY_COURIER_BODY_ID = 516408
 ORDER_READY_COURIER_TEXT = 'سفارش شما آماده شده و به پیک تحویل داده شد. 🛵 شماره سفارش: {0} لطفاً برای دریافت سفارش آماده باشید. با تشکر از اعتماد شما 🌹 رزکافه'
 
+MELIPAYAMAK_ORDER_REJECTED_BODY_ID = 530555
+ORDER_REJECTED_TEXT = 'سفارش {0} تأیید نشد و لغو گردید. جزئیات و وضعیت استرداد وجه در بخش «سفارشات» سایت قابل مشاهده است. رزکافه'
+
+MELIPAYAMAK_WALLET_TOPUP_BODY_ID = 530557
+WALLET_TOPUP_TEXT = 'کیف پول شما با موفقیت شارژ شد. مبلغ شارژ: {0} تومان موجودی کیف پول: {1} تومان رزکافه'
+
+MELIPAYAMAK_WIN_BACK_PERCENTAGE_BODY_ID = 530559
+WIN_BACK_PERCENTAGE_TEXT = 'دلتنگ شما هستیم! 🌹 با کد: {0} {1}٪ تخفیف برای سفارش بعدی شما در نظر گرفته‌ایم. منتظر شما هستیم. رزکافه'
+
+MELIPAYAMAK_WIN_BACK_FIXED_BODY_ID = 530560
+WIN_BACK_FIXED_TEXT = 'دلتنگ شما هستیم! 🌹 با کد: {0} {1} تومان تخفیف برای سفارش بعدی شما در نظر گرفته‌ایم. منتظر شما هستیم. رزکافه'
+
 # ─── Legacy API (username/password — fallback) ───────────────────────────────
 LEGACY_BASE = 'https://rest.payamak-panel.com/api/SendSMS'
 
@@ -358,6 +370,41 @@ def send_order_ready_for_courier_sms(phone: str, order_number: str) -> bool:
     text = ORDER_READY_COURIER_TEXT.format(order_number)
     return _send_template_notification(
         phone, MELIPAYAMAK_ORDER_READY_COURIER_BODY_ID, [order_number], text, 'OrderReadyForCourier',
+    )
+
+
+def send_order_rejected_sms(phone: str, order_number: str) -> bool:
+    """وقتی ادمین/سرپرست سالن سفارشی را رد می‌کند — دلیل رد در متن پیامک نمی‌آید
+    (محدودیت الگوی تأییدشده)، فقط در پنل «سفارشات» سایت مشتری نمایش داده می‌شود."""
+    text = ORDER_REJECTED_TEXT.format(order_number)
+    return _send_template_notification(
+        phone, MELIPAYAMAK_ORDER_REJECTED_BODY_ID, [order_number], text, 'OrderRejected',
+    )
+
+
+def send_wallet_topup_sms(phone: str, amount, balance) -> bool:
+    """بعد از شارژ موفق کیف‌پول — چه از درگاه (مشتری) چه شارژ دستی ادمین."""
+    amount_str = f'{int(amount):,}'
+    balance_str = f'{int(balance):,}'
+    text = WALLET_TOPUP_TEXT.format(amount_str, balance_str)
+    return _send_template_notification(
+        phone, MELIPAYAMAK_WALLET_TOPUP_BODY_ID, [amount_str, balance_str], text, 'WalletTopup',
+    )
+
+
+def send_win_back_discount_sms(phone: str, code: str, discount_type: str, value) -> bool:
+    """برای مشتریان در معرض ریزش — دکمه‌ی «ارسال پیام دلتنگی» در پنل ادمین.
+    discount_type: 'percentage' یا 'fixed' — تعیین می‌کند کدام الگوی تأییدشده
+    (درصدی/مبلغی) استفاده شود، چون متن دو الگو با هم فرق دارد."""
+    if discount_type == 'percentage':
+        text = WIN_BACK_PERCENTAGE_TEXT.format(code, int(value))
+        return _send_template_notification(
+            phone, MELIPAYAMAK_WIN_BACK_PERCENTAGE_BODY_ID, [code, int(value)], text, 'WinBackPercentage',
+        )
+    value_str = f'{int(value):,}'
+    text = WIN_BACK_FIXED_TEXT.format(code, value_str)
+    return _send_template_notification(
+        phone, MELIPAYAMAK_WIN_BACK_FIXED_BODY_ID, [code, value_str], text, 'WinBackFixed',
     )
 
 

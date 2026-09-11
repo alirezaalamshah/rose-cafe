@@ -7,4 +7,7 @@ export const discountsAPI = {
   adminCreateDiscount: (data) => api.post('/discounts/admin/', data),
   adminUpdateDiscount: (id, data) => api.put(`/discounts/admin/${id}/`, data),
   adminDeleteDiscount: (id) => api.delete(`/discounts/admin/${id}/`),
+  adminGetWinBackSettings: () => api.get('/discounts/admin/win-back-settings/'),
+  adminUpdateWinBackSettings: (data) => api.patch('/discounts/admin/win-back-settings/', data),
+  adminSendWinBackSMS: (userId) => api.post(`/discounts/admin/win-back/${userId}/send/`),
 }

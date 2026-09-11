@@ -286,6 +286,16 @@ class OrderApprovalWorkflowTestCase(APITestCase):
             ).exists()
         )
 
+    def test_reject_sends_rejection_sms(self):
+        from unittest.mock import patch
+        self.client.force_authenticate(user=self.admin)
+        with patch('apps.orders.views.send_order_rejected_sms') as mock_sms:
+            response = self.client.post(
+                f'/api/orders/{self.order.id}/reject/', {'reason': 'تمام شد لاته'}, format='json',
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        mock_sms.assert_called_once_with(str(self.order.user.phone), self.order.order_number)
+
     def test_cannot_approve_already_approved_order(self):
         self.client.force_authenticate(user=self.waiter)
         self.client.post(f'/api/orders/{self.order.id}/approve/')
