@@ -7,6 +7,7 @@ import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
 import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
 import useNotificationSound from '../../../hooks/useNotificationSound.js'
+import { confirm } from '../../../store/confirmStore.js'
 import './WaiterLayout.css'
 
 export default function WaiterLayout() {
@@ -15,7 +16,8 @@ export default function WaiterLayout() {
   const perms = user?.waiter_permissions || {}
   useNotificationSound()
 
-  function handleLogout() {
+  async function handleLogout() {
+    if (!(await confirm('از حساب کاربری خارج می‌شوید؟', { title: 'خروج از سیستم', confirmLabel: 'خروج' }))) return
     logout()
     navigate('/login', { replace: true })
   }
@@ -37,41 +39,41 @@ export default function WaiterLayout() {
         {/* Sidebar */}
         <nav className="waiter-nav">
           <div className="waiter-nav__links">
-            <NavLink to="/waiter" end className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+            <NavLink to="/waiter" end title="خلاصه" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
               <MdDashboard size={22} />
               <span>خلاصه</span>
             </NavLink>
 
             {perms.can_manage_orders && (
-              <NavLink to="/waiter/orders" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+              <NavLink to="/waiter/orders" title="سفارشات" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdRestaurantMenu size={22} />
                 <span>سفارشات</span>
               </NavLink>
             )}
 
             {perms.can_manage_reservations && (
-              <NavLink to="/waiter/reservations" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+              <NavLink to="/waiter/reservations" title="رزروها" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdEventNote size={22} />
                 <span>رزروها</span>
               </NavLink>
             )}
 
             {perms.can_manage_tables && (
-              <NavLink to="/waiter/tables" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+              <NavLink to="/waiter/tables" title="میزها" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdTableBar size={22} />
                 <span>میزها</span>
               </NavLink>
             )}
 
             {perms.can_manage_menu_availability && (
-              <NavLink to="/waiter/menu" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+              <NavLink to="/waiter/menu" title="موجودی منو" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdInventory size={22} />
                 <span>موجودی منو</span>
               </NavLink>
             )}
 
             {perms.can_view_own_performance && (
-              <NavLink to="/waiter/performance" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+              <NavLink to="/waiter/performance" title="عملکرد من" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdBarChart size={22} />
                 <span>عملکرد من</span>
               </NavLink>
@@ -81,11 +83,11 @@ export default function WaiterLayout() {
           <div className="waiter-nav__footer">
             <NotificationToggleButton className="waiter-nav__item" iconSize={22} />
             <InstallAppButton className="waiter-nav__item" iconSize={22} />
-            <NavLink to="/" className="waiter-nav__item">
+            <NavLink to="/" title="بازگشت به سایت" className="waiter-nav__item">
               <MdArrowForward size={22} />
               <span>بازگشت به سایت</span>
             </NavLink>
-            <button className="waiter-nav__item waiter-nav__item--logout" onClick={handleLogout}>
+            <button className="waiter-nav__item waiter-nav__item--logout" title="خروج از سیستم" onClick={handleLogout}>
               <MdLogout size={20} />
               <span>خروج از سیستم</span>
             </button>

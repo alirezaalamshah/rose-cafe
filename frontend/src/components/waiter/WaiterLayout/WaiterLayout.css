@@ -51,6 +51,10 @@
 .waiter-header__name {
   font-size: 0.85rem;
   color: var(--text-secondary);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Body */
@@ -177,6 +181,19 @@
 .spin { animation: wt-spin 1s linear infinite; }
 @keyframes wt-spin { to { transform: rotate(360deg); } }
 
+/* اسپینر کوچک برای داخل دکمه‌ها — جایگزین متن «...» که با یک تایپوی معمولی
+   قابل‌تفکیک نبود؛ از border-trick معمول (یک کمان چرخان) استفاده می‌کند */
+.waiter-btn-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: wt-spin 0.7s linear infinite;
+  opacity: 0.85;
+}
+
 .waiter-action-btn {
   display: inline-flex;
   align-items: center;
@@ -199,6 +216,25 @@
   color: var(--primary);
 }
 .waiter-action-btn--primary:hover:not(:disabled) { background: var(--primary); color: var(--text-inverse); }
+
+/* دکمه‌ی «اصلی»/پُر — برای تنها اکشن با اولویت اول یک کارت (تأیید سفارش،
+   تأیید رزرو، فعال کردن میز)؛ بقیه‌ی دکمه‌های همان کارت باید outline/تینت بمانند
+   تا یک نگاه گذرا بفهمد قدم بعدی کدام است */
+.waiter-action-btn--filled {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-inverse);
+}
+.waiter-action-btn--filled:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* دکمه‌ی ثانویه خنثی (نه مثبت نه منفی، مثل «بستن نقشه»/«ارسال به پیک») —
+   بدون تینت رنگی، فقط outline خاکستری */
+.waiter-action-btn--outline {
+  background: transparent;
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+.waiter-action-btn--outline:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
 
 .waiter-action-btn--accent {
   background: rgba(171,77,53,0.1);
@@ -236,5 +272,16 @@
   }
   .waiter-main {
     padding: var(--space-md);
+  }
+  /* در عرض تنگ، لوگو و نام کاربر با هم جا نمی‌شوند — عنوان ثابت حذف می‌شود
+     تا فضا به نام واقعی کاربر (که مفیدتر است) برسد */
+  .waiter-header {
+    padding: 0 var(--space-md);
+  }
+  .waiter-header__title {
+    display: none;
+  }
+  .waiter-header__name {
+    max-width: 96px;
   }
 }

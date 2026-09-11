@@ -56,7 +56,7 @@ export default function WaiterPerformancePage() {
         <h1>عملکرد من</h1>
       </div>
 
-      <div className="waiter-performance__filters">
+      <div className="waiter-performance__presets">
         {PRESETS.map((p) => (
           <button
             key={p.label}
@@ -66,11 +66,15 @@ export default function WaiterPerformancePage() {
             {p.label}
           </button>
         ))}
+      </div>
+      <div className="waiter-performance__range">
         <button className="waiter-archive-jump-btn waiter-archive-jump-btn--wide" onClick={() => setPickerModal('from')}>
-          <MdCalendarToday size={16} /> از {formatJalali(dateFrom)}
+          <MdCalendarToday size={16} />
+          <span className="waiter-performance__range-label">از</span> {formatJalali(dateFrom)}
         </button>
         <button className="waiter-archive-jump-btn waiter-archive-jump-btn--wide" onClick={() => setPickerModal('to')}>
-          <MdCalendarToday size={16} /> تا {formatJalali(dateTo)}
+          <MdCalendarToday size={16} />
+          <span className="waiter-performance__range-label">تا</span> {formatJalali(dateTo)}
         </button>
       </div>
 
@@ -93,42 +97,42 @@ export default function WaiterPerformancePage() {
 
       {loading || !stats ? <Loading /> : (
         <div className="waiter-performance__cards">
-          <div className="waiter-stat-card waiter-stat-card--pending">
+          <div className="waiter-stat-card waiter-stat-card--success">
             <div className="waiter-stat-card__icon"><MdCheckCircle size={28} /></div>
             <div className="waiter-stat-card__info">
               <div className="waiter-stat-card__num">{stats.approved_count}</div>
               <div className="waiter-stat-card__label">سفارش تأییدشده</div>
             </div>
           </div>
-          <div className="waiter-stat-card waiter-stat-card--res">
+          <div className="waiter-stat-card waiter-stat-card--danger">
             <div className="waiter-stat-card__icon"><MdCancel size={28} /></div>
             <div className="waiter-stat-card__info">
               <div className="waiter-stat-card__num">{stats.rejected_count}</div>
               <div className="waiter-stat-card__label">سفارش ردشده</div>
             </div>
           </div>
-          <div className="waiter-stat-card waiter-stat-card--preparing">
+          <div className="waiter-stat-card waiter-stat-card--neutral">
             <div className="waiter-stat-card__icon"><MdPayments size={28} /></div>
             <div className="waiter-stat-card__info">
-              <div className="waiter-stat-card__num" style={{ fontSize: '1rem' }}>{formatPrice(stats.cash_collected)}</div>
+              <div className="waiter-stat-card__num waiter-stat-card__num--sm">{formatPrice(stats.cash_collected)}</div>
               <div className="waiter-stat-card__label">نقدی وصول‌شده</div>
             </div>
           </div>
-          <div className="waiter-stat-card waiter-stat-card--ready">
+          <div className="waiter-stat-card waiter-stat-card--neutral">
             <div className="waiter-stat-card__icon"><MdCreditCard size={28} /></div>
             <div className="waiter-stat-card__info">
-              <div className="waiter-stat-card__num" style={{ fontSize: '1rem' }}>{formatPrice(stats.online_collected)}</div>
+              <div className="waiter-stat-card__num waiter-stat-card__num--sm">{formatPrice(stats.online_collected)}</div>
               <div className="waiter-stat-card__label">آنلاین وصول‌شده</div>
             </div>
           </div>
-          <div className="waiter-stat-card waiter-stat-card--pending">
+          <div className="waiter-stat-card waiter-stat-card--neutral">
             <div className="waiter-stat-card__icon"><MdTimer size={28} /></div>
             <div className="waiter-stat-card__info">
-              <div className="waiter-stat-card__num" style={{ fontSize: '1rem' }}>{formatMinutes(stats.avg_delivery_minutes)}</div>
+              <div className="waiter-stat-card__num waiter-stat-card__num--sm">{formatMinutes(stats.avg_delivery_minutes)}</div>
               <div className="waiter-stat-card__label">میانگین تأیید تا تحویل</div>
             </div>
           </div>
-          <div className="waiter-stat-card waiter-stat-card--res">
+          <div className="waiter-stat-card waiter-stat-card--pending">
             <div className="waiter-stat-card__icon"><MdPending size={28} /></div>
             <div className="waiter-stat-card__info">
               <div className="waiter-stat-card__num">{stats.current_active_orders}</div>

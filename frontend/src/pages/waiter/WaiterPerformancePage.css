@@ -1,9 +1,28 @@
-.waiter-performance__filters {
+.waiter-performance__presets {
   display: flex;
-  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.waiter-performance__range {
+  display: flex;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: var(--space-lg);
+}
+
+.waiter-performance__range .waiter-archive-jump-btn--wide {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+}
+
+/* در موبایل برچسب «از»/«تا» به‌جای نوشته، رنگ کم‌رنگ‌تر می‌شود تا فقط تاریخ
+   واقعی برجسته بماند — این دو دکمه در کنار هم با فضای کم صف می‌شوند */
+.waiter-performance__range-label {
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .waiter-performance__cards {
@@ -16,4 +35,31 @@
   .waiter-performance__cards {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* رنگ‌بندی معنادار مخصوص این صفحه — نه کلاس‌های وضعیت سفارش داشبورد که اینجا
+   معنایشان با موضوع این کارت‌ها (موفق/ناموفق/خنثی) ربطی نداشت */
+.waiter-stat-card--success {
+  background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(74,222,128,0.03));
+  border-color: rgba(74,222,128,0.2);
+}
+.waiter-stat-card--success .waiter-stat-card__icon { color: var(--success); }
+
+.waiter-stat-card--danger {
+  background: linear-gradient(135deg, rgba(248,113,113,0.08), rgba(248,113,113,0.03));
+  border-color: rgba(248,113,113,0.2);
+}
+.waiter-stat-card--danger .waiter-stat-card__icon { color: var(--error); }
+
+.waiter-stat-card--neutral {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+.waiter-stat-card--neutral .waiter-stat-card__icon { color: var(--text-muted); }
+
+/* اعداد ریالی/زمانی طولانی‌تر از یک شمارنده‌ی ساده‌اند — سایز کوچک‌تر یک
+   modifier واقعی است، نه یک style مستقیم روی عنصر */
+.waiter-stat-card__num--sm {
+  font-size: 1.05rem;
+  white-space: nowrap;
 }

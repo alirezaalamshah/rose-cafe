@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { MdTableBar, MdToggleOn, MdToggleOff } from 'react-icons/md'
+import { MdTableBar, MdToggleOn, MdToggleOff, MdPeople } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { waiterAPI } from '../../api/waiter.js'
 import Loading from '../../components/common/Loading/Loading.jsx'
+import { confirm } from '../../store/confirmStore.js'
 import './WaiterTablesPage.css'
 
 const LOCATIONS = { indoor: 'داخل کافه', outdoor: 'فضای باز', vip: 'VIP' }
@@ -20,6 +21,14 @@ export default function WaiterTablesPage() {
   }, [])
 
   async function handleToggle(table) {
+    // فعال‌کردن بی‌خطر است، اما غیرفعال‌کردن ممکن است میزی را که هم‌اکنون درگیر
+    // سرویس یا نزدیک به یک رزرو است از دسترس خارج کند — نیاز به تأیید صریح دارد
+    if (table.is_active) {
+      if (!(await confirm(
+        `میز ${table.number} غیرفعال شود؟ تا فعال‌سازی مجدد، برای رزرو/سرو در دسترس نخواهد بود.`,
+        { title: 'غیرفعال کردن میز', confirmLabel: 'غیرفعال کن', danger: true },
+      ))) return
+    }
     setToggling(table.id)
     try {
       const updated = await waiterAPI.updateTable(table.id, { is_active: !table.is_active })
@@ -50,30 +59,32 @@ export default function WaiterTablesPage() {
           {tables.map((table) => (
             <div
               key={table.id}
-              className={`waiter-table-card neu-card-sm ${!table.is_active ? 'waiter-table-card--inactive' : ''}`}
+              className={`waiter-table-card ${!table.is_active ? 'waiter-table-card--inactive' : ''}`}
             >
-              <div className="waiter-table-card__header">
-                <MdTableBar size={24} color={table.is_active ? 'var(--primary)' : 'var(--text-muted)'} />
-                <span className="waiter-table-card__num">میز {table.number}</span>
-                <span className={`status-badge ${table.is_active ? 'status-confirmed' : 'status-cancelled'}`} style={{ fontSize: '0.7rem' }}>
-                  {table.is_active ? 'فعال' : 'غیرفعال'}
-                </span>
-              </div>
+              <div className="waiter-table-card__stripe" />
+              <div className="waiter-table-card__body">
+                <div className="waiter-table-card__header">
+                  <MdTableBar size={22} className="waiter-table-card__icon" />
+                  <span className="waiter-table-card__num">میز {table.number}</span>
+                  <span className={`status-badge ${table.is_active ? 'status-confirmed' : 'status-cancelled'}`}>
+                    {table.is_active ? 'فعال' : 'غیرفعال'}
+                  </span>
+                </div>
 
-              <div className="waiter-table-card__info">
-                <span>{table.capacity} نفره</span>
-                <span className="waiter-table-card__loc">{LOCATIONS[table.location] || table.location}</span>
-              </div>
+                <div className="waiter-table-card__info">
+                  <span className="waiter-table-card__capacity"><MdPeople size={14} /> {table.capacity} نفره</span>
+                  <span className="waiter-table-card__loc">{LOCATIONS[table.location] || table.location}</span>
+                </div>
 
-              {table.description && <p className="waiter-table-card__desc">{table.description}</p>}
+                {table.description && <p className="waiter-table-card__desc">{table.description}</p>}
+              </div>
 
               <button
-                className={`waiter-action-btn ${table.is_active ? 'waiter-action-btn--warning' : 'waiter-action-btn--success'}`}
-                style={{ width: '100%', marginTop: 'var(--space-sm)' }}
+                className={`waiter-action-btn waiter-table-card__toggle ${table.is_active ? 'waiter-action-btn--accent' : 'waiter-action-btn--filled'}`}
                 onClick={() => handleToggle(table)}
                 disabled={toggling === table.id}
               >
-                {toggling === table.id ? '...' : table.is_active
+                {toggling === table.id ? <span className="waiter-btn-spinner" /> : table.is_active
                   ? <><MdToggleOff size={16} /> غیرفعال کردن</>
                   : <><MdToggleOn size={16} /> فعال کردن</>
                 }

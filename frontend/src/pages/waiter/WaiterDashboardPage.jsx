@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   MdRestaurantMenu, MdEventNote, MdTableBar, MdPending, MdOutdoorGrill, MdDoneAll,
-  MdInventory, MdBarChart, MdPowerSettingsNew, MdLockOpen,
+  MdInventory, MdBarChart, MdPowerSettingsNew, MdLockOpen, MdChevronLeft,
 } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -99,45 +99,49 @@ export default function WaiterDashboardPage() {
   return (
     <div className="waiter-dashboard">
       <div className="waiter-dashboard__greeting">
-        <h1>{greeting()}، {user?.full_name || 'سرپرست عزیز'} 👋</h1>
+        <h1>{greeting()}، {user?.full_name || 'سرپرست عزیز'} <span className="waiter-dashboard__wave">👋</span></h1>
         <p className="waiter-dashboard__date">{formatJalali(todayIso)}</p>
       </div>
 
       <div className="waiter-dashboard__cards">
         {perms.can_manage_orders && (
           <>
-            <div className="waiter-stat-card waiter-stat-card--pending" onClick={() => navigate('/waiter/orders?status=pending')}>
+            <button className="waiter-stat-card waiter-stat-card--pending" onClick={() => navigate('/waiter/orders?status=pending')}>
               <div className="waiter-stat-card__icon"><MdPending size={28} /></div>
               <div className="waiter-stat-card__info">
-                <div className="waiter-stat-card__num">{loading ? '...' : orderStats.pending}</div>
+                <div className="waiter-stat-card__num">{loading ? <span className="waiter-skel" /> : orderStats.pending}</div>
                 <div className="waiter-stat-card__label">سفارش در انتظار</div>
               </div>
-            </div>
-            <div className="waiter-stat-card waiter-stat-card--preparing" onClick={() => navigate('/waiter/orders?status=preparing')}>
+              <MdChevronLeft className="waiter-stat-card__chevron" size={18} />
+            </button>
+            <button className="waiter-stat-card waiter-stat-card--preparing" onClick={() => navigate('/waiter/orders?status=preparing')}>
               <div className="waiter-stat-card__icon"><MdOutdoorGrill size={28} /></div>
               <div className="waiter-stat-card__info">
-                <div className="waiter-stat-card__num">{loading ? '...' : orderStats.preparing}</div>
+                <div className="waiter-stat-card__num">{loading ? <span className="waiter-skel" /> : orderStats.preparing}</div>
                 <div className="waiter-stat-card__label">در حال آماده‌سازی</div>
               </div>
-            </div>
-            <div className="waiter-stat-card waiter-stat-card--ready" onClick={() => navigate('/waiter/orders?status=ready')}>
+              <MdChevronLeft className="waiter-stat-card__chevron" size={18} />
+            </button>
+            <button className="waiter-stat-card waiter-stat-card--ready" onClick={() => navigate('/waiter/orders?status=ready')}>
               <div className="waiter-stat-card__icon"><MdDoneAll size={28} /></div>
               <div className="waiter-stat-card__info">
-                <div className="waiter-stat-card__num">{loading ? '...' : orderStats.ready}</div>
+                <div className="waiter-stat-card__num">{loading ? <span className="waiter-skel" /> : orderStats.ready}</div>
                 <div className="waiter-stat-card__label">آماده تحویل</div>
               </div>
-            </div>
+              <MdChevronLeft className="waiter-stat-card__chevron" size={18} />
+            </button>
           </>
         )}
 
         {perms.can_manage_reservations && (
-          <div className="waiter-stat-card waiter-stat-card--res" onClick={() => navigate('/waiter/reservations')}>
+          <button className="waiter-stat-card waiter-stat-card--res" onClick={() => navigate('/waiter/reservations')}>
             <div className="waiter-stat-card__icon"><MdEventNote size={28} /></div>
             <div className="waiter-stat-card__info">
-              <div className="waiter-stat-card__num">{loading ? '...' : resStats.confirmed}</div>
+              <div className="waiter-stat-card__num">{loading ? <span className="waiter-skel" /> : resStats.confirmed}</div>
               <div className="waiter-stat-card__label">رزرو تأیید‌شده امروز</div>
             </div>
-          </div>
+            <MdChevronLeft className="waiter-stat-card__chevron" size={18} />
+          </button>
         )}
       </div>
 
@@ -146,13 +150,13 @@ export default function WaiterDashboardPage() {
         <h2>دسترسی سریع</h2>
         <div className="waiter-dashboard__action-grid">
           {perms.can_manage_orders && (
-            <button className="waiter-quick-btn" onClick={() => navigate('/waiter/orders')}>
+            <button className="waiter-quick-btn waiter-quick-btn--primary" onClick={() => navigate('/waiter/orders')}>
               <MdRestaurantMenu size={24} />
               مدیریت سفارشات
             </button>
           )}
           {perms.can_manage_reservations && (
-            <button className="waiter-quick-btn" onClick={() => navigate('/waiter/reservations')}>
+            <button className="waiter-quick-btn waiter-quick-btn--primary" onClick={() => navigate('/waiter/reservations')}>
               <MdEventNote size={24} />
               رزروهای امروز
             </button>
@@ -178,6 +182,9 @@ export default function WaiterDashboardPage() {
         </div>
       </div>
 
+      {perms.can_force_close_cafe && !cafeStatus && (
+        <div className="waiter-cafe-status waiter-cafe-status--skeleton" />
+      )}
       {perms.can_force_close_cafe && cafeStatus && (
         <div className={`waiter-cafe-status ${isForceClosed ? 'waiter-cafe-status--closed' : ''}`}>
           <div className="waiter-cafe-status__info">
@@ -195,8 +202,7 @@ export default function WaiterDashboardPage() {
           ) : (
             <Button
               size="sm"
-              variant="secondary"
-              style={{ color: 'var(--error)', borderColor: 'rgba(248,113,113,0.3)' }}
+              variant="danger"
               onClick={handleToggleForceClose}
               loading={togglingCafe}
             >

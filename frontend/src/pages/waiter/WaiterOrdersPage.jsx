@@ -300,7 +300,7 @@ export default function WaiterOrdersPage() {
                         disabled={confirmingCash === order.id}
                         onClick={() => handleConfirmCash(order)}
                       >
-                        {confirmingCash === order.id ? '...' : <><MdAttachMoney size={15} /> وصول وجه</>}
+                        {confirmingCash === order.id ? <span className="waiter-btn-spinner" /> : <><MdAttachMoney size={15} /> وصول وجه</>}
                       </button>
                     )}
                     {order.status === 'pending_confirmation' && (
@@ -312,21 +312,21 @@ export default function WaiterOrdersPage() {
                           <MdCancel size={15} /> رد سفارش
                         </button>
                         <button
-                          className="waiter-action-btn waiter-action-btn--primary"
+                          className="waiter-action-btn waiter-action-btn--filled"
                           disabled={approving === order.id}
                           onClick={() => handleApprove(order)}
                         >
-                          <MdCheckCircle size={15} /> {approving === order.id ? '...' : 'تأیید سفارش'}
+                          <MdCheckCircle size={15} /> {approving === order.id ? <span className="waiter-btn-spinner" /> : 'تأیید سفارش'}
                         </button>
                       </>
                     )}
                     {next && (
                       <button
-                        className="waiter-action-btn waiter-action-btn--primary"
+                        className="waiter-action-btn waiter-action-btn--filled"
                         disabled={updating === order.id}
                         onClick={() => handleStatusUpdate(order, next.value)}
                       >
-                        {updating === order.id ? '...' : next.label}
+                        {updating === order.id ? <span className="waiter-btn-spinner" /> : next.label}
                       </button>
                     )}
                     {order.delivery_type === 'delivery' && (() => {
@@ -343,7 +343,7 @@ export default function WaiterOrdersPage() {
                             onClick={() => handleDispatchToSnapp(order)}
                             title="ارسال دستی سفارش به پیک اسنپ‌باکس"
                           >
-                            <MdDeliveryDining size={15} /> {dispatching === order.id ? '...' : 'ارسال به پیک'}
+                            <MdDeliveryDining size={15} /> {dispatching === order.id ? <span className="waiter-btn-spinner" /> : 'ارسال به پیک'}
                           </button>
                         )
                       }
@@ -355,7 +355,7 @@ export default function WaiterOrdersPage() {
                             onClick={() => handleRetryDispatch(order)}
                             title={`پیک قبلی: ${courier.status_label}`}
                           >
-                            <MdDeliveryDining size={15} /> {dispatching === order.id ? '...' : 'ارسال مجدد به پیک'}
+                            <MdDeliveryDining size={15} /> {dispatching === order.id ? <span className="waiter-btn-spinner" /> : 'ارسال مجدد به پیک'}
                           </button>
                         )
                       }

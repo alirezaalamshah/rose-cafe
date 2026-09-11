@@ -10,14 +10,16 @@ import './WaiterMenuPage.css'
 export default function WaiterMenuPage() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [pending, setPending] = useState(null)
 
   function load() {
     setLoading(true)
+    setError(false)
     waiterAPI.getMenuItems()
       .then((data) => setItems(Array.isArray(data) ? data : (data?.results || [])))
-      .catch(() => toast.error('خطا در بارگذاری منو'))
+      .catch(() => { toast.error('خطا در بارگذاری منو'); setError(true) })
       .finally(() => setLoading(false))
   }
 
@@ -102,7 +104,13 @@ export default function WaiterMenuPage() {
         style={{ marginBottom: 'var(--space-md)' }}
       />
 
-      {groupedItems.length === 0 ? (
+      {error ? (
+        <div className="empty-state">
+          <div className="icon">⚠️</div>
+          <h3>خطا در بارگذاری منو</h3>
+          <button className="waiter-action-btn waiter-action-btn--filled" onClick={load}>تلاش مجدد</button>
+        </div>
+      ) : groupedItems.length === 0 ? (
         <div className="empty-state"><div className="icon">🍽️</div><h3>آیتمی یافت نشد</h3></div>
       ) : (
         <div className="waiter-menu__table-wrap">
@@ -144,7 +152,7 @@ export default function WaiterMenuPage() {
                             {available ? 'موجود' : 'ناموجود'}
                           </button>
                         </td>
-                        <td className="col-sub" data-label="تنوع‌ها / افزودنی‌ها">
+                        <td className={`col-sub ${(item.variants?.length > 0 || item.addons?.length > 0) ? '' : 'col-sub--empty'}`} data-label="تنوع‌ها / افزودنی‌ها">
                           {(item.variants?.length > 0 || item.addons?.length > 0) ? (
                             <div className="waiter-menu__chips">
                               {item.variants?.map((v) => (

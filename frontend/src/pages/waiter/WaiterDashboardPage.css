@@ -13,6 +13,11 @@
   margin-bottom: 4px;
 }
 
+.waiter-dashboard__wave {
+  display: inline-block;
+  font-size: 1.2rem;
+}
+
 .waiter-dashboard__date {
   font-size: 0.9rem;
   color: var(--text-muted);
@@ -21,12 +26,15 @@
 /* Stat cards */
 .waiter-dashboard__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-2xl);
 }
 
+/* این‌ها &lt;button&gt; هستند (نه div با onClick) تا با کیبورد/screen-reader هم
+   قابل‌فعال‌سازی باشند — چون میان‌بر ناوبری واقعی‌اند، نه فقط نمایش آمار */
 .waiter-stat-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -35,11 +43,39 @@
   border: 1px solid var(--border);
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
+  font-family: var(--font-family);
+  text-align: right;
+  width: 100%;
 }
 
 .waiter-stat-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.waiter-stat-card__chevron {
+  position: absolute;
+  left: var(--space-md);
+  color: var(--text-muted);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* اسکلت بارگذاری به‌جای متن «...» — عدد واقعی که قرار است بنشیند را با یک
+   بلوک هم‌اندازه جایگزین می‌کند تا حس بارگذاری واقعی بدهد نه یک مقدار خراب */
+.waiter-skel {
+  display: inline-block;
+  width: 28px;
+  height: 1.6rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--border) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: waiter-skel-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes waiter-skel-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .waiter-stat-card--pending {
@@ -88,8 +124,8 @@
 }
 
 .waiter-dashboard__action-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: var(--space-md);
 }
 
@@ -97,7 +133,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 12px 24px;
+  padding: 12px 20px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -113,6 +149,19 @@
   background: var(--primary-bg);
   border-color: rgba(240,214,132,0.3);
   color: var(--primary);
+}
+
+/* اکشن‌های اولویت‌دار (سفارشات، رزروها) — پررنگ‌تر تا بین ۵ دکمه‌ی هم‌شکل
+   بلافاصله چشم را به کاری که واقعاً وقت‌حساس‌تر است ببرد */
+.waiter-quick-btn--primary {
+  background: var(--primary-bg);
+  border-color: rgba(240,214,132,0.35);
+  color: var(--primary);
+}
+
+.waiter-quick-btn--primary:hover {
+  background: var(--primary);
+  color: var(--text-inverse);
 }
 
 /* Force-close cafe card */
@@ -131,6 +180,13 @@
 
 .waiter-cafe-status--closed {
   border-color: rgba(248,113,113,0.35);
+}
+
+.waiter-cafe-status--skeleton {
+  height: 76px;
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-secondary) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: waiter-skel-shimmer 1.4s ease-in-out infinite;
 }
 
 .waiter-cafe-status__title {
