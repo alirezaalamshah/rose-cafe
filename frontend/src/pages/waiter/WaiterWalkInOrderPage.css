@@ -275,6 +275,48 @@
   font-weight: 700;
 }
 
+/* ===== دکمه شناور سبد سفارش (فقط موبایل) ===== */
+.walk-in-order__cart-fab {
+  display: none;
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 40;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: var(--text-inverse);
+  box-shadow: var(--neu-shadow), 0 4px 14px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.walk-in-order__cart-fab:active {
+  transform: scale(0.94);
+}
+
+.walk-in-order__cart-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--error);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-primary);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -284,6 +326,10 @@
 
   .walk-in-order__cart {
     position: static;
+  }
+
+  .walk-in-order__cart-fab {
+    display: flex;
   }
 }
 

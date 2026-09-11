@@ -188,7 +188,7 @@ export default function WaiterWalkInOrderPage() {
         </div>
 
         {/* سبد سفارش */}
-        <div className="walk-in-order__cart">
+        <div className="walk-in-order__cart" id="walk-in-order-cart">
           <h3 className="walk-in-order__cart-title"><MdReceiptLong size={20} /> سبد سفارش ({totalQuantity})</h3>
 
           {cart.length === 0 ? (
@@ -271,6 +271,17 @@ export default function WaiterWalkInOrderPage() {
           </Button>
         </div>
       </div>
+
+      {cart.length > 0 && (
+        <button
+          className="walk-in-order__cart-fab"
+          onClick={() => document.getElementById('walk-in-order-cart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          aria-label="رفتن به سبد سفارش"
+        >
+          <MdReceiptLong size={22} />
+          <span className="walk-in-order__cart-fab-badge">{totalQuantity}</span>
+        </button>
+      )}
 
       {pickerItem && (
         <ItemPickerModal
