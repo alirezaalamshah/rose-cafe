@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تنظیمات چاپگر فیش کافه</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f2ee;
+    --card: #ffffff;
+    --text: #2a2622;
+    --muted: #756e64;
+    --border: #ddd6cb;
+    --accent: #a0733f;
+    --accent-hover: #8a6035;
+    --success-bg: #e6f4ea;
+    --success-text: #1e6b34;
+    --error-bg: #fbeaea;
+    --error-text: #a13333;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1a16;
+      --card: #2a2621;
+      --text: #ece7de;
+      --muted: #a89f91;
+      --border: #443d34;
+      --accent: #d9a463;
+      --accent-hover: #e5b378;
+      --success-bg: #16321f;
+      --success-text: #7fd39a;
+      --error-bg: #3a1c1c;
+      --error-text: #e69090;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Vazirmatn", Tahoma, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  .card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+  h1 {
+    font-size: 1.25rem;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 24px;
+    line-height: 1.7;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    margin-top: 18px;
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+  }
+  input:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  button {
+    width: 100%;
+    margin-top: 28px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.success { background: var(--success-bg); color: var(--success-text); }
+  .status.error { background: var(--error-bg); color: var(--error-text); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>تنظیمات چاپگر فیش</h1>
+    <p class="subtitle">این اطلاعات را از مدیر سایت بگیرید. بعد از ذخیره، برنامه‌ی چاپ فیش با همین تنظیمات کار می‌کند.</p>
+
+    <form id="form">
+      <label for="apiBaseUrl">آدرس سایت</label>
+      <input id="apiBaseUrl" type="text" placeholder="https://rccoffee.ir/api" required>
+      <div class="hint">آدرس API سایت — از مدیر سایت بگیرید.</div>
+
+      <label for="apiKey">کلید چاپگر</label>
+      <input id="apiKey" type="text" placeholder="کد داده‌شده از مدیر سایت" required>
+      <div class="hint">یک کد مخفی که مدیر سایت برای این پرینتر ساخته است.</div>
+
+      <label for="printerName">پرینتر</label>
+      <select id="printerName" required>
+        <option value="">در حال جستجوی پرینترها...</option>
+      </select>
+      <div class="hint">اگر پرینتر شما در لیست نیست، ابتدا باید در ویندوز نصب شود (راهنما را ببینید).</div>
+
+      <label for="printerWidth">عرض کاغذ</label>
+      <select id="printerWidth" required>
+        <option value="576">۸۰ میلی‌متر (رایج‌ترین)</option>
+        <option value="384">۵۸ میلی‌متر</option>
+      </select>
+
+      <button type="submit" id="saveBtn">ذخیره و آماده‌سازی</button>
+      <div class="status" id="status"></div>
+    </form>
+  </div>
+
+<script>
+async function loadState() {
+  const res = await fetch('/api/state')
+  const data = await res.json()
+
+  const select = document.getElementById('printerName')
+  select.innerHTML = ''
+  if (data.printers.length === 0) {
+    select.innerHTML = '<option value="">هیچ پرینتری در ویندوز یافت نشد</option>'
+  } else {
+    for (const name of data.printers) {
+      const opt = document.createElement('option')
+      opt.value = name
+      opt.textContent = name
+      select.appendChild(opt)
+    }
+  }
+
+  if (data.current.API_BASE_URL) document.getElementById('apiBaseUrl').value = data.current.API_BASE_URL
+  if (data.current.PRINT_AGENT_API_KEY) document.getElementById('apiKey').value = data.current.PRINT_AGENT_API_KEY
+  if (data.current.PRINTER_WIDTH_PX) document.getElementById('printerWidth').value = data.current.PRINTER_WIDTH_PX
+  if (data.current.PRINTER_NAME && data.printers.includes(data.current.PRINTER_NAME)) {
+    select.value = data.current.PRINTER_NAME
+  }
+}
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const status = document.getElementById('status')
+  const btn = document.getElementById('saveBtn')
+  btn.disabled = true
+  status.className = 'status'
+
+  const payload = {
+    API_BASE_URL: document.getElementById('apiBaseUrl').value.trim().replace(/\/$/, ''),
+    PRINT_AGENT_API_KEY: document.getElementById('apiKey').value.trim(),
+    PRINTER_NAME: document.getElementById('printerName').value,
+    PRINTER_WIDTH_PX: document.getElementById('printerWidth').value,
+    POLL_INTERVAL_SECONDS: '5',
+  }
+
+  try {
+    const res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      status.textContent = 'ذخیره شد. این پنجره را می‌بندید — برنامه‌ی چاپ فیش از این پس خودکار اجرا می‌شود.'
+      status.classList.add('show', 'success')
+    } else {
+      status.textContent = 'خطا در ذخیره: ' + data.error
+      status.classList.add('show', 'error')
+    }
+  } catch (err) {
+    status.textContent = 'خطا در ارتباط با برنامه. لطفاً دوباره تلاش کنید.'
+    status.classList.add('show', 'error')
+  } finally {
+    btn.disabled = false
+  }
+})
+
+loadState()
+</script>
+</body>
+</html>

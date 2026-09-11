@@ -1,4 +1,16 @@
-require('dotenv').config()
+const path = require('path')
+const os = require('os')
+const fs = require('fs')
+
+// در نصب واقعی (installer)، برنامه در Program Files است — جایی که کاربر عادی
+// اجازه‌ی نوشتن ندارد، پس صفحه‌ی تنظیمات .env را در %APPDATA% ذخیره می‌کند
+// (همان‌جایی که config-server.js هم می‌نویسد). در حالت توسعه (بدون نصب) اگر آن
+// فایل وجود نداشت، به .env کنار پروژه بازمی‌گردیم.
+const APPDATA_ENV_PATH = path.join(os.homedir(), 'AppData', 'Roaming', 'CafePrintAgent', '.env')
+require('dotenv').config({
+  path: fs.existsSync(APPDATA_ENV_PATH) ? APPDATA_ENV_PATH : path.join(__dirname, '.env'),
+})
+
 const axios = require('axios')
 const { renderReceiptToRaster, rasterToEscPosCommand } = require('./render.js')
 const { printRawBuffer } = require('./printer.js')
