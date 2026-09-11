@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
   const [perms, setPerms] = useState({
     can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false,
     can_manage_menu_availability: false, can_force_close_cafe: false, can_view_own_performance: false,
+    can_view_customer_contact_info: false, can_take_walk_in_orders: false,
   })
   const [savingPerms, setSavingPerms] = useState(false)
 
@@ -117,6 +118,7 @@ export default function AdminUsersPage() {
       setPerms({
         can_manage_orders: true, can_manage_reservations: false, can_manage_tables: false,
         can_manage_menu_availability: false, can_force_close_cafe: false, can_view_own_performance: false,
+        can_view_customer_contact_info: false, can_take_walk_in_orders: false,
       })
     }
   }
@@ -388,6 +390,7 @@ export default function AdminUsersPage() {
             { key: 'can_force_close_cafe', label: 'بستن فوری کافه', desc: 'بستن/بازکردن اضطراری کافه برای امروز' },
             { key: 'can_view_own_performance', label: 'مشاهده عملکرد خود', desc: 'گزارش شخصی از سفارش‌های تأیید/رد‌شده و وجوه وصول‌شده' },
             { key: 'can_view_customer_contact_info', label: 'مشاهده اطلاعات تماس مشتری', desc: 'نام، شماره تماس و آدرس مشتری در کارت سفارش نمایش داده شود' },
+            { key: 'can_take_walk_in_orders', label: 'ثبت سفارش حضوری', desc: 'دسترسی به پنل سفارش‌گیری حضوری برای مشتریانی که داخل اپلیکیشن سفارش نمی‌دهند' },
           ].map(({ key, label, desc }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
               <input

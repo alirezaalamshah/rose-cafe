@@ -21,6 +21,7 @@ class StaffActionLog(models.Model):
         WALLET_ADMIN_ADJUSTMENT = 'wallet_admin_adjustment', 'تنظیم دستی کیف‌پول'
         SNAPP_CIRCUIT_BREAKER_RESET = 'snapp_circuit_breaker_reset', 'فعال‌سازی مجدد اسنپ‌باکس'
         WIN_BACK_SMS_SENT = 'win_back_sms_sent', 'ارسال پیام دلتنگی'
+        WALK_IN_ORDER_CREATED = 'walk_in_order_created', 'ثبت سفارش حضوری'
 
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,

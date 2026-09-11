@@ -40,6 +40,7 @@ const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage.jsx
 const AdminBannersPage = lazy(() => import('./pages/admin/AdminBannersPage.jsx'))
 const AdminActivityLogPage = lazy(() => import('./pages/admin/AdminActivityLogPage.jsx'))
 const AdminCategorySalesPage = lazy(() => import('./pages/admin/AdminCategorySalesPage.jsx'))
+const WaiterWalkInOrderPageForAdmin = lazy(() => import('./pages/waiter/WaiterWalkInOrderPage.jsx'))
 
 // پنل گارسون: همین‌طور، مشتری/ادمین این چانک را دانلود نمی‌کنند
 const WaiterLayout = lazy(() => import('./components/waiter/WaiterLayout/WaiterLayout.jsx'))
@@ -49,6 +50,7 @@ const WaiterReservationsPage = lazy(() => import('./pages/waiter/WaiterReservati
 const WaiterTablesPage = lazy(() => import('./pages/waiter/WaiterTablesPage.jsx'))
 const WaiterMenuPage = lazy(() => import('./pages/waiter/WaiterMenuPage.jsx'))
 const WaiterPerformancePage = lazy(() => import('./pages/waiter/WaiterPerformancePage.jsx'))
+const WaiterWalkInOrderPage = lazy(() => import('./pages/waiter/WaiterWalkInOrderPage.jsx'))
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore()
@@ -101,6 +103,7 @@ function App() {
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="walk-in-order" element={<WaiterWalkInOrderPageForAdmin />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
           <Route path="category-sales" element={<AdminCategorySalesPage />} />
           <Route path="menu" element={<AdminMenuPage />} />
@@ -126,6 +129,7 @@ function App() {
           <Route path="tables" element={<WaiterTablesPage />} />
           <Route path="menu" element={<WaiterMenuPage />} />
           <Route path="performance" element={<WaiterPerformancePage />} />
+          <Route path="walk-in-order" element={<WaiterWalkInOrderPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

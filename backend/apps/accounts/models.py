@@ -106,6 +106,10 @@ class WaiterPermission(models.Model):
         default=False, verbose_name='مشاهده اطلاعات تماس مشتری',
         help_text='نام، شماره تماس و آدرس مشتری در کارت سفارش نمایش داده شود',
     )
+    can_take_walk_in_orders = models.BooleanField(
+        default=False, verbose_name='ثبت سفارش حضوری',
+        help_text='دسترسی به پنل سفارش‌گیری حضوری برای مشتریانی که داخل اپلیکیشن سفارش نمی‌دهند',
+    )
 
     class Meta:
         verbose_name = 'دسترسی سرپرست سالن'

@@ -108,7 +108,7 @@ class WaiterPermissionSerializer(serializers.ModelSerializer):
         fields = [
             'can_manage_orders', 'can_manage_reservations', 'can_manage_tables',
             'can_manage_menu_availability', 'can_force_close_cafe', 'can_view_own_performance',
-            'can_view_customer_contact_info',
+            'can_view_customer_contact_info', 'can_take_walk_in_orders',
         ]
 
 

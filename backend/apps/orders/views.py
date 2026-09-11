@@ -11,6 +11,7 @@ from .serializers import (
     OrderCreateSerializer, OrderSerializer,
     AdminOrderSerializer, OrderStatusUpdateSerializer,
 )
+from .services import create_order, OrderCreationError
 from apps.accounts.models import Address
 from apps.accounts.permissions import IsWaiter
 from apps.discounts.utils import apply_discount
@@ -134,156 +135,21 @@ class OrderListCreateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # محاسبه قیمت آیتم‌ها (قبل از تعیین هزینه ارسال)
-        total = 0
-        items_to_create = []
-        for item_data in data['items']:
-            menu_item = item_data['menu_item']
-            variant = None
-            variant_name = ''
-            if item_data.get('variant_id'):
-                try:
-                    variant = MenuItemVariant.objects.get(
-                        id=item_data['variant_id'], item=menu_item
-                    )
-                    variant_name = variant.name
-                    unit_price = variant.final_price
-                except MenuItemVariant.DoesNotExist:
-                    unit_price = menu_item.final_price
-            else:
-                unit_price = menu_item.final_price
-
-            # افزودنی‌های انتخابی — فقط آن‌هایی که واقعاً به همین آیتم تعلق دارند و موجودند
-            addon_ids = item_data.get('addon_ids') or []
-            addons = list(
-                MenuItemAddon.objects.filter(id__in=addon_ids, item=menu_item, is_available=True)
-            ) if addon_ids else []
-            addons_total = sum(a.price for a in addons)
-
-            qty = item_data['quantity']
-            total += (unit_price + addons_total) * qty
-            items_to_create.append({
-                'menu_item': menu_item,
-                'variant': variant,
-                'variant_name': variant_name,
-                'quantity': qty,
-                'unit_price': unit_price,
-                'addons': addons,
-            })
-
-        # هزینه ارسال بر اساس تنظیمات (با پشتیبانی از ارسال رایگان مشروط) — یک‌بار برای کل سفارش
-        from apps.business.models import DeliverySettings
-        delivery_settings = DeliverySettings.get_settings()
-        if data['delivery_type'] == Order.DeliveryType.DELIVERY:
-            threshold = delivery_settings.free_delivery_threshold
-            if threshold and total >= threshold:
-                delivery_cost = 0
-            else:
-                delivery_cost = delivery_settings.delivery_cost
-        else:
-            delivery_cost = 0
-
-        # هزینه بسته‌بندی — به‌ازای هر واحد از هر آیتم (نه یک‌بار برای کل سفارش)؛ مثلاً ۲ لیوان قهوه
-        # باید ۲ برابر هزینه بسته‌بندی داشته باشد. فقط برای بیرون‌بر/ارسالی (سرو در کافه نیاز ندارد)
-        total_quantity = sum(item_p['quantity'] for item_p in items_to_create)
-        if data['delivery_type'] == Order.DeliveryType.TAKEAWAY:
-            packaging_cost = delivery_settings.takeaway_packaging_cost * total_quantity
-        elif data['delivery_type'] == Order.DeliveryType.DELIVERY:
-            packaging_cost = delivery_settings.delivery_packaging_cost * total_quantity
-        else:
-            packaging_cost = 0
-
         payment_method = data.get('payment_method', Order.PaymentMethod.ONLINE)
 
-        # اعتبارسنجی تخفیف قبل از هرگونه نوشتن در دیتابیس — وگرنه با کد نامعتبر
-        # سفارش/آیتم‌های یتیم (بدون تخفیف) در دیتابیس باقی می‌مانند، چون یک return
-        # ساده وسط transaction.atomic باعث rollback نمی‌شود (فقط raise این کار را می‌کند)
-        discount_code = data.get('discount_code', '')
-        discount_amount = 0
-        applied_discount_result = None
-        if discount_code:
-            result = apply_discount(discount_code, total, request.user)
-            if not result['valid']:
-                return Response(
-                    {'detail': result['message']},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            discount_amount = result['discount_amount']
-            applied_discount_result = result
-
-        # ساخت سفارش
-        order = Order.objects.create(
-            user=request.user,
-            delivery_type=data['delivery_type'],
-            payment_method=payment_method,
-            address=address,
-            table=table,
-            note=data.get('note', ''),
-            delivery_cost=delivery_cost,
-            packaging_cost=packaging_cost,
-        )
-
-        # ساخت آیتم‌ها
-        for item_p in items_to_create:
-            order_item = OrderItem.objects.create(
-                order=order,
-                menu_item=item_p['menu_item'],
-                variant=item_p['variant'],
-                variant_name=item_p['variant_name'],
-                quantity=item_p['quantity'],
-                unit_price=item_p['unit_price'],
-            )
-            for addon in item_p['addons']:
-                OrderItemAddon.objects.create(
-                    order_item=order_item, addon=addon, name=addon.name, price=addon.price,
-                )
-
-        order.total_price = total
-        if applied_discount_result:
-            order.discount_code = discount_code
-            order.discount_amount = discount_amount
-
-        order.final_price = total + delivery_cost + packaging_cost - discount_amount
-
-        # سفارش نقدی/کیف‌پول بلافاصله در انتظار تأیید کافه قرار می‌گیرد — پیش از آماده‌سازی
-        # باید گارسون/ادمین تأیید کند (ممکن است کافه امکان آماده کردنش را نداشته باشد)
-        if payment_method in (Order.PaymentMethod.CASH, Order.PaymentMethod.WALLET):
-            order.status = Order.Status.PENDING_CONFIRMATION
-
-        order.save()
-
-        if payment_method == Order.PaymentMethod.WALLET:
-            if order.final_price > 0:
-                from apps.wallet.services import debit, InsufficientBalanceError
-                from apps.wallet.models import WalletTransaction
-                try:
-                    debit(
-                        request.user, order.final_price, WalletTransaction.Type.ORDER_PAYMENT,
-                        order=order, description=f'پرداخت سفارش #{order.order_number}',
-                    )
-                except InsufficientBalanceError:
-                    # rollback کامل (سفارش/آیتم‌ها) بدون commit شدن — الگوی رسمی جنگو برای
-                    # لغو دستی یک atomic block از داخل و بازگرداندن پاسخ خطای دلخواه
-                    transaction.set_rollback(True)
-                    return Response({'detail': 'موجودی کیف‌پول کافی نیست'}, status=status.HTTP_400_BAD_REQUEST)
-            order.is_paid = True
-            order.save(update_fields=['is_paid'])
-
-        if order.status == Order.Status.PENDING_CONFIRMATION:
-            notify_new_order(order)
-
-        # ثبت استفاده از تخفیف
-        if applied_discount_result:
-            from apps.discounts.models import DiscountUsage
-            disc_obj = applied_discount_result['discount']
-            DiscountUsage.objects.create(
-                discount=disc_obj,
+        try:
+            order = create_order(
                 user=request.user,
-                order_id=order.id,
-                used_year=applied_discount_result.get('used_year'),
+                items=data['items'],
+                delivery_type=data['delivery_type'],
+                payment_method=payment_method,
+                address=address,
+                table=table,
+                note=data.get('note', ''),
+                discount_code=data.get('discount_code', ''),
             )
-            disc_obj.used_count += 1
-            disc_obj.save(update_fields=['used_count'])
+        except OrderCreationError as exc:
+            return Response({'detail': exc.message}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             OrderSerializer(order).data,
@@ -536,6 +402,9 @@ class OrderApproveView(APIView):
         if not request.user.is_staff:
             order.assigned_waiter = request.user
         order.save(update_fields=['status', 'approved_at', 'assigned_waiter'])
+
+        from apps.pos.services import queue_print_job
+        queue_print_job(order)
 
         log_staff_action(
             request.user, StaffActionLog.Action.ORDER_APPROVED,

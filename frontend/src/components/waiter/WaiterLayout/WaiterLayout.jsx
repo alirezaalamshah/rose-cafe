@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   MdRestaurantMenu, MdTableBar, MdEventNote, MdLogout, MdDashboard, MdArrowForward,
-  MdInventory, MdBarChart,
+  MdInventory, MdBarChart, MdPointOfSale,
 } from 'react-icons/md'
 import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
@@ -50,6 +50,13 @@ export default function WaiterLayout() {
               <NavLink to="/waiter/orders" title="سفارشات" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
                 <MdRestaurantMenu size={22} />
                 <span>سفارشات</span>
+              </NavLink>
+            )}
+
+            {perms.can_take_walk_in_orders && (
+              <NavLink to="/waiter/walk-in-order" title="سفارش حضوری" className={({ isActive }) => `waiter-nav__item ${isActive ? 'waiter-nav__item--active' : ''}`}>
+                <MdPointOfSale size={22} />
+                <span>سفارش حضوری</span>
               </NavLink>
             )}
 

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'apps.staff_activity.apps.StaffActivityConfig',
     'apps.wallet.apps.WalletConfig',
     'apps.snapp.apps.SnappConfig',
+    'apps.pos.apps.PosConfig',
 ]
 
 MIDDLEWARE = [
@@ -161,6 +162,11 @@ SNAPP_BOX_CLIENT_SECRET = config('SNAPP_BOX_CLIENT_SECRET', default='')
 # توکن مخفی که در URL وبهوک (پنل B2B اسنپ‌باکس) قرار می‌دهیم تا صحت درخواست‌های
 # رسیده به SnappWebhookView تأیید شود (مستندات اسنپ امضای اختصاصی ارائه نکرده)
 SNAPP_BOX_WEBHOOK_TOKEN = config('SNAPP_BOX_WEBHOOK_TOKEN', default='')
+
+# کلید ثابت احراز هویت Print Agent (برنامه‌ی محلی داخل کافه که فیش‌های در انتظار را
+# poll و روی پرینتر حرارتی چاپ می‌کند) — دستگاه چاپ حساب کاربری ندارد، پس مثل
+# SNAPP_BOX_WEBHOOK_TOKEN یک کلید ثابت در هدر درخواست استفاده می‌شود
+PRINT_AGENT_API_KEY = config('PRINT_AGENT_API_KEY', default='')
 
 # Push Notification (Web Push / VAPID) — کلید عمومی از طریق API به فرانت‌اند هم داده می‌شود
 VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')

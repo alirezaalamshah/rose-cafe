@@ -98,6 +98,10 @@ class Order(models.Model):
         help_text='تا این فیلد خالی نشود، دوباره برای همین سفارش یادآوری نقدی ارسال نمی‌شود',
     )
     note = models.TextField(blank=True, verbose_name='توضیحات سفارش')
+    walk_in_customer_name = models.CharField(
+        max_length=100, blank=True, verbose_name='نام مشتری حضوری',
+        help_text='فقط برای سفارش‌هایی که پرسنل مستقیماً برای مشتری حضوری ثبت کرده — سفارش‌های عادی این را خالی می‌گذارند چون نام واقعی از حساب کاربری مشتری خوانده می‌شود',
+    )
     total_price = models.PositiveIntegerField(default=0, verbose_name='مبلغ کل')
     delivery_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه ارسال')
     packaging_cost = models.PositiveIntegerField(default=0, verbose_name='هزینه بسته‌بندی')

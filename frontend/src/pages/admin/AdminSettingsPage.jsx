@@ -3,12 +3,13 @@ import {
   MdLocalShipping, MdSave, MdStore,
   MdPhone, MdLocationOn, MdTableBar,
   MdShare, MdAdd, MdEdit, MdDelete, MdCheck, MdClose,
-  MdAccountBalanceWallet, MdDeliveryDining,
+  MdAccountBalanceWallet, MdDeliveryDining, MdReceiptLong,
 } from 'react-icons/md'
 import toast from 'react-hot-toast'
 import { businessAPI } from '../../api/business.js'
 import { walletAPI } from '../../api/wallet.js'
 import { snappAPI } from '../../api/snapp.js'
+import { posAPI } from '../../api/pos.js'
 import { confirm } from '../../store/confirmStore.js'
 import Button from '../../components/common/Button/Button.jsx'
 import { Input, Textarea, Select } from '../../components/common/Input/Input.jsx'
@@ -376,6 +377,86 @@ function DeliverySection() {
       <div className="settings-section__actions">
         <Button size="sm" loading={saving} onClick={handleSave}>
           <MdSave size={14} /> ذخیره تنظیمات
+        </Button>
+      </div>
+    </SettingsSection>
+  )
+}
+
+function ReceiptSettingsSection() {
+  const [form, setForm] = useState({
+    header_text: '', footer_text: '', show_customer_name: true, show_customer_phone: false,
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    posAPI.adminGetReceiptSettings()
+      .then((data) => setForm({
+        header_text: data.header_text ?? '',
+        footer_text: data.footer_text ?? '',
+        show_customer_name: Boolean(data.show_customer_name),
+        show_customer_phone: Boolean(data.show_customer_phone),
+      }))
+      .catch(() => toast.error('خطا در بارگذاری تنظیمات فیش'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await posAPI.adminUpdateReceiptSettings(form)
+      toast.success('تنظیمات فیش ذخیره شد')
+    } catch {
+      toast.error('خطا در ذخیره تنظیمات')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="settings-section__loading"><Loading /></div>
+
+  return (
+    <SettingsSection
+      icon={MdReceiptLong}
+      title="تنظیمات فیش چاپی"
+      hint="متن‌های آزادی که روی فیش چاپ‌شده نمایش داده می‌شوند — شماره سفارش، آیتم‌ها و قیمت‌ها همیشه ثابت هستند"
+    >
+      <div className="settings-grid settings-grid--2">
+        <Input
+          label="متن بالای فیش"
+          value={form.header_text}
+          onChange={(e) => setForm((p) => ({ ...p, header_text: e.target.value }))}
+          placeholder="خالی = فقط نام کافه چاپ شود"
+        />
+        <Input
+          label="متن پایین فیش"
+          value={form.footer_text}
+          onChange={(e) => setForm((p) => ({ ...p, footer_text: e.target.value }))}
+          placeholder="مثلاً: با تشکر 🌹"
+        />
+      </div>
+      <div style={{ marginTop: 'var(--space-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+        <label className="social-link-toggle">
+          <input
+            type="checkbox"
+            checked={form.show_customer_name}
+            onChange={(e) => setForm((p) => ({ ...p, show_customer_name: e.target.checked }))}
+          />
+          نمایش نام مشتری روی فیش
+        </label>
+        <label className="social-link-toggle">
+          <input
+            type="checkbox"
+            checked={form.show_customer_phone}
+            onChange={(e) => setForm((p) => ({ ...p, show_customer_phone: e.target.checked }))}
+          />
+          نمایش شماره تماس مشتری روی فیش
+        </label>
+      </div>
+      <div className="settings-section__actions">
+        <Button size="sm" loading={saving} onClick={handleSave}>
+          <MdSave size={14} /> ذخیره تنظیمات فیش
         </Button>
       </div>
     </SettingsSection>
@@ -794,6 +875,7 @@ export default function AdminSettingsPage() {
         <CafeInfoSection />
         <SocialLinksSection />
         <DeliverySection />
+        <ReceiptSettingsSection />
         <ReservationSection />
         <LoyaltySection />
         <SnappSection />

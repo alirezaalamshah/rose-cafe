@@ -22,5 +22,6 @@ urlpatterns = [
     path('api/staff-activity/', include('apps.staff_activity.urls')),
     path('api/wallet/', include('apps.wallet.urls')),
     path('api/snapp/', include('apps.snapp.urls')),
+    path('api/pos/', include('apps.pos.urls')),
     re_path(r'^api/media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
