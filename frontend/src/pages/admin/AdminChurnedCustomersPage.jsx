@@ -239,36 +239,38 @@ export default function AdminChurnedCustomersPage() {
             هنوز هیچ کد تخفیفی برای این مشتری ارسال نشده است
           </p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>کد</th>
-                  <th>تخفیف</th>
-                  <th>وضعیت</th>
-                  <th>روز باقی‌مانده</th>
-                  <th>تاریخ ساخت</th>
-                </tr>
-              </thead>
-              <tbody>
-                {codes.map((d) => {
-                  const meta = STATUS_META[d.status] || STATUS_META.expired
-                  return (
-                    <tr key={d.id}>
-                      <td data-label="کد"><span dir="ltr" style={{ fontFamily: 'monospace' }}>{d.code}</span></td>
-                      <td data-label="تخفیف">
-                        {d.discount_type === 'percentage' ? `${toPersianNum(d.value)}٪` : formatPrice(d.value)}
-                      </td>
-                      <td data-label="وضعیت"><span className={meta.cls}>{meta.label}</span></td>
-                      <td data-label="روز باقی‌مانده">
-                        {d.status === 'active' ? `${toPersianNum(d.days_remaining)} روز` : '—'}
-                      </td>
-                      <td data-label="تاریخ ساخت">{formatJalali(d.created_at)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            {codes.map((d) => {
+              const meta = STATUS_META[d.status] || STATUS_META.expired
+              return (
+                <div
+                  key={d.id}
+                  style={{
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)',
+                    background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span dir="ltr" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {d.code}
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {d.discount_type === 'percentage' ? `${toPersianNum(d.value)}٪ تخفیف` : `${formatPrice(d.value)} تخفیف`}
+                      {' · '}{formatJalali(d.created_at)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                    {d.status === 'active' && (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {toPersianNum(d.days_remaining)} روز مانده
+                      </span>
+                    )}
+                    <span className={meta.cls}>{meta.label}</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </Modal>
