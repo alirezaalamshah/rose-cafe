@@ -33,9 +33,17 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || '/' },
   }
 
+  // عدد badge روی آیکون اپ — سرور همین الان (لحظه‌ی ساخت پیام) حساب کرده و همراه
+  // payload فرستاده، تا حتی بدون هیچ تب باز/فعالی هم به‌روز شود؛ در مرورگرهایی که
+  // این API را ندارند (مثلاً اکثر iOS) بی‌صدا نادیده گرفته می‌شود
+  const badgeTask = 'setAppBadge' in self.navigator
+    ? (data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()).catch(() => {})
+    : Promise.resolve()
+
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, options),
+      badgeTask,
       // اگر تبی از اپ همین الان باز است، به‌جای صدای پیش‌فرض سیستم‌عامل، صدای
       // اختصاصی خودمان (بر اساس data.type) را در همان تب پخش کن
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

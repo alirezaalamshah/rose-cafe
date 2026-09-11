@@ -33,13 +33,36 @@ def _send_to_subscription(subscription, payload: dict) -> bool:
         return False
 
 
+def _pending_badge_count_for(user) -> int:
+    """همان شمارش pending_badge_count ولی برای فراخوانی داخلی (نه یک درخواست HTTP جدا) —
+    تا هر Push خودش عدد فعلی badge کاربر را همراه ببرد و service worker بتواند
+    navigator.setAppBadge را حتی وقتی هیچ تبی از اپ باز نیست به‌روز کند."""
+    from apps.orders.models import Order
+    from apps.reservations.models import Reservation
+
+    perm = getattr(user, 'waiter_permissions', None)
+    can_see_orders = user.is_staff or (perm and perm.can_manage_orders)
+    can_see_reservations = user.is_staff or (perm and perm.can_manage_reservations)
+
+    count = 0
+    if can_see_orders:
+        count += Order.objects.filter(status=Order.Status.PENDING_CONFIRMATION).count()
+    if can_see_reservations:
+        count += Reservation.objects.filter(status=Reservation.Status.PENDING).count()
+    return count
+
+
 def send_push_to_user(user, title: str, body: str, url: str = '/', notif_type: str = '') -> None:
     if not settings.VAPID_PRIVATE_KEY:
         logger.info(f'[PUSH DISABLED — VAPID not configured] {user}: {title}')
         return
     # type برای این است که وقتی اپ باز است، service worker بداند کدام صدای اختصاصی
-    # (سفارش جدید/رزرو جدید/یادآوری نقدی) را به تب‌های باز پخش کند
-    payload = {'title': title, 'body': body, 'url': url, 'type': notif_type}
+    # (سفارش جدید/رزرو جدید/یادآوری نقدی) را به تب‌های باز پخش کند. badge هم همین‌جا
+    # محاسبه می‌شود تا حتی بدون هیچ تب بازی، عدد روی آیکون اپ به‌روز بماند.
+    payload = {
+        'title': title, 'body': body, 'url': url, 'type': notif_type,
+        'badge': _pending_badge_count_for(user),
+    }
     for subscription in list(user.push_subscriptions.all()):
         _send_to_subscription(subscription, payload)
 
@@ -61,13 +84,26 @@ def get_notification_recipients(permission_field: str):
     ).distinct()
 
 
+def _order_context_label(order) -> str:
+    """میز/نوع تحویل سفارش، به‌صورت یک عبارت کوتاه برای نمایش در متن نوتیفیکیشن —
+    تا سرپرست سالن بدون باز کردن اپ بداند این سفارش برای کدام میز/چه نوع تحویلی است."""
+    if order.delivery_type == order.DeliveryType.DINE_IN:
+        return f'میز {order.table.number}' if order.table_id else 'سرو در کافه'
+    if order.delivery_type == order.DeliveryType.DELIVERY:
+        return 'ارسال با پیک'
+    return 'بیرون‌بر'
+
+
 def notify_new_order(order) -> None:
     """
     نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت سفارش — سفارش تازه در
     انتظار تأیید است. لینک هرکدام به صفحه‌ی سفارشات پنل خودشان می‌رود (مسیرها فرق دارند).
+    متن شامل میز/نوع تحویل و نام مشتری است تا پیام روی نوتیفیکیشن گوشی به‌تنهایی
+    کافی باشد و نیازی به باز کردن اپ برای فهمیدن «این سفارش چیست» نباشد.
     """
     title = 'سفارش جدید'
-    body = f'سفارش #{order.order_number} در انتظار تأیید است'
+    customer_name = order.user.full_name or str(order.user.phone)
+    body = f'سفارش #{order.order_number} — {_order_context_label(order)} — {customer_name}'
     recipients = list(get_notification_recipients('can_manage_orders'))
     send_push_to_users(
         [u for u in recipients if u.is_staff], title, body, url='/admin/orders', notif_type='new_order',
@@ -135,11 +171,13 @@ def notify_courier_delivered(order) -> None:
 
 
 def notify_new_reservation(reservation) -> None:
-    """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت رزرو — رزرو تازه ثبت شده است."""
+    """نوتیفیکیشن Push به ادمین‌ها + گارسون‌های دارای دسترسی مدیریت رزرو — رزرو تازه ثبت شده است.
+    شامل میز و نام مشتری تا از روی خود نوتیفیکیشن هم مشخص باشد چه رزروی است."""
     title = 'رزرو جدید'
     date_str = str(reservation.date)
     time_str = str(reservation.start_time)[:5]
-    body = f'رزرو جدید برای {date_str} ساعت {time_str}'
+    customer_name = reservation.user.full_name or str(reservation.user.phone)
+    body = f'میز {reservation.table.number} — {date_str} ساعت {time_str} — {customer_name}'
     recipients = list(get_notification_recipients('can_manage_reservations'))
     send_push_to_users(
         [u for u in recipients if u.is_staff], title, body,

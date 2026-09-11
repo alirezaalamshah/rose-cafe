@@ -79,3 +79,16 @@ def push_unsubscribe(request):
         endpoint_hash = hashlib.sha256(endpoint.encode()).hexdigest()
         PushSubscription.objects.filter(endpoint_hash=endpoint_hash, user=request.user).delete()
     return Response({'detail': 'اشتراک نوتیفیکیشن لغو شد'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_badge_count(request):
+    """
+    تعداد کارهای «بدون‌اکشن» کاربر جاری — سفارش‌های در انتظار تأیید + رزروهای در
+    انتظار تأیید، هرکدام فقط اگر کاربر واقعاً دسترسی آن بخش را داشته باشد (ادمین
+    همیشه، سرپرست سالن فقط با can_manage_orders/can_manage_reservations). برای
+    navigator.setAppBadge() سمت فرانت — یک عدد ساده، نه لیست کامل.
+    """
+    from .push import _pending_badge_count_for
+    return Response({'count': _pending_badge_count_for(request.user)})

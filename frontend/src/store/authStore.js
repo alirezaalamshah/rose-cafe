@@ -108,6 +108,9 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem('user')
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
     useCartStore.getState().clearCart()
+    // باجت اپ متعلق به شخص خروج‌کرده بود — کاربر بعدی روی همین دستگاه نباید
+    // عدد قدیمی/گمراه‌کننده ببیند
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {})
   },
 
   updateUser: (userData) => {

@@ -13,6 +13,7 @@ import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx
 import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
 import AdminGlobalSearch from './AdminGlobalSearch.jsx'
 import useNotificationSound from '../../../hooks/useNotificationSound.js'
+import useAppBadge from '../../../hooks/useAppBadge.js'
 import './AdminSidebar.css'
 
 const NAV_GROUPS = [
@@ -79,6 +80,7 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cafeName, setCafeName] = useState('')
   useNotificationSound()
+  useAppBadge()
 
   useEffect(() => {
     businessAPI.getCafeInfo()

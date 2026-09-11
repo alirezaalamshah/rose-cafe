@@ -7,6 +7,7 @@ import useAuthStore from '../../../store/authStore.js'
 import InstallAppButton from '../../common/InstallAppButton/InstallAppButton.jsx'
 import NotificationToggleButton from '../../common/NotificationToggleButton/NotificationToggleButton.jsx'
 import useNotificationSound from '../../../hooks/useNotificationSound.js'
+import useAppBadge from '../../../hooks/useAppBadge.js'
 import { confirm } from '../../../store/confirmStore.js'
 import './WaiterLayout.css'
 
@@ -15,6 +16,7 @@ export default function WaiterLayout() {
   const navigate = useNavigate()
   const perms = user?.waiter_permissions || {}
   useNotificationSound()
+  useAppBadge()
 
   async function handleLogout() {
     if (!(await confirm('از حساب کاربری خارج می‌شوید؟', { title: 'خروج از سیستم', confirmLabel: 'خروج' }))) return

@@ -1,10 +1,11 @@
+from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
 
 from apps.accounts.models import User, WaiterPermission
 from .models import PushSubscription
-from .push import get_notification_recipients
+from .push import get_notification_recipients, notify_new_order, notify_new_reservation
 
 
 class PushSubscriptionAPITestCase(APITestCase):
@@ -94,3 +95,107 @@ class NotificationRecipientsTestCase(TestCase):
         recipients = get_notification_recipients('can_manage_reservations')
         self.assertIn(self.admin, recipients)
         self.assertNotIn(self.waiter_with_perm, recipients)
+
+
+class PendingBadgeCountTestCase(APITestCase):
+    def setUp(self):
+        from apps.orders.models import Order
+        from apps.reservations.models import Table, Reservation
+
+        self.admin = User.objects.create_user(phone='+989120000020', full_name='ادمین')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+
+        self.waiter_orders_only = User.objects.create_user(phone='+989120000021', full_name='گارسون سفارش')
+        self.waiter_orders_only.role = User.Role.WAITER
+        self.waiter_orders_only.save(update_fields=['role'])
+        WaiterPermission.objects.create(
+            user=self.waiter_orders_only, can_manage_orders=True, can_manage_reservations=False,
+        )
+
+        customer = User.objects.create_user(phone='+989120000022', full_name='مشتری')
+        Order.objects.create(
+            user=customer, delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH, status=Order.Status.PENDING_CONFIRMATION,
+            final_price=100000,
+        )
+        Order.objects.create(
+            user=customer, delivery_type=Order.DeliveryType.TAKEAWAY,
+            payment_method=Order.PaymentMethod.CASH, status=Order.Status.PAID,
+            final_price=100000,
+        )
+
+        from datetime import time
+        from django.utils import timezone
+        from apps.business.models import BusinessHours
+        for day in range(7):
+            BusinessHours.objects.update_or_create(
+                day_of_week=day,
+                defaults={'is_open': True, 'open_time': time(0, 0), 'close_time': time(23, 59)},
+            )
+        table = Table.objects.create(number=1, capacity=4, is_active=True)
+        Reservation.objects.create(
+            user=customer, table=table, status=Reservation.Status.PENDING,
+            date=timezone.localdate(), guests_count=2, start_time=time(12, 0), end_time=time(13, 0),
+        )
+
+    def test_admin_sees_both_orders_and_reservations(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/notifications/badge-count/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 2)  # ۱ سفارش pending + ۱ رزرو pending
+
+    def test_waiter_with_orders_only_permission(self):
+        self.client.force_authenticate(user=self.waiter_orders_only)
+        response = self.client.get('/api/notifications/badge-count/')
+        self.assertEqual(response.data['count'], 1)  # فقط سفارش، نه رزرو
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get('/api/notifications/badge-count/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class NotifyMessageContentTestCase(TestCase):
+    """متن پیام‌های Push باید شامل جزئیات کافی (میز/نوع تحویل/نام مشتری) باشد تا
+    خودِ نوتیفیکیشن گوشی، بدون باز کردن اپ، قابل‌فهم باشد."""
+
+    def setUp(self):
+        from datetime import time
+        from apps.business.models import BusinessHours
+        from apps.reservations.models import Table
+        for day in range(7):
+            BusinessHours.objects.update_or_create(
+                day_of_week=day,
+                defaults={'is_open': True, 'open_time': time(0, 0), 'close_time': time(23, 59)},
+            )
+        self.admin = User.objects.create_user(phone='+989120000030', full_name='ادمین')
+        self.admin.is_staff = True
+        self.admin.save(update_fields=['is_staff'])
+        self.customer = User.objects.create_user(phone='+989120000031', full_name='رضا احمدی')
+        self.table = Table.objects.create(number=7, capacity=4, is_active=True)
+
+    @patch('apps.notifications.push.send_push_to_users')
+    def test_new_order_message_includes_table_and_customer_name(self, mock_send):
+        from apps.orders.models import Order
+        order = Order.objects.create(
+            user=self.customer, table=self.table, delivery_type=Order.DeliveryType.DINE_IN,
+            payment_method=Order.PaymentMethod.CASH, status=Order.Status.PENDING_CONFIRMATION,
+            final_price=100000,
+        )
+        notify_new_order(order)
+        bodies = [call.args[2] for call in mock_send.call_args_list]
+        self.assertTrue(any('میز 7' in b and 'رضا احمدی' in b for b in bodies))
+
+    @patch('apps.notifications.push.send_push_to_users')
+    def test_new_reservation_message_includes_table_and_customer_name(self, mock_send):
+        from datetime import time
+        from django.utils import timezone
+        from apps.reservations.models import Reservation
+        reservation = Reservation.objects.create(
+            user=self.customer, table=self.table, guests_count=2,
+            date=timezone.localdate(), start_time=time(12, 0), end_time=time(13, 0),
+        )
+        notify_new_reservation(reservation)
+        bodies = [call.args[2] for call in mock_send.call_args_list]
+        self.assertTrue(any('میز 7' in b and 'رضا احمدی' in b for b in bodies))
